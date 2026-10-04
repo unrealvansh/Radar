@@ -1719,13 +1719,15 @@
         // ================================================================
         // CHAT
         // ================================================================
-        function addBubble(text, type) {
+        function addBubble(text, type, id = null) {
             const el = document.getElementById('chat-messages');
             const bubble = document.createElement('div');
             bubble.className = 'chat-bubble ' + type;
+            if (id) bubble.id = id;
             bubble.textContent = text;
             el.appendChild(bubble);
             el.scrollTop = el.scrollHeight;
+            return bubble;
         }
 
         async function sendChat() {
@@ -1736,12 +1738,20 @@
             addBubble(msg, 'user');
             input.value = '';
 
+            // Add thinking bubble
+            const thinkingId = 'bubble-thinking-' + Date.now();
+            const thinkingBubble = addBubble('🧠 Thinking...', 'bot', thinkingId);
+
             try {
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: msg })
                 });
+                
+                // Remove thinking bubble
+                thinkingBubble.remove();
+
                 if (res.ok) {
                     const data = await res.json();
                     addBubble(data.response, 'bot');
@@ -1750,6 +1760,7 @@
                     addBubble('⚠️ Error processing message.', 'bot');
                 }
             } catch (e) {
+                thinkingBubble.remove();
                 addBubble('⚠️ Server unreachable. Check connection!', 'bot');
             }
         }

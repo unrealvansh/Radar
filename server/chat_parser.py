@@ -858,6 +858,59 @@ def parse_message(message):
             'data': expense
         }
 
+    # --- Try SmolLM2 360M Fallback (if smart parser didn't match) ---
+    try:
+        from services.llm_parser import llm_parse
+        llm_action = llm_parse(msg)
+        if llm_action and isinstance(llm_action, dict):
+            act = llm_action.get('action')
+            
+            if act == 'expense' and 'amount' in llm_action:
+                conn = get_db()
+                amt = float(llm_action['amount'])
+                desc = llm_action.get('description', 'Expense')
+                cat = llm_action.get('category', 'misc')
+                conn.execute('INSERT INTO expenses (amount, description, category) VALUES (?, ?, ?)', (amt, desc, cat))
+                conn.commit()
+                conn.close()
+                return {'action': 'expense', 'response': f"🤖 (AI) Logged ₹{amt} for {desc} ({cat})", 'data': llm_action}
+                
+            elif act == 'reminder' and 'title' in llm_action:
+                remind_at = f"{llm_action.get('date', datetime.now().strftime('%Y-%m-%d'))} {llm_action.get('time', '09:00')}"
+                conn = get_db()
+                conn.execute('INSERT INTO reminders (title, remind_at, category) VALUES (?, ?, ?)', (llm_action['title'], remind_at, 'personal'))
+                conn.commit()
+                conn.close()
+                return {'action': 'reminder', 'response': f"🤖 (AI) ⏰ Reminder scheduled for {remind_at}: '{llm_action['title']}'", 'data': llm_action}
+
+            elif act == 'deadline' and 'title' in llm_action:
+                due_date = llm_action.get('due_date', datetime.now().strftime('%Y-%m-%d'))
+                subj = llm_action.get('subject', '')
+                conn = get_db()
+                conn.execute('INSERT INTO deadlines (title, subject, due_date) VALUES (?, ?, ?)', (llm_action['title'], subj, due_date))
+                conn.commit()
+                conn.close()
+                return {'action': 'deadline', 'response': f"🤖 (AI) 📅 Deadline saved: '{llm_action['title']}' due {due_date}", 'data': llm_action}
+
+            elif act == 'note' and 'content' in llm_action:
+                conn = get_db()
+                conn.execute('INSERT INTO notes (content) VALUES (?)', (llm_action['content'],))
+                conn.commit()
+                conn.close()
+                return {'action': 'note', 'response': f"🤖 (AI) 📌 Saved: '{llm_action['content']}'", 'data': llm_action}
+
+            elif act == 'habit' and 'name' in llm_action:
+                conn = get_db()
+                try:
+                    conn.execute('INSERT INTO habit_logs (habit_name) VALUES (?)', (llm_action['name'],))
+                    conn.commit()
+                except Exception:
+                    pass
+                conn.close()
+                return {'action': 'habit', 'response': f"🤖 (AI) 🎯 Habit marked: {llm_action['name']}", 'data': llm_action}
+    except Exception as e:
+        print(f"LLM fallback error: {e}")
+
     # --- Unknown ---
     return {
         'action': 'unknown',
