@@ -85,6 +85,8 @@ User: "{message}"
         "-n", "64",
         "-t", "4",               # 4 CPU threads
         "--temp", "0.1",         # Low temperature for deterministic JSON
+        "--no-conversation",     # Exit after outputting response (don't wait for user prompt)
+        "--simple-io",           # Clean stdout
         "--log-disable",         # Disable verbose logs
         "-c", "512"              # Small context size to save RAM
     ]
