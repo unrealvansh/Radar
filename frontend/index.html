@@ -178,6 +178,28 @@
         .view { display: none; }
         .view.active { display: block; }
 
+        /* ---- Deadlines ---- */
+        .deadline-card {
+            background: #1e293b;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .deadline-card .complete-btn {
+            background: none;
+            border: 1px solid #334155;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            color: #94a3b8;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .deadline-card .complete-btn:hover { border-color: #22c55e; color: #22c55e; }
+
         /* ---- Forms ---- */
         .add-habit-form { display: flex; gap: 8px; margin-bottom: 12px; }
         .add-habit-form input {
@@ -213,6 +235,72 @@
             font-size: 14px;
         }
 
+        /* ---- Chat ---- */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 140px);
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 12px;
+        }
+        .chat-bubble {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-line;
+            word-wrap: break-word;
+        }
+        .chat-bubble.user {
+            background: #3b82f6;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-bubble.bot {
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+        .chat-input-bar {
+            display: flex;
+            gap: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #334155;
+        }
+        .chat-input-bar input {
+            flex: 1;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 20px;
+            padding: 10px 16px;
+            color: #e2e8f0;
+            font-size: 14px;
+            outline: none;
+        }
+        .chat-input-bar input:focus { border-color: #3b82f6; }
+        .chat-send-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chat-send-btn:active { background: #2563eb; }
+
         @keyframes fadeInUp {
             from { opacity: 0; transform: translate(-50%, 20px); }
             to   { opacity: 1; transform: translate(-50%, 0); }
@@ -221,33 +309,36 @@
 </head>
 <body>
 
-    <h1>🧠 PocketBrain</h1>
-    <div class="subtitle" id="server-time">Connecting to server...</div>
-
     <!-- ==================== DASHBOARD VIEW ==================== -->
     <div class="view active" id="view-dashboard">
-        <div class="cards">
-            <div class="card">
-                <div class="card-label">Today's Spending</div>
-                <div class="card-value" id="today-spent">₹0</div>
-            </div>
-            <div class="card">
-                <div class="card-label">This Month</div>
-                <div class="card-value" id="month-spent">₹0</div>
-            </div>
-            <div class="card">
-                <div class="card-label">Habits Today</div>
-                <div class="card-value success" id="habits-count">0/0</div>
-            </div>
-            <div class="card">
-                <div class="card-label">Server</div>
-                <div class="card-value success" id="server-status">🟢</div>
-            </div>
+        <!-- Greeting -->
+        <div class="section">
+            <div style="font-size: 24px; margin-bottom: 4px;">🧠 PocketBrain</div>
+            <div style="color: #94a3b8; font-size: 13px;" id="greeting-time">Loading...</div>
         </div>
 
+        <!-- Deadline Alerts (red/yellow/green cards) -->
         <div class="section">
-            <div class="section-title">📝 Recent Expenses</div>
-            <div id="recent-expenses"><div class="empty">Loading...</div></div>
+            <div class="section-title">📅 Upcoming Deadlines</div>
+            <div id="home-deadlines">Loading...</div>
+        </div>
+
+        <!-- Attendance Warnings -->
+        <div class="section">
+            <div class="section-title">📊 Attendance Alerts</div>
+            <div id="home-attendance">Loading...</div>
+        </div>
+
+        <!-- Money Summary -->
+        <div class="section">
+            <div class="section-title">💸 Money</div>
+            <div id="home-money">Loading...</div>
+        </div>
+
+        <!-- Habits Today -->
+        <div class="section">
+            <div class="section-title">🎯 Today's Habits</div>
+            <div id="home-habits">Loading...</div>
         </div>
     </div>
 
@@ -285,6 +376,23 @@
         </div>
     </div>
 
+    <!-- ==================== DEADLINES VIEW ==================== -->
+    <div class="view" id="view-deadlines">
+        <div class="section">
+            <div class="section-title">📅 Add Deadline</div>
+            <div class="quick-add" style="flex-wrap: wrap;">
+                <input type="text" id="dl-title" placeholder="Assignment 1...">
+                <input type="text" id="dl-subject" placeholder="Subject..." style="width: 100px;">
+                <input type="date" id="dl-date">
+            </div>
+            <button class="btn" onclick="addDeadline()" style="width:100%;">+ Add Deadline</button>
+        </div>
+        <div class="section">
+            <div class="section-title">📋 Upcoming Deadlines</div>
+            <div id="all-deadlines"><div class="empty">Loading...</div></div>
+        </div>
+    </div>
+
     <!-- ==================== ATTENDANCE VIEW ==================== -->
     <div class="view" id="view-attendance">
         <div class="section">
@@ -302,19 +410,38 @@
         </div>
     </div>
 
+    <!-- ==================== CHAT VIEW ==================== -->
+    <div class="view" id="view-chat">
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-bubble bot">🧠 Hey! I'm PocketBrain. Just tell me what you did and I'll log it.
+
+Try: "chai 20", "bunked OS", "gym done", or type "help" for all commands!</div>
+            </div>
+            <div class="chat-input-bar">
+                <input type="text" id="chat-input" placeholder="chai 20, bunked OS, gym done..." 
+                       onkeydown="if(event.key==='Enter') sendChat()">
+                <button class="chat-send-btn" onclick="sendChat()">➤</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== BOTTOM NAVIGATION ==================== -->
     <nav class="nav">
         <div class="nav-item active" onclick="switchView('dashboard', this)">
             <span class="nav-icon">🏠</span> Home
         </div>
+        <div class="nav-item" onclick="switchView('chat', this)">
+            <span class="nav-icon">💬</span> Chat
+        </div>
+        <div class="nav-item" onclick="switchView('deadlines', this)">
+            <span class="nav-icon">📅</span> Tasks
+        </div>
         <div class="nav-item" onclick="switchView('expenses', this)">
             <span class="nav-icon">💸</span> Money
         </div>
-        <div class="nav-item" onclick="switchView('habits', this)">
-            <span class="nav-icon">🎯</span> Habits
-        </div>
         <div class="nav-item" onclick="switchView('attendance', this)">
-            <span class="nav-icon">📊</span> Attend
+            <span class="nav-icon">📊</span> Stats
         </div>
     </nav>
 
@@ -341,6 +468,7 @@
             if (name === 'expenses')   loadExpenses();
             if (name === 'habits')     loadHabits();
             if (name === 'attendance') loadAttendance();
+            if (name === 'deadlines')  loadDeadlines();
         }
 
         // ---- Toast (bottom popup message) ----
@@ -363,35 +491,74 @@
         }
 
         // ================================================================
-        // DASHBOARD
+        // DASHBOARD / BRIEFING
         // ================================================================
-        async function loadDashboard() {
-            const d = await api('/api/dashboard');
-            if (!d) {
-                document.getElementById('server-status').textContent = '🔴';
-                return;
-            }
-            
-            document.getElementById('today-spent').textContent = '₹' + d.today_spent;
-            document.getElementById('month-spent').textContent = '₹' + d.month_spent;
-            document.getElementById('habits-count').textContent = d.habits_done + '/' + d.habits_total;
-            document.getElementById('server-time').textContent = d.server_time;
-            document.getElementById('server-status').textContent = '🟢';
-            
-            const el = document.getElementById('recent-expenses');
-            if (d.recent_expenses.length === 0) {
-                el.innerHTML = '<div class="empty">No expenses yet. Add your first one! 💸</div>';
+        async function loadBriefing() {
+            const b = await api('/api/briefing');
+            if (!b) return;
+
+            // Greeting
+            document.getElementById('greeting-time').textContent = b.greeting + '! ' + b.date_str;
+
+            // Deadlines
+            const dlEl = document.getElementById('home-deadlines');
+            if (!b.deadlines || b.deadlines.length === 0) {
+                dlEl.innerHTML = '<div class="empty">No upcoming deadlines! 🎉</div>';
             } else {
-                el.innerHTML = d.recent_expenses.map(e => `
-                    <div class="expense-item">
-                        <div>
-                            <div class="expense-desc">${e.description || e.category}</div>
-                            <div class="expense-cat">${e.category} · ${e.date}</div>
+                dlEl.innerHTML = b.deadlines.slice(0, 5).map(d => {
+                    let color = '#22c55e'; // green (default ok)
+                    if (d.days_left <= 0) color = '#ef4444'; // red (today/overdue)
+                    else if (d.days_left <= 2) color = '#f59e0b'; // yellow (urgent)
+                    else if (d.days_left <= 5) color = '#3b82f6'; // blue (soon)
+
+                    return `
+                        <div class="card" style="border-left: 4px solid ${color}; margin-bottom: 8px;">
+                            <div style="font-weight: 600;">${d.subject}: ${d.title}</div>
+                            <div style="color: #94a3b8; font-size: 12px;">Due: ${d.due_date} • ${d.days_left <= 0 ? 'Due Today/Overdue' : d.days_left + ' days left'}</div>
                         </div>
-                        <div class="expense-amt">₹${e.amount}</div>
+                    `;
+                }).join('');
+            }
+
+            // Attendance
+            const attEl = document.getElementById('home-attendance');
+            const warnings = (b.attendance || []).filter(a => a.percentage < 78);
+            if (warnings.length === 0) {
+                attEl.innerHTML = '<div class="empty">All good! No warnings. 🟢</div>';
+            } else {
+                attEl.innerHTML = warnings.map(w => `
+                    <div style="color: #ef4444; margin-bottom: 4px; font-size: 14px;">
+                        ⚠️ ${w.subject}: ${w.percentage}% — Cannot bunk!
                     </div>
                 `).join('');
             }
+
+            // Money
+            const monEl = document.getElementById('home-money');
+            if (b.money) {
+                monEl.innerHTML = `
+                    <div style="font-size: 14px; margin-bottom: 4px;">Today: <strong>₹${b.money.today}</strong></div>
+                    <div style="font-size: 14px;">This Week: <strong>₹${b.money.week}</strong></div>
+                `;
+            } else {
+                monEl.innerHTML = '<div class="empty">No money data.</div>';
+            }
+
+            // Habits
+            const habEl = document.getElementById('home-habits');
+            if (!b.habits || b.habits.length === 0) {
+                habEl.innerHTML = '<div class="empty">No habits for today.</div>';
+            } else {
+                habEl.innerHTML = b.habits.map(h => `
+                    <span style="display:inline-block; margin-right: 8px; font-size: 14px;">
+                        ${h.done_today ? '✅' : '❌'} ${h.name}
+                    </span>
+                `).join('');
+            }
+        }
+
+        async function loadDashboard() {
+            await loadBriefing();
         }
 
         // ================================================================
@@ -496,6 +663,62 @@
         }
 
         // ================================================================
+        // DEADLINES
+        // ================================================================
+        async function loadDeadlines() {
+            const deadlines = await api('/api/deadlines');
+            if (!deadlines) return;
+            
+            const el = document.getElementById('all-deadlines');
+            if (deadlines.length === 0) {
+                el.innerHTML = '<div class="empty">No upcoming deadlines. Chill! 🌴</div>';
+            } else {
+                el.innerHTML = deadlines.map(d => {
+                    let color = '#22c55e';
+                    if (d.days_left <= 0) color = '#ef4444';
+                    else if (d.days_left <= 2) color = '#f59e0b';
+                    else if (d.days_left <= 5) color = '#3b82f6';
+                    
+                    return `
+                        <div class="deadline-card" style="border-left: 4px solid ${color};">
+                            <div>
+                                <div style="font-weight: 600;">${d.subject}: ${d.title}</div>
+                                <div style="color: #94a3b8; font-size: 12px;">Due: ${d.due_date} • ${d.days_left <= 0 ? 'Today/Overdue' : d.days_left + ' days left'}</div>
+                            </div>
+                            <button class="complete-btn" onclick="completeDeadline(${d.id})">✅</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        async function addDeadline() {
+            const title = document.getElementById('dl-title').value.trim();
+            const subject = document.getElementById('dl-subject').value.trim();
+            const date = document.getElementById('dl-date').value;
+            
+            if (!title || !subject || !date) return showToast('Fill all fields!');
+            
+            await api('/api/deadlines', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, subject, due_date: date })
+            });
+            
+            document.getElementById('dl-title').value = '';
+            document.getElementById('dl-subject').value = '';
+            document.getElementById('dl-date').value = '';
+            showToast('Deadline added!');
+            loadDeadlines();
+        }
+
+        async function completeDeadline(id) {
+            await api('/api/deadlines/' + id + '/complete', { method: 'POST' });
+            showToast('Done! ✅');
+            loadDeadlines();
+        }
+
+        // ================================================================
         // ATTENDANCE
         // ================================================================
         async function logAttendance() {
@@ -540,6 +763,43 @@
                         </div>
                     </div>
                 `).join('');
+            }
+        }
+
+        // ================================================================
+        // CHAT
+        // ================================================================
+        function addBubble(text, type) {
+            const el = document.getElementById('chat-messages');
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble ' + type;
+            bubble.textContent = text;
+            el.appendChild(bubble);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        async function sendChat() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            // Show user message
+            addBubble(msg, 'user');
+            input.value = '';
+
+            // Send to server
+            const res = await api('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msg })
+            });
+
+            if (res) {
+                addBubble(res.response, 'bot');
+                // Refresh dashboard data since chat may have changed data
+                loadDashboard();
+            } else {
+                addBubble('⚠️ Server not responding. Is it running?', 'bot');
             }
         }
 

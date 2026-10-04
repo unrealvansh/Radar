@@ -7,6 +7,12 @@ from flask import Flask, jsonify, request, send_from_directory
 from datetime import datetime
 import sqlite3
 import os
+import sys
+
+# Fix Windows console encoding for emoji/unicode
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 # ============ APP SETUP ============
 
@@ -81,6 +87,31 @@ def init_db():
             title      TEXT,
             tags       TEXT,
             created_at TEXT DEFAULT (datetime('now'))
+        );
+
+        -- Deadlines
+        CREATE TABLE IF NOT EXISTS deadlines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            subject TEXT,
+            due_date TEXT NOT NULL,  -- ISO format: 2026-10-08
+            due_time TEXT DEFAULT '23:59',  -- HH:MM format
+            completed INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Quick Notes / Saved Messages
+        CREATE TABLE IF NOT EXISTS notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            content TEXT NOT NULL,
+            tags TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Settings (key-value store for budget, preferences, etc.)
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
         );
     ''')
     conn.commit()
@@ -364,6 +395,256 @@ def dashboard():
         'recent_expenses': [dict(r) for r in recent],
         'server_time': datetime.now().strftime('%I:%M %p, %d %b %Y')
     })
+
+
+# ============ API: DEADLINES ============
+
+@app.route('/api/deadlines', methods=['GET'])
+def get_deadlines():
+    """Get all incomplete deadlines sorted by due_date ASC."""
+    conn = get_db()
+    rows = conn.execute(
+        'SELECT * FROM deadlines WHERE completed = 0 ORDER BY due_date ASC'
+    ).fetchall()
+    
+    result = []
+    today = datetime.now().date()
+    for r in rows:
+        d = dict(r)
+        try:
+            due = datetime.strptime(d['due_date'], '%Y-%m-%d').date()
+            days_left = (due - today).days
+        except ValueError:
+            days_left = 999
+            
+        d['days_left'] = days_left
+        if days_left < 0:
+            d['urgency'] = 'overdue'
+        elif days_left == 0:
+            d['urgency'] = 'today'
+        elif days_left <= 2:
+            d['urgency'] = 'urgent'
+        elif days_left <= 5:
+            d['urgency'] = 'soon'
+        else:
+            d['urgency'] = 'ok'
+        result.append(d)
+        
+    conn.close()
+    return jsonify(result)
+
+@app.route('/api/deadlines', methods=['POST'])
+def add_deadline():
+    """Create deadline."""
+    data = request.get_json()
+    if not data or 'title' not in data or 'due_date' not in data:
+        return jsonify({'status': 'error', 'message': 'title and due_date are required'}), 400
+        
+    conn = get_db()
+    conn.execute(
+        'INSERT INTO deadlines (title, subject, due_date, due_time) VALUES (?, ?, ?, ?)',
+        (data['title'], data.get('subject'), data['due_date'], data.get('due_time', '23:59'))
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Deadline added!'})
+
+@app.route('/api/deadlines/<int:id>/complete', methods=['POST'])
+def complete_deadline(id):
+    """Mark a deadline as completed."""
+    conn = get_db()
+    conn.execute('UPDATE deadlines SET completed = 1 WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Deadline completed!'})
+
+@app.route('/api/deadlines/<int:id>', methods=['DELETE'])
+def delete_deadline(id):
+    """Delete a deadline."""
+    conn = get_db()
+    conn.execute('DELETE FROM deadlines WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Deadline deleted!'})
+
+# ============ API: NOTES ============
+
+@app.route('/api/notes', methods=['GET'])
+def get_notes():
+    """Returns all notes, newest first, limit 50."""
+    conn = get_db()
+    rows = conn.execute(
+        'SELECT * FROM notes ORDER BY created_at DESC LIMIT 50'
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.route('/api/notes', methods=['POST'])
+def add_note():
+    """Create a note."""
+    data = request.get_json()
+    if not data or 'content' not in data:
+        return jsonify({'status': 'error', 'message': 'content is required'}), 400
+        
+    conn = get_db()
+    conn.execute(
+        'INSERT INTO notes (content, tags) VALUES (?, ?)',
+        (data['content'], data.get('tags', ''))
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Note added!'})
+
+# ============ API: SETTINGS ============
+
+@app.route('/api/settings/<key>', methods=['GET'])
+def get_setting(key):
+    """Get a setting value."""
+    conn = get_db()
+    row = conn.execute('SELECT value FROM settings WHERE key = ?', (key,)).fetchone()
+    conn.close()
+    if row:
+        return jsonify({'key': key, 'value': row['value']})
+    return jsonify({'status': 'error', 'message': 'Setting not found'}), 404
+
+@app.route('/api/settings', methods=['POST'])
+def set_setting():
+    """Set a setting."""
+    data = request.get_json()
+    if not data or 'key' not in data or 'value' not in data:
+        return jsonify({'status': 'error', 'message': 'key and value are required'}), 400
+        
+    conn = get_db()
+    # Using REPLACE since key is PRIMARY KEY
+    conn.execute(
+        'REPLACE INTO settings (key, value) VALUES (?, ?)',
+        (data['key'], data['value'])
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Setting saved!'})
+
+# ============ API: BRIEFING ============
+
+@app.route('/api/briefing', methods=['GET'])
+def get_briefing():
+    """Returns the morning briefing data."""
+    conn = get_db()
+    
+    # 1. Deadlines (upcoming 5)
+    dl_rows = conn.execute(
+        'SELECT * FROM deadlines WHERE completed = 0 ORDER BY due_date ASC LIMIT 5'
+    ).fetchall()
+    
+    deadlines = []
+    today = datetime.now().date()
+    for r in dl_rows:
+        d = dict(r)
+        try:
+            due = datetime.strptime(d['due_date'], '%Y-%m-%d').date()
+            days_left = (due - today).days
+        except ValueError:
+            days_left = 999
+            
+        d['days_left'] = days_left
+        if days_left < 0:
+            d['urgency'] = 'overdue'
+        elif days_left == 0:
+            d['urgency'] = 'today'
+        elif days_left <= 2:
+            d['urgency'] = 'urgent'
+        elif days_left <= 5:
+            d['urgency'] = 'soon'
+        else:
+            d['urgency'] = 'ok'
+        deadlines.append(d)
+        
+    # 2. Attendance Warnings (below 78%)
+    subjects = conn.execute('SELECT DISTINCT subject FROM attendance').fetchall()
+    attendance_warnings = []
+    for s in subjects:
+        subj = s['subject']
+        total = conn.execute(
+            "SELECT COUNT(*) as c FROM attendance WHERE subject = ? AND status != 'cancelled'", (subj,)
+        ).fetchone()['c']
+        present = conn.execute(
+            "SELECT COUNT(*) as c FROM attendance WHERE subject = ? AND status = 'present'", (subj,)
+        ).fetchone()['c']
+        
+        pct = round((present / total * 100), 1) if total > 0 else 0
+        
+        if total > 0 and pct < 78:
+            safe_bunks = 0
+            t, p = total, present
+            while (p / (t + 1)) * 100 >= 75:
+                t += 1
+                safe_bunks += 1
+            attendance_warnings.append({
+                'subject': subj,
+                'percentage': pct,
+                'safe_bunks': safe_bunks
+            })
+            
+    # 3. Spending
+    today_spending = conn.execute(
+        "SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE date = date('now')"
+    ).fetchone()['total']
+    
+    # SQLite strftime('%W') returns week number
+    week_spending = conn.execute(
+        "SELECT COALESCE(SUM(amount), 0) as total FROM expenses "
+        "WHERE strftime('%W', date) = strftime('%W', 'now') AND strftime('%Y', date) = strftime('%Y', 'now')"
+    ).fetchone()['total']
+    
+    budget_row = conn.execute("SELECT value FROM settings WHERE key = 'weekly_budget'").fetchone()
+    weekly_budget = float(budget_row['value']) if budget_row else 2000
+    budget_remaining = weekly_budget - week_spending
+    
+    # 4. Habits
+    habits = conn.execute('SELECT * FROM habits').fetchall()
+    habits_today = []
+    for h in habits:
+        log = conn.execute(
+            "SELECT * FROM habit_logs WHERE habit_name = ? AND date = date('now')",
+            (h['name'],)
+        ).fetchone()
+        habits_today.append({
+            'name': h['name'],
+            'icon': h['icon'],
+            'done': log is not None
+        })
+        
+    conn.close()
+    
+    return jsonify({
+        "deadlines": deadlines,
+        "attendance_warnings": attendance_warnings,
+        "today_spending": today_spending,
+        "week_spending": week_spending,
+        "weekly_budget": weekly_budget,
+        "budget_remaining": budget_remaining,
+        "habits_today": habits_today,
+        "server_time": datetime.now().strftime('%I:%M %p, %d %b %Y')
+    })
+
+
+# ============ API: CHAT (Smart Parser) ============
+
+from chat_parser import parse_message
+
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    """Send a natural language message to PocketBrain.
+    
+    Send JSON: {"message": "chai 20"}
+    Returns: {"action": "expense", "response": "🍕 ₹20 logged → chai (food)"}
+    """
+    data = request.get_json()
+    if not data or 'message' not in data:
+        return jsonify({'status': 'error', 'message': 'message is required'}), 400
+    
+    result = parse_message(data['message'])
+    return jsonify(result)
 
 
 # ============ SERVE DASHBOARD ============
