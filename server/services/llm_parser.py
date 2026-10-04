@@ -24,31 +24,44 @@ def is_llm_available():
 
 
 def _build_prompt(message: str) -> str:
-    """Build a SHORT completion-style prompt with 3 examples."""
+    """Build a concise instruction prompt with real examples."""
     today_str = datetime.now().strftime('%Y-%m-%d')
     tomorrow_str = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
 
-    # Keep it VERY short — completion mode, not chat mode
     return (
-        f'Convert the message to JSON. Today is {today_str}.\n'
-        f'User: "chai 20" -> {{"action":"expense","amount":20,"description":"chai","category":"food"}}\n'
-        f'User: "gym done" -> {{"action":"habit","name":"gym"}}\n'
-        f'User: "bunked CN" -> {{"action":"attendance","subject":"CN","status":"bunked"}}\n'
-        f'User: "remind me call mom at 7pm" -> {{"action":"reminder","title":"call mom","date":"{today_str}","time":"19:00"}}\n'
-        f'User: "OS assignment due tomorrow" -> {{"action":"deadline","title":"assignment","subject":"OS","due_date":"{tomorrow_str}"}}\n'
-        f'User: "{message}" -> '
+        'Convert to JSON. Examples: '
+        '"chai 20" -> {"action":"expense","amount":20,"description":"chai","category":"food"}. '
+        '"auto 30" -> {"action":"expense","amount":30,"description":"auto","category":"transport"}. '
+        '"gym done" -> {"action":"habit","name":"gym"}. '
+        '"bunked CN" -> {"action":"attendance","subject":"CN","status":"bunked"}. '
+        f'"remind me call mom at 7pm" -> {{"action":"reminder","title":"call mom","date":"{today_str}","time":"19:00"}}. '
+        f'"OS assignment due tomorrow" -> {{"action":"deadline","title":"assignment","subject":"OS","due_date":"{tomorrow_str}"}}. '
+        '"save placement talk on oct 20" -> {"action":"note","content":"placement talk on oct 20"}. '
+        f'Now convert this message to JSON: "{message}"'
     )
 
 
 def extract_json(raw_text):
-    """Extract valid JSON with 'action' key from raw LLM output."""
+    """Extract valid JSON with 'action' key from LLM output."""
     if not raw_text:
         return None
-    candidates = re.findall(r'\{[^{}]*\}', raw_text)
+
+    # Strip markdown code fences if present
+    cleaned = re.sub(r'```json\s*', '', raw_text)
+    cleaned = re.sub(r'```\s*', '', cleaned)
+
+    # Find all JSON object candidates
+    candidates = re.findall(r'\{[^{}]*\}', cleaned)
     for c in candidates:
         try:
             data = json.loads(c)
             if 'action' in data and data['action'] != 'unknown':
+                # Normalize amount to float if present
+                if 'amount' in data:
+                    try:
+                        data['amount'] = float(data['amount'])
+                    except (ValueError, TypeError):
+                        pass
                 return data
         except (json.JSONDecodeError, ValueError):
             continue
@@ -58,7 +71,7 @@ def extract_json(raw_text):
 def llm_parse(message: str) -> dict:
     """
     Fallback LLM parser using SmolLM2 360M via llama.cpp.
-    Uses raw completion mode (NOT conversation mode).
+    Uses conversation mode with --single-turn (proven working approach).
     Returns parsed action dict or None.
     """
     binary = get_llama_binary()
@@ -73,36 +86,35 @@ def llm_parse(message: str) -> dict:
         "-p", prompt,
         "-n", "50",               # Max tokens (JSON is short)
         "-t", "4",                # 4 CPU threads
-        "--temp", "0.1",          # Deterministic
+        "--temp", "0.1",          # Low temperature for deterministic output
+        "--single-turn",          # Generate one response and exit
+        "--simple-io",            # Streamlined I/O
         "--no-display-prompt",    # Don't echo prompt to stdout
-        "--no-conversation",      # Force completion mode (not chat)
         "-c", "512",              # Context window
     ]
 
-    # If --no-conversation fails, remove it and retry
-    for attempt in range(2):
-        try:
-            proc = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=20
-            )
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=25
+        )
 
-            output = (proc.stdout + "\n" + proc.stderr).strip()
-            print(f"[LLM] attempt={attempt} output: {repr(output[:300])}")
+        # Combine stdout and stderr for parsing
+        output = (proc.stdout + "\n" + proc.stderr).strip()
+        print(f"[LLM] raw output: {repr(output[:300])}")
 
-            parsed = extract_json(output)
-            if parsed:
-                return parsed
+        parsed = extract_json(output)
+        if parsed:
+            print(f"[LLM] parsed: {parsed}")
+            return parsed
+        else:
+            print(f"[LLM] no valid JSON found in output")
 
-        except subprocess.TimeoutExpired:
-            print(f"⚠️ LLM inference timed out attempt={attempt}")
-        except Exception as e:
-            print(f"⚠️ LLM error attempt={attempt}: {e}")
-
-        # On first failure, try without --no-conversation
-        if attempt == 0:
-            cmd = [x for x in cmd if x != "--no-conversation"]
+    except subprocess.TimeoutExpired:
+        print("⚠️ LLM inference timed out (>25s)")
+    except Exception as e:
+        print(f"⚠️ LLM error: {e}")
 
     return None
