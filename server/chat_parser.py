@@ -559,6 +559,18 @@ def parse_message(message):
         days_str = f" ({days_left} days left)" if days_left > 1 else " (Tomorrow!)" if days_left == 1 else " (Today!)" if days_left == 0 else " (Overdue!)"
         subj_str = f"{deadline['subject']} " if deadline['subject'] else ""
         
+        # Trigger phone push notification!
+        try:
+            from services.notifier import send_push
+            send_push(
+                title=f"📅 New Deadline: {subj_str}{deadline['title']}",
+                message=f"Due on {target_date.strftime('%b %d')}{days_str}",
+                priority="high",
+                tags=["calendar", "alarm_clock"]
+            )
+        except Exception:
+            pass
+        
         return {
             'action': 'deadline',
             'response': f"📅 Deadline set! '{subj_str}{deadline['title']}' → {target_date.strftime('%b %d')}{days_str}",

@@ -655,6 +655,91 @@ def serve_dashboard():
     return send_from_directory(app.static_folder, 'index.html')
 
 
+# ============ BACKGROUND SCHEDULER & NOTIFICATIONS ============
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from services.notifier import send_push
+
+def scheduled_morning_briefing():
+    """Triggered every morning at 7:30 AM."""
+    try:
+        conn = get_db()
+        # Check today's deadlines
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        deadlines = conn.execute(
+            'SELECT title, subject FROM deadlines WHERE completed = 0 AND due_date = ?',
+            (today_str,)
+        ).fetchall()
+        
+        # Check attendance warnings
+        subjects = conn.execute('SELECT DISTINCT subject FROM attendance').fetchall()
+        low_att = []
+        for s in subjects:
+            subj = s['subject']
+            tot = conn.execute("SELECT COUNT(*) as c FROM attendance WHERE subject = ? AND status != 'cancelled'", (subj,)).fetchone()['c']
+            pres = conn.execute("SELECT COUNT(*) as c FROM attendance WHERE subject = ? AND status = 'present'", (subj,)).fetchone()['c']
+            if tot > 0:
+                pct = (pres / tot) * 100
+                if pct < 78:
+                    low_att.append(f"{subj}: {pct:.1f}%")
+        
+        conn.close()
+        
+        msg_parts = []
+        if deadlines:
+            d_list = ", ".join([f"{d['title']} ({d['subject'] or 'General'})" for d in deadlines])
+            msg_parts.append(f"⏰ DUE TODAY: {d_list}")
+        else:
+            msg_parts.append("✅ No deadlines due today.")
+            
+        if low_att:
+            msg_parts.append(f"⚠️ LOW ATTENDANCE: {', '.join(low_att)}")
+            
+        send_push(
+            title="🌅 Morning Briefing",
+            message="\n".join(msg_parts),
+            priority="high",
+            tags=["sunrise", "memo"]
+        )
+    except Exception as e:
+        print(f"Error running morning briefing: {e}")
+
+def scheduled_evening_checkin():
+    """Triggered every evening at 9:00 PM for habits & tomorrow's preview."""
+    try:
+        conn = get_db()
+        # Check uncompleted habits
+        habits = conn.execute('SELECT name FROM habits').fetchall()
+        uncompleted = []
+        for h in habits:
+            done = conn.execute("SELECT 1 FROM habit_logs WHERE habit_name = ? AND date = date('now')", (h['name'],)).fetchone()
+            if not done:
+                uncompleted.append(h['name'])
+        
+        # Check tomorrow's deadlines
+        tomorrow_str = (datetime.now().date() + timedelta(days=1)).strftime('%Y-%m-%d')
+        tom_deadlines = conn.execute(
+            'SELECT title, subject FROM deadlines WHERE completed = 0 AND due_date = ?',
+            (tomorrow_str,)
+        ).fetchall()
+        conn.close()
+        
+        msg = []
+        if uncompleted:
+            msg.append(f"🎯 Pending habits: {', '.join(uncompleted)}")
+        if tom_deadlines:
+            msg.append(f"📅 Due tomorrow: {', '.join([d['title'] for d in tom_deadlines])}")
+            
+        if msg:
+            send_push(
+                title="🌙 Evening Check-in",
+                message="\n".join(msg),
+                priority="default",
+                tags=["moon", "check"]
+            )
+    except Exception as e:
+        print(f"Error in evening checkin: {e}")
+
 # ============ START SERVER ============
 
 if __name__ == '__main__':
@@ -663,10 +748,17 @@ if __name__ == '__main__':
     
     init_db()
     
+    # Start APScheduler
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(scheduled_morning_briefing, 'cron', hour=7, minute=30)
+    scheduler.add_job(scheduled_evening_checkin, 'cron', hour=21, minute=0)
+    scheduler.start()
+    
     print("=" * 50)
     print("🧠 PocketBrain Server Starting...")
     print(f"📱 Dashboard: http://0.0.0.0:5000")
     print(f"📂 Database:  {DB_PATH}")
+    print(f"🔔 Notifications: ntfy -> Brain_x1 active")
     print("=" * 50)
     
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)
