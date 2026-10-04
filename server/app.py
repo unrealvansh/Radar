@@ -4,7 +4,7 @@ Main Flask application with all API routes.
 """
 
 from flask import Flask, jsonify, request, send_from_directory
-from datetime import datetime
+from datetime import datetime, timedelta
 import sqlite3
 import os
 import sys
@@ -113,6 +113,17 @@ def init_db():
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
         );
+
+        -- Custom User Reminders
+        CREATE TABLE IF NOT EXISTS reminders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            remind_at TEXT NOT NULL,       -- YYYY-MM-DD HH:MM
+            category TEXT DEFAULT 'personal', -- homework, assignment, gym, skills, exam, personal
+            repeat TEXT DEFAULT 'none',     -- none, daily, weekly
+            notified INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
     ''')
     conn.commit()
     conn.close()
@@ -174,6 +185,32 @@ def add_expense():
     conn.commit()
     conn.close()
     return jsonify({'status': 'ok', 'message': f'₹{data["amount"]} logged!'})
+
+
+@app.route('/api/expenses/<int:id>', methods=['PUT'])
+def update_expense(id):
+    """Update an existing expense."""
+    data = request.get_json()
+    if not data or 'amount' not in data:
+        return jsonify({'status': 'error', 'message': 'amount is required'}), 400
+    conn = get_db()
+    conn.execute(
+        'UPDATE expenses SET amount = ?, description = ?, category = ? WHERE id = ?',
+        (data['amount'], data.get('description', ''), data.get('category', 'misc'), id)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Expense updated!'})
+
+
+@app.route('/api/expenses/<int:id>', methods=['DELETE'])
+def delete_expense(id):
+    """Delete an expense."""
+    conn = get_db()
+    conn.execute('DELETE FROM expenses WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Expense deleted!'})
 
 
 @app.route('/api/expenses/summary')
@@ -253,6 +290,31 @@ def check_habit():
         msg = f'{data["name"]} already checked today'
     conn.close()
     return jsonify({'status': 'ok', 'message': msg})
+
+
+@app.route('/api/habits/uncheck', methods=['POST'])
+def uncheck_habit():
+    """Uncheck a habit for today."""
+    data = request.get_json()
+    conn = get_db()
+    conn.execute(
+        "DELETE FROM habit_logs WHERE habit_name = ? AND date = date('now')",
+        (data['name'],)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': f'{data["name"]} unchecked!'})
+
+
+@app.route('/api/habits/<name>', methods=['DELETE'])
+def delete_habit(name):
+    """Delete a habit completely."""
+    conn = get_db()
+    conn.execute('DELETE FROM habits WHERE name = ?', (name,))
+    conn.execute('DELETE FROM habit_logs WHERE habit_name = ?', (name,))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': f'{name} deleted!'})
 
 
 # ============ API: ATTENDANCE ============
@@ -458,6 +520,22 @@ def complete_deadline(id):
     conn.close()
     return jsonify({'status': 'ok', 'message': 'Deadline completed!'})
 
+@app.route('/api/deadlines/<int:id>', methods=['PUT'])
+def update_deadline(id):
+    """Update a deadline."""
+    data = request.get_json()
+    if not data or 'title' not in data or 'due_date' not in data:
+        return jsonify({'status': 'error', 'message': 'title and due_date are required'}), 400
+    conn = get_db()
+    conn.execute(
+        'UPDATE deadlines SET title = ?, subject = ?, due_date = ?, due_time = ? WHERE id = ?',
+        (data['title'], data.get('subject'), data['due_date'], data.get('due_time', '23:59'), id)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Deadline updated!'})
+
+
 @app.route('/api/deadlines/<int:id>', methods=['DELETE'])
 def delete_deadline(id):
     """Delete a deadline."""
@@ -466,6 +544,78 @@ def delete_deadline(id):
     conn.commit()
     conn.close()
     return jsonify({'status': 'ok', 'message': 'Deadline deleted!'})
+
+
+# ============ API: REMINDERS (Custom User Reminders) ============
+
+@app.route('/api/reminders', methods=['GET'])
+def get_reminders():
+    """Get all upcoming and recent custom reminders."""
+    conn = get_db()
+    rows = conn.execute(
+        'SELECT * FROM reminders ORDER BY remind_at ASC LIMIT 100'
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route('/api/reminders', methods=['POST'])
+def add_reminder():
+    """Create a new custom reminder.
+    JSON: { "title": "Buy medicine", "remind_at": "2026-10-04 18:00", "category": "personal", "repeat": "none" }
+    """
+    data = request.get_json()
+    if not data or 'title' not in data or 'remind_at' not in data:
+        return jsonify({'status': 'error', 'message': 'title and remind_at are required'}), 400
+        
+    conn = get_db()
+    cursor = conn.execute(
+        'INSERT INTO reminders (title, remind_at, category, repeat) VALUES (?, ?, ?, ?)',
+        (data['title'], data['remind_at'], data.get('category', 'personal'), data.get('repeat', 'none'))
+    )
+    conn.commit()
+    new_id = cursor.lastrowid
+    conn.close()
+    
+    # Send a quick confirmation push
+    try:
+        from services.notifier import send_push
+        send_push(
+            title="⏰ Reminder Set",
+            message=f"'{data['title']}' for {data['remind_at']}",
+            priority="default",
+            tags=["bell", "clock"]
+        )
+    except Exception:
+        pass
+        
+    return jsonify({'status': 'ok', 'id': new_id, 'message': 'Reminder set!'})
+
+
+@app.route('/api/reminders/<int:id>', methods=['PUT'])
+def update_reminder(id):
+    """Update a custom reminder."""
+    data = request.get_json()
+    if not data or 'title' not in data or 'remind_at' not in data:
+        return jsonify({'status': 'error', 'message': 'title and remind_at are required'}), 400
+    conn = get_db()
+    conn.execute(
+        'UPDATE reminders SET title = ?, remind_at = ?, category = ?, repeat = ?, notified = 0 WHERE id = ?',
+        (data['title'], data['remind_at'], data.get('category', 'personal'), data.get('repeat', 'none'), id)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Reminder updated!'})
+
+
+@app.route('/api/reminders/<int:id>', methods=['DELETE'])
+def delete_reminder(id):
+    """Delete a custom reminder."""
+    conn = get_db()
+    conn.execute('DELETE FROM reminders WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Reminder deleted!'})
 
 # ============ API: NOTES ============
 
@@ -737,8 +887,42 @@ def scheduled_evening_checkin():
                 priority="default",
                 tags=["moon", "check"]
             )
+def check_pending_reminders():
+    """Triggered every minute to fire due reminders as push alerts."""
+    try:
+        conn = get_db()
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
+        rows = conn.execute(
+            'SELECT * FROM reminders WHERE notified = 0 AND remind_at <= ?',
+            (now_str,)
+        ).fetchall()
+        
+        for r in rows:
+            cat_emoji = {
+                'homework': '📚', 'assignment': '📝', 'gym': '💪',
+                'skills': '💻', 'exam': '🎯', 'personal': '🔔'
+            }
+            emoji = cat_emoji.get(r['category'], '⏰')
+            send_push(
+                title=f"{emoji} {r['title']}",
+                message=f"Reminder ({r['category'].title()}) - {r['remind_at']}",
+                priority="high",
+                tags=["alarm_clock", "bell"]
+            )
+            
+            if r['repeat'] == 'daily':
+                next_dt = datetime.strptime(r['remind_at'], '%Y-%m-%d %H:%M') + timedelta(days=1)
+                conn.execute('UPDATE reminders SET remind_at = ? WHERE id = ?', (next_dt.strftime('%Y-%m-%d %H:%M'), r['id']))
+            elif r['repeat'] == 'weekly':
+                next_dt = datetime.strptime(r['remind_at'], '%Y-%m-%d %H:%M') + timedelta(days=7)
+                conn.execute('UPDATE reminders SET remind_at = ? WHERE id = ?', (next_dt.strftime('%Y-%m-%d %H:%M'), r['id']))
+            else:
+                conn.execute('UPDATE reminders SET notified = 1 WHERE id = ?', (r['id'],))
+                
+        conn.commit()
+        conn.close()
     except Exception as e:
-        print(f"Error in evening checkin: {e}")
+        print(f"Error checking reminders: {e}")
 
 # ============ START SERVER ============
 
@@ -748,10 +932,21 @@ if __name__ == '__main__':
     
     init_db()
     
-    # Start APScheduler
-    scheduler = BackgroundScheduler()
+    # Start APScheduler with timezone fallback for Termux/Android
+    try:
+        import zoneinfo
+        tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+    except Exception:
+        tz = None
+
+    if tz:
+        scheduler = BackgroundScheduler(timezone=tz)
+    else:
+        scheduler = BackgroundScheduler()
+
     scheduler.add_job(scheduled_morning_briefing, 'cron', hour=7, minute=30)
     scheduler.add_job(scheduled_evening_checkin, 'cron', hour=21, minute=0)
+    scheduler.add_job(check_pending_reminders, 'interval', minutes=1)
     scheduler.start()
     
     print("=" * 50)
