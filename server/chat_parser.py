@@ -264,6 +264,170 @@ def _parse_date_string(date_str):
 
     return None
 
+
+def _parse_time_string(time_str):
+    """Parse time string like '19:30', '4:40', '4:40 pm' into 'HH:MM' (24-hr)."""
+    time_str = time_str.strip().lower()
+    m = re.match(r'(\d{1,2}):(\d{2})(?:\s*([ap]m))?', time_str)
+    if not m:
+        return None
+    h = int(m.group(1))
+    mins = int(m.group(2))
+    ampm = m.group(3)
+    
+    if ampm == 'pm' and h < 12:
+        h += 12
+    elif ampm == 'am' and h == 12:
+        h = 0
+    elif not ampm:
+        # If user typed e.g. 4:40 without am/pm, and it's already past 4 AM, assume PM (16:40)
+        curr_h = datetime.now().hour
+        if h <= 7 and curr_h >= h:
+            h += 12
+            
+    return f"{h:02d}:{mins:02d}"
+
+
+def try_parse_reminder(message):
+    """
+    Matches:
+      - 'remind me to call mom at 19:30'
+      - 'remind me call roshan at 4:40'
+      - 'remind me tomorrow at 10:00 to submit assignment'
+      - 'remind me in 10 mins to drink water'
+      - 'remind me 10 mins before OS assignment'
+      - Multiple: 'remind me today at 17:30 and tomorrow at 14:30 to study'
+    """
+    msg = message.strip()
+    msg_lower = msg.lower()
+    
+    if not ('remind' in msg_lower or 'reminder' in msg_lower):
+        return None
+        
+    now = datetime.now()
+    created_reminders = []
+    
+    # Pattern 1: "remind me X mins/hours before <task/subject>"
+    m_before = re.search(r'remind\s+(?:me\s+)?(\d+)\s*(mins?|minutes?|hours?|hrs?)\s+before\s+(.*)', msg_lower)
+    if m_before:
+        amount = int(m_before.group(1))
+        unit = m_before.group(2)
+        target = m_before.group(3).strip()
+        delta = timedelta(minutes=amount) if 'min' in unit else timedelta(hours=amount)
+        
+        # Look for deadline in DB matching target
+        conn = get_db()
+        deadlines = conn.execute(
+            'SELECT * FROM deadlines WHERE completed = 0 ORDER BY due_date ASC'
+        ).fetchall()
+        
+        matched_dl = None
+        for dl in deadlines:
+            if target in dl['title'].lower() or (dl['subject'] and target in dl['subject'].lower()):
+                matched_dl = dl
+                break
+                
+        if matched_dl:
+            due_str = f"{matched_dl['due_date']} {matched_dl['due_time'] or '23:59'}"
+            try:
+                due_dt = datetime.strptime(due_str, '%Y-%m-%d %H:%M')
+                remind_dt = due_dt - delta
+                remind_str = remind_dt.strftime('%Y-%m-%d %H:%M')
+                title = f"{matched_dl['title']} (Due {matched_dl['due_date']})"
+                
+                conn.execute(
+                    'INSERT INTO reminders (title, remind_at, category) VALUES (?, ?, ?)',
+                    (title, remind_str, 'assignment')
+                )
+                conn.commit()
+                conn.close()
+                return {
+                    'action': 'reminder',
+                    'response': f"⏰ Reminder set for {remind_str}! ({amount} {unit} before {matched_dl['title']})",
+                    'data': [{'title': title, 'remind_at': remind_str}]
+                }
+            except Exception as e:
+                pass
+        conn.close()
+
+    # Pattern 2: "remind me in X mins/hours to <task>"
+    m_in = re.search(r'remind\s+(?:me\s+)?in\s+(\d+)\s*(mins?|minutes?|hours?|hrs?)(?:\s+(?:to|for)\s+(.*))?$', msg_lower)
+    if m_in:
+        amount = int(m_in.group(1))
+        unit = m_in.group(2)
+        title = m_in.group(3) or 'Quick Reminder'
+        delta = timedelta(minutes=amount) if 'min' in unit else timedelta(hours=amount)
+        remind_dt = now + delta
+        remind_str = remind_dt.strftime('%Y-%m-%d %H:%M')
+        
+        conn = get_db()
+        conn.execute(
+            'INSERT INTO reminders (title, remind_at, category) VALUES (?, ?, ?)',
+            (title.strip(), remind_str, 'personal')
+        )
+        conn.commit()
+        conn.close()
+        return {
+            'action': 'reminder',
+            'response': f"⏰ Reminder set for {remind_str} ({amount} {unit} from now): '{title.strip()}'",
+            'data': [{'title': title, 'remind_at': remind_str}]
+        }
+
+    # Pattern 3: Standard or Multiple Reminders:
+    # Check if there is an "and" connecting multiple times, e.g.:
+    # "remind me today at 5:30 and tomorrow at 2:30 to do assignment"
+    # Or single: "remind me to call mom at 19:30"
+    
+    # Find all times mentioned in message: e.g. "at 19:30" or "at 4:40 pm"
+    time_matches = list(re.finditer(r'(?:on\s+([a-zA-Z0-9\s/\-]+?)\s+)?at\s+(\d{1,2}:\d{2}(?:\s*[ap]m)?)', msg_lower))
+    if time_matches:
+        # Extract title by stripping "remind me", "to", and the time segments
+        clean_title = re.sub(r'^(?i)remind\s+(?:me\s+)?(?:to\s+)?', '', msg)
+        for tm in time_matches:
+            clean_title = clean_title.replace(tm.group(0), '')
+        clean_title = re.sub(r'\s+and\s+', ' ', clean_title).strip()
+        if not clean_title:
+            clean_title = 'Reminder'
+            
+        conn = get_db()
+        results = []
+        for tm in time_matches:
+            date_part = tm.group(1)
+            time_part = tm.group(2)
+            
+            parsed_time = _parse_time_string(time_part)
+            if not parsed_time:
+                continue
+                
+            if date_part:
+                parsed_date = _parse_date_string(date_part) or now.strftime('%Y-%m-%d')
+            else:
+                # If time is earlier than current time today, default to tomorrow
+                if parsed_time < now.strftime('%H:%M'):
+                    parsed_date = (now + timedelta(days=1)).strftime('%Y-%m-%d')
+                else:
+                    parsed_date = now.strftime('%Y-%m-%d')
+                    
+            remind_str = f"{parsed_date} {parsed_time}"
+            conn.execute(
+                'INSERT INTO reminders (title, remind_at, category) VALUES (?, ?, ?)',
+                (clean_title, remind_str, 'personal')
+            )
+            results.append(remind_str)
+            
+        conn.commit()
+        conn.close()
+        
+        if results:
+            dates_formatted = ", ".join(results)
+            return {
+                'action': 'reminder',
+                'response': f"⏰ {len(results)} Reminder(s) set for '{clean_title}': {dates_formatted}",
+                'data': [{'title': clean_title, 'remind_at': r} for r in results]
+            }
+
+    return None
+
 def try_parse_deadline(message):
     msg = message.lower().strip()
     
@@ -542,6 +706,11 @@ def parse_message(message):
     # --- Help ---
     if msg_lower in ['help', 'h', '?', 'commands', 'kya kar sakta hai', 'kya kya kar sakta hai']:
         return {'action': 'help', 'response': HELP_TEXT}
+
+    # --- Try Custom Reminder (Exact time, multiple, or before deadline) ---
+    reminder = try_parse_reminder(msg)
+    if reminder:
+        return reminder
 
     # --- Try Deadline ---
     deadline = try_parse_deadline(msg)

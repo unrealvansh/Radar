@@ -887,6 +887,9 @@ def scheduled_evening_checkin():
                 priority="default",
                 tags=["moon", "check"]
             )
+    except Exception as e:
+        print(f"Error in evening checkin: {e}")
+
 def check_pending_reminders():
     """Triggered every minute to fire due reminders as push alerts."""
     try:
@@ -946,7 +949,7 @@ if __name__ == '__main__':
 
     scheduler.add_job(scheduled_morning_briefing, 'cron', hour=7, minute=30)
     scheduler.add_job(scheduled_evening_checkin, 'cron', hour=21, minute=0)
-    scheduler.add_job(check_pending_reminders, 'interval', minutes=1)
+    scheduler.add_job(check_pending_reminders, 'interval', seconds=10)
     scheduler.start()
     
     print("=" * 50)

@@ -896,6 +896,20 @@
                     <input type="time" id="task-due-time" value="23:59">
                 </div>
             </div>
+            <div style="margin-bottom: 14px;">
+                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; display: block; margin-bottom: 6px;">PUSH NOTIFICATION ALERTS</label>
+                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-secondary);">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="task-rem-1d" style="width: auto;"> 1 day before
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="task-rem-3h" style="width: auto;"> 3 hours before
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="task-rem-10m" style="width: auto;" checked> 10 minutes before deadline
+                    </label>
+                </div>
+            </div>
             <button class="btn" style="width: 100%;" onclick="saveTask()">Save Task</button>
         </div>
     </div>
@@ -1423,8 +1437,51 @@
                 body: JSON.stringify({ title, subject, due_date, due_time })
             });
 
+            // Schedule multiple reminders if checked
+            try {
+                const dueDt = new Date(`${due_date}T${due_time || '23:59'}:00`);
+                const formatRemindStr = (d) => {
+                    const YYYY = d.getFullYear();
+                    const MM = String(d.getMonth() + 1).padStart(2, '0');
+                    const DD = String(d.getDate()).padStart(2, '0');
+                    const hh = String(d.getHours()).padStart(2, '0');
+                    const mm = String(d.getMinutes()).padStart(2, '0');
+                    return `${YYYY}-${MM}-${DD} ${hh}:${mm}`;
+                };
+
+                const scheduleSubReminder = async (remDate, label) => {
+                    if (remDate > new Date()) {
+                        await fetch('/api/reminders', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                title: `${title} (${label})`,
+                                remind_at: formatRemindStr(remDate),
+                                category: 'assignment',
+                                repeat: 'none'
+                            })
+                        });
+                    }
+                };
+
+                if (document.getElementById('task-rem-1d')?.checked) {
+                    const d1 = new Date(dueDt.getTime() - 24 * 60 * 60 * 1000);
+                    await scheduleSubReminder(d1, '1 day before');
+                }
+                if (document.getElementById('task-rem-3h')?.checked) {
+                    const d3h = new Date(dueDt.getTime() - 3 * 60 * 60 * 1000);
+                    await scheduleSubReminder(d3h, '3 hours before');
+                }
+                if (document.getElementById('task-rem-10m')?.checked) {
+                    const d10m = new Date(dueDt.getTime() - 10 * 60 * 1000);
+                    await scheduleSubReminder(d10m, '10 mins before');
+                }
+            } catch (remErr) {
+                console.error(remErr);
+            }
+
             closeModal('modal-task');
-            showToast(id ? 'Task updated!' : 'Task added!');
+            showToast(id ? 'Task updated!' : 'Task & Reminders set! ⏰');
             loadCalendar();
             loadHome();
         }
