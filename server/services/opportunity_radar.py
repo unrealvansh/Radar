@@ -4,10 +4,11 @@ import urllib.request
 import urllib.parse
 from datetime import datetime
 import os
+import re
 
-UNSTOP_API = "https://unstop.com/api/public/opportunity/search-new"
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DB_PATH = os.path.join(BASE_DIR, 'data', 'pocketbrain.db')
+DEVPOST_API = "https://devpost.com/api/hackathons?challenge_type[]=online&status[]=open"
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -24,10 +25,11 @@ def init_radar_table():
             source_id TEXT UNIQUE,
             title TEXT NOT NULL,
             organization TEXT,
-            opp_type TEXT,
+            opp_type TEXT DEFAULT 'hackathon',
             url TEXT NOT NULL,
             deadline TEXT,
             banner_url TEXT,
+            prize TEXT,
             notified INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -35,29 +37,18 @@ def init_radar_table():
     conn.commit()
     conn.close()
 
-def scan_unstop(opp_type="hackathons", limit=10):
+def scan_hackathons(limit=10):
     """
-    Lightweight scan of Unstop public API.
-    Does not use heavy browser automation.
-    opp_type can be 'hackathons', 'competitions', or 'internships'
+    Lightweight, fast scan of active online hackathons via Devpost public API.
+    Zero heavy dependencies, 100% reliable without bot protection.
     """
     init_radar_table()
     
-    payload = {
-        "search": "",
-        "oppStatus": "open",
-        "type": [opp_type],
-        "page": 1,
-        "size": limit
-    }
-    
-    data = json.dumps(payload).encode('utf-8')
     req = urllib.request.Request(
-        UNSTOP_API,
-        data=data,
+        DEVPOST_API,
         headers={
-            "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json"
         }
     )
     
@@ -67,27 +58,28 @@ def scan_unstop(opp_type="hackathons", limit=10):
             if response.status != 200:
                 return []
             res_json = json.loads(response.read().decode('utf-8'))
-            items = res_json.get("data", {}).get("data", [])
+            items = res_json.get("hackathons", [])
             
             conn = get_db()
-            for item in items:
+            for item in items[:limit]:
                 source_id = str(item.get("id"))
-                opp = item.get("organisation_opportunity", {}) or {}
-                title = opp.get("title") or item.get("title") or ""
-                org = item.get("organisation", {}) or {}
-                organization = org.get("name") or "Various"
-                slug = item.get("seo_url") or ""
-                url = f"https://unstop.com/{slug}" if slug else "https://unstop.com"
-                deadline = item.get("regnRequirements", {}).get("end_regn_dt") or item.get("end_date") or ""
-                if deadline and "T" in deadline:
-                    deadline = deadline.split("T")[0]
-                
-                banner_url = opp.get("banner_url") or ""
-                
-                if not title or not source_id:
+                title = item.get("title", "").strip()
+                url = item.get("url", "")
+                if not title or not source_id or not url:
                     continue
                     
-                # Check if exists
+                # Clean prize HTML if present
+                raw_prize = item.get("prize_amount", "")
+                prize = re.sub(r'<[^>]+>', '', raw_prize).strip() if raw_prize else "N/A"
+                
+                # Organization / Host
+                org = item.get("organization_name") or item.get("displayed_location", {}).get("location") or "Online"
+                
+                # Deadline / Dates
+                deadline = item.get("submission_period_dates") or ""
+                
+                banner_url = item.get("thumbnail_url") or ""
+                
                 existing = conn.execute(
                     "SELECT id FROM opportunities WHERE source_id = ?",
                     (source_id,)
@@ -95,66 +87,59 @@ def scan_unstop(opp_type="hackathons", limit=10):
                 
                 if not existing:
                     conn.execute('''
-                        INSERT INTO opportunities (source_id, title, organization, opp_type, url, deadline, banner_url)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', (source_id, title, organization, opp_type, url, deadline, banner_url))
+                        INSERT INTO opportunities (source_id, title, organization, opp_type, url, deadline, banner_url, prize)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (source_id, title, org, 'hackathon', url, deadline, banner_url, prize))
                     new_items.append({
                         "title": title,
-                        "organization": organization,
+                        "organization": org,
                         "url": url,
                         "deadline": deadline,
-                        "type": opp_type
+                        "prize": prize,
+                        "type": "hackathon"
                     })
             
             conn.commit()
             conn.close()
             
     except Exception as e:
-        print(f"⚠️ Unstop scan error: {e}")
+        print(f"⚠️ Hackathon scan error: {e}")
         
     return new_items
 
-def get_latest_opportunities(limit=5, opp_type=None):
-    """Fetch opportunities from DB for chat or dashboard."""
+def get_latest_opportunities(limit=5):
+    """Fetch stored opportunities from DB."""
     init_radar_table()
     conn = get_db()
-    if opp_type:
-        rows = conn.execute(
-            "SELECT * FROM opportunities WHERE opp_type = ? ORDER BY id DESC LIMIT ?",
-            (opp_type, limit)
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            "SELECT * FROM opportunities ORDER BY id DESC LIMIT ?",
-            (limit,)
-        ).fetchall()
+    rows = conn.execute(
+        "SELECT * FROM opportunities ORDER BY id DESC LIMIT ?",
+        (limit,)
+    ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
 def run_opportunity_check_and_notify():
-    """Scheduled task: scans Unstop and pushes ntfy notifications for fresh finds."""
-    print("📡 [Radar] Scanning Unstop for new hackathons & competitions...")
-    new_hacks = scan_unstop("hackathons", limit=8)
-    new_comps = scan_unstop("competitions", limit=6)
+    """Scheduled task: scans for fresh hackathons and pushes ntfy notifications."""
+    print("📡 [Radar] Scanning for new hackathons...")
+    new_hacks = scan_hackathons(limit=10)
     
-    total_new = new_hacks + new_comps
-    if not total_new:
-        print("📡 [Radar] No new opportunities found.")
+    if not new_hacks:
+        print("📡 [Radar] No new hackathons found.")
         return
         
-    print(f"📡 [Radar] Found {len(total_new)} new opportunities!")
+    print(f"📡 [Radar] Found {len(new_hacks)} new hackathons!")
     
     # Notify via ntfy
     try:
         from services.notifier import notify
-        for item in total_new[:3]:  # Max 3 notifications to avoid spamming
-            title_msg = f"🚀 New {item['type'].capitalize()}: {item['title'][:40]}"
-            body_msg = f"Org: {item['organization']}\nDeadline: {item['deadline'] or 'N/A'}\nLink: {item['url']}"
+        for item in new_hacks[:2]:  # Send max 2 to prevent spam
+            title_msg = f"🏆 Hackathon: {item['title'][:40]}"
+            body_msg = f"Prize: {item.get('prize', 'N/A')}\nDates: {item['deadline']}\nLink: {item['url']}"
             notify(
                 title=title_msg,
                 message=body_msg,
                 priority=4,
-                tags=["trophy", "computer"],
+                tags=["trophy", "fire"],
                 click_url=item['url']
             )
     except Exception as e:
