@@ -114,6 +114,20 @@ def init_db():
             value TEXT NOT NULL
         );
 
+        -- Opportunities (Hackathons & Competitions)
+        CREATE TABLE IF NOT EXISTS opportunities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_id TEXT UNIQUE,
+            title TEXT NOT NULL,
+            organization TEXT,
+            opp_type TEXT,
+            url TEXT NOT NULL,
+            deadline TEXT,
+            banner_url TEXT,
+            notified INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
         -- Custom User Reminders
         CREATE TABLE IF NOT EXISTS reminders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -674,6 +688,25 @@ def set_setting():
     conn.close()
     return jsonify({'status': 'ok', 'message': 'Setting saved!'})
 
+# ============ API: OPPORTUNITIES (RADAR) ============
+
+@app.route('/api/opportunities', methods=['GET'])
+def get_opportunities():
+    """Get tracked hackathons & competitions."""
+    from services.opportunity_radar import get_latest_opportunities
+    opp_type = request.args.get('type')
+    limit = int(request.args.get('limit', 10))
+    items = get_latest_opportunities(limit=limit, opp_type=opp_type)
+    return jsonify({'opportunities': items})
+
+@app.route('/api/opportunities/scan', methods=['POST'])
+def trigger_radar_scan():
+    """Trigger a manual scan of Unstop for new opportunities."""
+    from services.opportunity_radar import run_opportunity_check_and_notify
+    import threading
+    threading.Thread(target=run_opportunity_check_and_notify, daemon=True).start()
+    return jsonify({'status': 'ok', 'message': 'Radar scan started in background!'})
+
 # ============ API: BRIEFING ============
 
 @app.route('/api/briefing', methods=['GET'])
@@ -950,6 +983,12 @@ if __name__ == '__main__':
     scheduler.add_job(scheduled_morning_briefing, 'cron', hour=7, minute=30)
     scheduler.add_job(scheduled_evening_checkin, 'cron', hour=21, minute=0)
     scheduler.add_job(check_pending_reminders, 'interval', seconds=10)
+    
+    # Opportunity Radar: scan Unstop at 11:00 AM and 05:00 PM
+    from services.opportunity_radar import run_opportunity_check_and_notify
+    scheduler.add_job(run_opportunity_check_and_notify, 'cron', hour=11, minute=0)
+    scheduler.add_job(run_opportunity_check_and_notify, 'cron', hour=17, minute=0)
+    
     scheduler.start()
     
     print("=" * 50)

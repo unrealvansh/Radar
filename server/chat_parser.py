@@ -635,6 +635,27 @@ def try_parse_query(message):
             lines.append(f"• {n['content']}")
         return {'type': 'notes', 'message': "\n".join(lines)}
 
+    # Opportunity queries (hackathons / competitions)
+    if any(k in msg for k in ['hackathon', 'hackathons', 'competition', 'competitions', 'events', 'radar']):
+        try:
+            from services.opportunity_radar import get_latest_opportunities, scan_unstop
+            items = get_latest_opportunities(limit=5)
+            if not items:
+                # First time fetch
+                scan_unstop('hackathons', limit=5)
+                items = get_latest_opportunities(limit=5)
+                
+            if not items:
+                return {'type': 'opportunities', 'message': "📡 No hackathons found right now. Check back soon!"}
+                
+            lines = ["🚀 Upcoming Hackathons & Events:"]
+            for it in items:
+                dd = f" (Deadline: {it['deadline']})" if it.get('deadline') else ""
+                lines.append(f"• {it['title']} by {it['organization']}{dd}\n  🔗 {it['url']}")
+            return {'type': 'opportunities', 'message': "\n".join(lines)}
+        except Exception as e:
+            return {'type': 'opportunities', 'message': f"⚠️ Error fetching opportunities: {e}"}
+
     # Budget query
     if msg == 'budget':
         conn = get_db()
