@@ -1,0 +1,58 @@
+# PocketBrain — Settings
+# Edit this file to customize your setup.
+
+# ---- Server ----
+server:
+  host: "0.0.0.0"
+  port: 5000
+
+# ---- Your College Timetable ----
+# Add your actual class schedule here
+timetable:
+  monday:
+    - subject: "OS"
+      time: "09:00 - 10:00"
+      room: "CS-101"
+    - subject: "DBMS"
+      time: "10:00 - 11:00"
+      room: "CS-102"
+    - subject: "CN"
+      time: "11:30 - 12:30"
+      room: "CS-101"
+  tuesday:
+    - subject: "DAA"
+      time: "09:00 - 10:00"
+      room: "CS-103"
+    - subject: "OS Lab"
+      time: "14:00 - 16:00"
+      room: "Lab-2"
+  # Add wednesday, thursday, friday, saturday...
+
+# ---- Mess Menu ----
+# Update with your hostel's actual menu
+mess_menu:
+  monday:
+    lunch: "Rice, Dal, Paneer, Roti"
+    dinner: "Rice, Rajma, Roti, Salad"
+  tuesday:
+    lunch: "Rice, Chole, Roti, Raita"
+    dinner: "Rice, Dal Makhani, Roti"
+  # Add remaining days...
+
+# ---- Notifications ----
+notifications:
+  morning_briefing: "07:00"
+  lunch_reminder: "11:30"
+  dinner_reminder: "18:30"
+  journal_prompt: "22:00"
+  dsa_reminder: "20:00"
+
+# ---- Scraper Targets ----
+# Add your college website URLs here (Phase 3)
+scrapers:
+  college_notices:
+    url: ""           # Your university notice board URL
+    interval_minutes: 30
+  placement_portal:
+    url: ""           # Your placement portal URL
+    interval_minutes: 60

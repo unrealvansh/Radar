@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 PocketBrain</title>
+    
+    <!-- PWA Setup — makes it installable as an "app" on your phone -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 16px;
+            padding-bottom: 80px;
+        }
+
+        h1 { font-size: 24px; margin-bottom: 4px; }
+        .subtitle { color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
+
+        /* ---- Summary Cards ---- */
+        .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #334155;
+        }
+        .card-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+        .card-value { font-size: 24px; font-weight: 700; }
+        .card-value.danger { color: #f87171; }
+        .card-value.success { color: #4ade80; }
+
+        /* ---- Sections ---- */
+        .section { margin-bottom: 24px; }
+        .section-title {
+            font-size: 16px; font-weight: 600;
+            margin-bottom: 12px;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        /* ---- Quick Add Expense Form ---- */
+        .quick-add { display: flex; gap: 8px; margin-bottom: 12px; }
+        .quick-add input, .quick-add select {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #e2e8f0;
+            font-size: 14px;
+            outline: none;
+        }
+        .quick-add input:focus, .quick-add select:focus { border-color: #3b82f6; }
+        .quick-add input[type="number"] { width: 80px; }
+        .quick-add input[type="text"] { flex: 1; }
+        .quick-add select { width: 100px; }
+
+        /* ---- Buttons ---- */
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn:active { background: #2563eb; transform: scale(0.97); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .btn-green { background: #22c55e; }
+        .btn-green:active { background: #16a34a; }
+        .btn-red { background: #ef4444; }
+
+        /* ---- Expense List Items ---- */
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: #1e293b;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            border: 1px solid #334155;
+        }
+        .expense-desc { font-size: 14px; }
+        .expense-cat { font-size: 11px; color: #94a3b8; }
+        .expense-amt { font-size: 16px; font-weight: 600; color: #f87171; }
+
+        /* ---- Habit Items ---- */
+        .habit-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: #1e293b;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            border: 1px solid #334155;
+        }
+        .habit-done { opacity: 0.5; text-decoration: line-through; }
+
+        /* ---- Attendance Items ---- */
+        .att-item {
+            padding: 10px 12px;
+            background: #1e293b;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            border: 1px solid #334155;
+        }
+        .att-bar-bg {
+            background: #334155;
+            height: 6px;
+            border-radius: 3px;
+            margin-top: 6px;
+        }
+        .att-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: #4ade80;
+            transition: width 0.3s;
+        }
+        .att-bar.danger { background: #f87171; }
+
+        /* ---- Toast Notification ---- */
+        .toast {
+            position: fixed;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #22c55e;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+            z-index: 100;
+            white-space: nowrap;
+        }
+        .toast.show {
+            display: block;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        /* ---- Bottom Navigation ---- */
+        .nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #1e293b;
+            border-top: 1px solid #334155;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 12px;
+            z-index: 50;
+        }
+        .nav-item {
+            text-align: center;
+            font-size: 10px;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px 8px;
+            transition: color 0.15s;
+        }
+        .nav-item.active { color: #3b82f6; }
+        .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
+
+        /* ---- View Toggle ---- */
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* ---- Forms ---- */
+        .add-habit-form { display: flex; gap: 8px; margin-bottom: 12px; }
+        .add-habit-form input {
+            flex: 1;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #e2e8f0;
+            font-size: 14px;
+            outline: none;
+        }
+        .add-habit-form input:focus { border-color: #3b82f6; }
+
+        .att-form { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        .att-form input, .att-form select {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #e2e8f0;
+            font-size: 14px;
+            outline: none;
+        }
+        .att-form input:focus { border-color: #3b82f6; }
+        .att-form input { flex: 1; min-width: 120px; }
+
+        /* ---- Empty State ---- */
+        .empty {
+            color: #94a3b8;
+            padding: 16px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translate(-50%, 20px); }
+            to   { opacity: 1; transform: translate(-50%, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🧠 PocketBrain</h1>
+    <div class="subtitle" id="server-time">Connecting to server...</div>
+
+    <!-- ==================== DASHBOARD VIEW ==================== -->
+    <div class="view active" id="view-dashboard">
+        <div class="cards">
+            <div class="card">
+                <div class="card-label">Today's Spending</div>
+                <div class="card-value" id="today-spent">₹0</div>
+            </div>
+            <div class="card">
+                <div class="card-label">This Month</div>
+                <div class="card-value" id="month-spent">₹0</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Habits Today</div>
+                <div class="card-value success" id="habits-count">0/0</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Server</div>
+                <div class="card-value success" id="server-status">🟢</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📝 Recent Expenses</div>
+            <div id="recent-expenses"><div class="empty">Loading...</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== EXPENSES VIEW ==================== -->
+    <div class="view" id="view-expenses">
+        <div class="section">
+            <div class="section-title">💸 Quick Add Expense</div>
+            <div class="quick-add">
+                <input type="number" id="exp-amount" placeholder="₹" min="1">
+                <input type="text" id="exp-desc" placeholder="chai, xerox...">
+                <select id="exp-cat">
+                    <option value="food">🍕 Food</option>
+                    <option value="transport">🚌 Transport</option>
+                    <option value="study">📚 Study</option>
+                    <option value="misc">📦 Misc</option>
+                </select>
+            </div>
+            <button class="btn" onclick="addExpense()" style="width:100%;">+ Add Expense</button>
+        </div>
+        <div class="section">
+            <div class="section-title">📋 All Expenses</div>
+            <div id="all-expenses"><div class="empty">Loading...</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== HABITS VIEW ==================== -->
+    <div class="view" id="view-habits">
+        <div class="section">
+            <div class="section-title">🎯 Your Habits</div>
+            <div class="add-habit-form">
+                <input type="text" id="habit-name" placeholder="New habit (e.g. gym, dsa, reading)">
+                <button class="btn" onclick="addHabit()">+</button>
+            </div>
+            <div id="habit-list"><div class="empty">Loading...</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== ATTENDANCE VIEW ==================== -->
+    <div class="view" id="view-attendance">
+        <div class="section">
+            <div class="section-title">📊 Attendance Tracker</div>
+            <div class="att-form">
+                <input type="text" id="att-subject" placeholder="Subject (e.g. OS, DBMS)">
+                <select id="att-status">
+                    <option value="present">✅ Present</option>
+                    <option value="absent">❌ Absent</option>
+                    <option value="cancelled">🚫 Cancelled</option>
+                </select>
+                <button class="btn" onclick="logAttendance()">Log</button>
+            </div>
+            <div id="att-list"><div class="empty">Loading...</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== BOTTOM NAVIGATION ==================== -->
+    <nav class="nav">
+        <div class="nav-item active" onclick="switchView('dashboard', this)">
+            <span class="nav-icon">🏠</span> Home
+        </div>
+        <div class="nav-item" onclick="switchView('expenses', this)">
+            <span class="nav-icon">💸</span> Money
+        </div>
+        <div class="nav-item" onclick="switchView('habits', this)">
+            <span class="nav-icon">🎯</span> Habits
+        </div>
+        <div class="nav-item" onclick="switchView('attendance', this)">
+            <span class="nav-icon">📊</span> Attend
+        </div>
+    </nav>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ================================================================
+        // PocketBrain Frontend — Vanilla JS (no frameworks needed!)
+        // ================================================================
+
+        const API = '';  // Same origin — requests go to the Flask server
+
+        // ---- Navigation ----
+        function switchView(name, el) {
+            // Hide all views, show the selected one
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('view-' + name).classList.add('active');
+            el.classList.add('active');
+            
+            // Load fresh data when switching tabs
+            if (name === 'dashboard')  loadDashboard();
+            if (name === 'expenses')   loadExpenses();
+            if (name === 'habits')     loadHabits();
+            if (name === 'attendance') loadAttendance();
+        }
+
+        // ---- Toast (bottom popup message) ----
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        // ---- Helper: fetch with error handling ----
+        async function api(path, options = {}) {
+            try {
+                const res = await fetch(API + path, options);
+                return await res.json();
+            } catch (err) {
+                console.error('API Error:', path, err);
+                return null;
+            }
+        }
+
+        // ================================================================
+        // DASHBOARD
+        // ================================================================
+        async function loadDashboard() {
+            const d = await api('/api/dashboard');
+            if (!d) {
+                document.getElementById('server-status').textContent = '🔴';
+                return;
+            }
+            
+            document.getElementById('today-spent').textContent = '₹' + d.today_spent;
+            document.getElementById('month-spent').textContent = '₹' + d.month_spent;
+            document.getElementById('habits-count').textContent = d.habits_done + '/' + d.habits_total;
+            document.getElementById('server-time').textContent = d.server_time;
+            document.getElementById('server-status').textContent = '🟢';
+            
+            const el = document.getElementById('recent-expenses');
+            if (d.recent_expenses.length === 0) {
+                el.innerHTML = '<div class="empty">No expenses yet. Add your first one! 💸</div>';
+            } else {
+                el.innerHTML = d.recent_expenses.map(e => `
+                    <div class="expense-item">
+                        <div>
+                            <div class="expense-desc">${e.description || e.category}</div>
+                            <div class="expense-cat">${e.category} · ${e.date}</div>
+                        </div>
+                        <div class="expense-amt">₹${e.amount}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // ================================================================
+        // EXPENSES
+        // ================================================================
+        async function addExpense() {
+            const amount = document.getElementById('exp-amount').value;
+            const desc = document.getElementById('exp-desc').value;
+            const cat = document.getElementById('exp-cat').value;
+            
+            if (!amount || parseFloat(amount) <= 0) {
+                return showToast('Enter a valid amount!');
+            }
+
+            await api('/api/expenses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: parseFloat(amount),
+                    description: desc,
+                    category: cat
+                })
+            });
+            
+            // Clear form
+            document.getElementById('exp-amount').value = '';
+            document.getElementById('exp-desc').value = '';
+            showToast('₹' + amount + ' logged! ✅');
+            loadExpenses();
+        }
+
+        async function loadExpenses() {
+            const expenses = await api('/api/expenses');
+            if (!expenses) return;
+            
+            const el = document.getElementById('all-expenses');
+            if (expenses.length === 0) {
+                el.innerHTML = '<div class="empty">No expenses yet.</div>';
+            } else {
+                el.innerHTML = expenses.map(e => `
+                    <div class="expense-item">
+                        <div>
+                            <div class="expense-desc">${e.description || e.category}</div>
+                            <div class="expense-cat">${e.category} · ${e.date}</div>
+                        </div>
+                        <div class="expense-amt">₹${e.amount}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // ================================================================
+        // HABITS
+        // ================================================================
+        async function addHabit() {
+            const name = document.getElementById('habit-name').value.trim();
+            if (!name) return showToast('Enter a habit name!');
+            
+            const res = await api('/api/habits', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            
+            if (res && res.status === 'error') {
+                return showToast(res.message);
+            }
+            
+            document.getElementById('habit-name').value = '';
+            showToast(name + ' added! 🎯');
+            loadHabits();
+        }
+
+        async function checkHabit(name) {
+            await api('/api/habits/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            showToast(name + ' ✅');
+            loadHabits();
+        }
+
+        async function loadHabits() {
+            const habits = await api('/api/habits');
+            if (!habits) return;
+            
+            const el = document.getElementById('habit-list');
+            if (habits.length === 0) {
+                el.innerHTML = '<div class="empty">No habits yet. Add one above! 🎯</div>';
+            } else {
+                el.innerHTML = habits.map(h => `
+                    <div class="habit-item ${h.done_today ? 'habit-done' : ''}">
+                        <span>${h.icon} ${h.name}</span>
+                        ${h.done_today
+                            ? '<span style="color:#4ade80;">Done ✅</span>'
+                            : `<button class="btn btn-sm btn-green" onclick="checkHabit('${h.name}')">Check In</button>`
+                        }
+                    </div>
+                `).join('');
+            }
+        }
+
+        // ================================================================
+        // ATTENDANCE
+        // ================================================================
+        async function logAttendance() {
+            const subject = document.getElementById('att-subject').value.trim().toUpperCase();
+            const status = document.getElementById('att-status').value;
+            
+            if (!subject) return showToast('Enter subject name!');
+
+            await api('/api/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subject, status })
+            });
+            showToast(subject + ' → ' + status + ' ✅');
+            loadAttendance();
+        }
+
+        async function loadAttendance() {
+            const att = await api('/api/attendance');
+            if (!att) return;
+            
+            const el = document.getElementById('att-list');
+            if (att.length === 0) {
+                el.innerHTML = '<div class="empty">No attendance logged yet. Start logging! 📊</div>';
+            } else {
+                el.innerHTML = att.map(a => `
+                    <div class="att-item">
+                        <div style="display:flex;justify-content:space-between;">
+                            <strong>${a.subject}</strong>
+                            <span style="color:${a.danger ? '#f87171' : '#4ade80'}">${a.percentage}%</span>
+                        </div>
+                        <div style="font-size:12px;color:#94a3b8;">
+                            ${a.present}/${a.total} classes · 
+                            ${a.safe_bunks > 0
+                                ? '🟢 Can bunk ' + a.safe_bunks + ' more'
+                                : '🔴 Cannot bunk!'
+                            }
+                        </div>
+                        <div class="att-bar-bg">
+                            <div class="att-bar ${a.danger ? 'danger' : ''}" 
+                                 style="width:${Math.min(a.percentage, 100)}%"></div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // ================================================================
+        // INIT — Load dashboard on page load
+        // ================================================================
+        loadDashboard();
+    </script>
+</body>
+</html>
