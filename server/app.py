@@ -138,6 +138,20 @@ def init_db():
             notified INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        -- Unified Student Radar Items (Jobs, Events, News)
+        CREATE TABLE IF NOT EXISTS radar_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pillar TEXT NOT NULL,
+            source TEXT NOT NULL,
+            title TEXT NOT NULL,
+            organization TEXT,
+            url TEXT NOT NULL UNIQUE,
+            deadline_or_date TEXT,
+            extra_info TEXT,
+            notified INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
     ''')
     conn.commit()
     conn.close()
@@ -688,24 +702,29 @@ def set_setting():
     conn.close()
     return jsonify({'status': 'ok', 'message': 'Setting saved!'})
 
-# ============ API: OPPORTUNITIES (RADAR) ============
+# ============ API: UNIFIED RADAR (Jobs, Events, News) ============
 
+@app.route('/api/radar', methods=['GET'])
+def get_radar():
+    """Get items by pillar ('jobs', 'events', 'news') or all."""
+    from services.unified_radar import get_radar_items
+    pillar = request.args.get('pillar')
+    limit = int(request.args.get('limit', 10))
+    items = get_radar_items(pillar=pillar, limit=limit)
+    return jsonify({'items': items})
+
+@app.route('/api/radar/scan', methods=['POST'])
+def trigger_radar_scan():
+    """Trigger background scan across Jobs, Events, and Tech News."""
+    from services.unified_radar import scan_all_radar
+    import threading
+    threading.Thread(target=scan_all_radar, daemon=True).start()
+    return jsonify({'status': 'ok', 'message': 'Full radar scan initiated!'})
+
+# Backward compatibility
 @app.route('/api/opportunities', methods=['GET'])
 def get_opportunities():
-    """Get tracked hackathons & competitions."""
-    from services.opportunity_radar import get_latest_opportunities
-    opp_type = request.args.get('type')
-    limit = int(request.args.get('limit', 10))
-    items = get_latest_opportunities(limit=limit, opp_type=opp_type)
-    return jsonify({'opportunities': items})
-
-@app.route('/api/opportunities/scan', methods=['POST'])
-def trigger_radar_scan():
-    """Trigger a manual scan of Unstop for new opportunities."""
-    from services.opportunity_radar import run_opportunity_check_and_notify
-    import threading
-    threading.Thread(target=run_opportunity_check_and_notify, daemon=True).start()
-    return jsonify({'status': 'ok', 'message': 'Radar scan started in background!'})
+    return get_radar()
 
 # ============ API: BRIEFING ============
 
@@ -984,10 +1003,10 @@ if __name__ == '__main__':
     scheduler.add_job(scheduled_evening_checkin, 'cron', hour=21, minute=0)
     scheduler.add_job(check_pending_reminders, 'interval', seconds=10)
     
-    # Opportunity Radar: scan Unstop at 11:00 AM and 05:00 PM
-    from services.opportunity_radar import run_opportunity_check_and_notify
-    scheduler.add_job(run_opportunity_check_and_notify, 'cron', hour=11, minute=0)
-    scheduler.add_job(run_opportunity_check_and_notify, 'cron', hour=17, minute=0)
+    # Unified Student Radar: scan Jobs, Events, Tech News at 11:00 AM and 05:00 PM
+    from services.unified_radar import scan_all_radar
+    scheduler.add_job(scan_all_radar, 'cron', hour=11, minute=0)
+    scheduler.add_job(scan_all_radar, 'cron', hour=17, minute=0)
     
     scheduler.start()
     

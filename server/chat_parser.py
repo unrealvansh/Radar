@@ -635,27 +635,69 @@ def try_parse_query(message):
             lines.append(f"• {n['content']}")
         return {'type': 'notes', 'message': "\n".join(lines)}
 
-    # Opportunity queries (hackathons / competitions)
-    if any(k in msg for k in ['hackathon', 'hackathons', 'competition', 'competitions', 'events', 'radar']):
+    # ==================== UNIFIED RADAR QUERIES ====================
+    # 0. Manual on-demand scan
+    if msg in ['radar scan', 'scan radar', 'scan opportunities']:
         try:
-            from services.opportunity_radar import get_latest_opportunities, scan_hackathons
-            items = get_latest_opportunities(limit=5)
-            if not items:
-                # First time fetch live
-                scan_hackathons(limit=5)
-                items = get_latest_opportunities(limit=5)
-                
-            if not items:
-                return {'type': 'opportunities', 'message': "📡 No hackathons found right now. Check back soon!"}
-                
-            lines = ["🏆 Upcoming Hackathons:"]
-            for it in items:
-                prize = f" • 💰 {it['prize']}" if it.get('prize') and it['prize'] != 'N/A' else ""
-                dates = f"\n  📅 {it['deadline']}" if it.get('deadline') else ""
-                lines.append(f"• **{it['title']}**{prize}{dates}\n  🔗 {it['url']}")
-            return {'type': 'opportunities', 'message': "\n".join(lines)}
+            from services.unified_radar import scan_all_radar
+            counts = scan_all_radar()
+            return {
+                'type': 'radar',
+                'message': f"📡 Radar scan finished!\n💼 Jobs found: {counts['jobs']}\n🚀 Events found: {counts['events']}\n📰 News found: {counts['news']}\n\nType `jobs`, `events`, or `tech news` to view them!"
+            }
         except Exception as e:
-            return {'type': 'opportunities', 'message': f"⚠️ Error fetching opportunities: {e}"}
+            return {'type': 'radar', 'message': f"⚠️ Radar scan error: {e}"}
+
+    # 1. 💼 Jobs & Internships
+    if any(k in msg for k in ['jobs', 'job', 'internship', 'internships', 'hiring']):
+        try:
+            from services.unified_radar import get_radar_items, scan_jobs
+            items = get_radar_items('jobs', limit=5)
+            if not items:
+                scan_jobs(limit=5)
+                items = get_radar_items('jobs', limit=5)
+            if not items:
+                return {'type': 'jobs', 'message': "💼 No new jobs found. Type `radar scan` to refresh!"}
+            lines = ["💼 **Internships & Jobs Radar:**"]
+            for it in items:
+                lines.append(f"• **{it['title']}** at {it['organization']} ({it['extra_info']})\n  🔗 {it['url']}")
+            return {'type': 'jobs', 'message': "\n".join(lines)}
+        except Exception as e:
+            return {'type': 'jobs', 'message': f"⚠️ Error fetching jobs: {e}"}
+
+    # 2. 🚀 Tech Events & Hackathons
+    if any(k in msg for k in ['hackathon', 'hackathons', 'events', 'event', 'devfest', 'conference', 'conferences']):
+        try:
+            from services.unified_radar import get_radar_items, scan_events
+            items = get_radar_items('events', limit=5)
+            if not items:
+                scan_events(limit=5)
+                items = get_radar_items('events', limit=5)
+            if not items:
+                return {'type': 'events', 'message': "🚀 No new events found. Type `radar scan` to refresh!"}
+            lines = ["🚀 **Tech Events & Hackathons:**"]
+            for it in items:
+                lines.append(f"• **{it['title']}** ({it['extra_info']})\n  📅 {it['deadline_or_date']}\n  🔗 {it['url']}")
+            return {'type': 'events', 'message': "\n".join(lines)}
+        except Exception as e:
+            return {'type': 'events', 'message': f"⚠️ Error fetching events: {e}"}
+
+    # 3. 📰 Tech & Startup News
+    if any(k in msg for k in ['news', 'tech news', 'ai news', 'startup news', 'trends']):
+        try:
+            from services.unified_radar import get_radar_items, scan_news
+            items = get_radar_items('news', limit=5)
+            if not items:
+                scan_news(limit_per_feed=2)
+                items = get_radar_items('news', limit=5)
+            if not items:
+                return {'type': 'news', 'message': "📰 No recent news found. Type `radar scan` to refresh!"}
+            lines = ["📰 **Tech & Startup Radar:**"]
+            for it in items:
+                lines.append(f"• [{it['source']}] **{it['title']}**\n  🔗 {it['url']}")
+            return {'type': 'news', 'message': "\n".join(lines)}
+        except Exception as e:
+            return {'type': 'news', 'message': f"⚠️ Error fetching news: {e}"}
 
     # Budget query
     if msg == 'budget':
