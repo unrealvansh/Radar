@@ -1062,7 +1062,9 @@ Try commands like:
             const target = document.getElementById('view-' + name);
             if (target) target.classList.add('active');
             
-            if (tabEl) tabEl.classList.add('active');
+            if (tabEl) {
+                tabEl.classList.add('active');
+            } else {
                 const tabs = document.querySelectorAll('.nav-tab');
                 const idx = ['home', 'calendar', 'chat', 'reminders', 'money', 'saved'].indexOf(name);
                 if (idx >= 0 && tabs[idx]) tabs[idx].classList.add('active');
