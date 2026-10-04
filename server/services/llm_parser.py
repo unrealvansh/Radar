@@ -53,11 +53,13 @@ def extract_json(raw_text):
     """Safely extract valid JSON object from LLM response."""
     if not raw_text:
         return None
-    # Find { ... }
-    m = re.search(r'\{.*?\}', raw_text, re.DOTALL)
-    if m:
+    # Find all JSON-like candidates in text
+    candidates = re.findall(r'\{[^{}]*\}', raw_text, re.DOTALL)
+    for c in reversed(candidates):
         try:
-            return json.loads(m.group(0))
+            data = json.loads(c)
+            if 'action' in data:
+                return data
         except Exception:
             pass
     return None
@@ -65,11 +67,10 @@ def extract_json(raw_text):
 def llm_parse(message: str) -> dict:
     """
     Fallback LLM parser using SmolLM2 360M via llama.cpp.
-    Returns parsed dict action or {'action': 'unknown'}.
+    Returns parsed dict action or None.
     """
     binary = get_llama_binary()
     if not binary or not os.path.exists(MODEL_PATH):
-        # LLM not installed yet
         return None
 
     today_str = datetime.now().strftime('%Y-%m-%d')
@@ -84,10 +85,9 @@ User: "{message}"
         "-p", prompt,
         "-n", "64",
         "-t", "4",               # 4 CPU threads
-        "--temp", "0.1",         # Low temperature for deterministic JSON
-        "--no-conversation",     # Exit after outputting response (don't wait for user prompt)
-        "--simple-io",           # Clean stdout
-        "--log-disable",         # Disable verbose logs
+        "--temp", "0.1",         # Low temperature
+        "--single-turn",         # Run single turn and exit
+        "--simple-io",           # Streamlined output
         "-c", "512"              # Small context size to save RAM
     ]
 
@@ -96,15 +96,17 @@ User: "{message}"
             cmd,
             capture_output=True,
             text=True,
-            timeout=15
+            timeout=20
         )
         output = proc.stdout.strip()
         parsed = extract_json(output)
         if parsed and 'action' in parsed:
             return parsed
     except subprocess.TimeoutExpired:
-        print("⚠️ LLM inference timed out (>15s)")
+        print("⚠️ LLM inference timed out (>20s)")
     except Exception as e:
         print(f"⚠️ LLM execution error: {e}")
+
+    return None
 
     return None
