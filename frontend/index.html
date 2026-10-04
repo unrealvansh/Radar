@@ -663,9 +663,14 @@
             <div class="brand-title">
                 <span>🧠</span> PocketBrain
             </div>
-            <button class="theme-toggle-btn" onclick="toggleTheme()">
-                <span id="theme-icon">☀️</span> <span id="theme-text">Light</span>
-            </button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="theme-toggle-btn" onclick="switchNav('calendar', null)">
+                    <span>📅</span> <span>Calendar</span>
+                </button>
+                <button class="theme-toggle-btn" onclick="toggleTheme()">
+                    <span id="theme-icon">☀️</span> <span id="theme-text">Light</span>
+                </button>
+            </div>
         </div>
 
         <!-- ==================== VIEW 1: HOME ==================== -->
@@ -821,15 +826,11 @@ Try commands like:
             <div id="saved-full-list">Loading...</div>
         </div>
 
-        <!-- ==================== BOTTOM NAVIGATION (6 Tabs) ==================== -->
+        <!-- ==================== BOTTOM NAVIGATION (5 Tabs) ==================== -->
         <nav class="bottom-nav">
             <div class="nav-tab active" onclick="switchNav('home', this)">
                 <span class="nav-icon">🏠</span>
                 <span>Home</span>
-            </div>
-            <div class="nav-tab" onclick="switchNav('calendar', this)">
-                <span class="nav-icon">📅</span>
-                <span>Calendar</span>
             </div>
             <div class="nav-tab" onclick="switchNav('chat', this)">
                 <span class="nav-icon">💬</span>
@@ -1066,7 +1067,7 @@ Try commands like:
                 tabEl.classList.add('active');
             } else {
                 const tabs = document.querySelectorAll('.nav-tab');
-                const idx = ['home', 'calendar', 'chat', 'reminders', 'money', 'saved'].indexOf(name);
+                const idx = ['home', 'chat', 'reminders', 'money', 'saved'].indexOf(name);
                 if (idx >= 0 && tabs[idx]) tabs[idx].classList.add('active');
             }
 
@@ -1089,7 +1090,7 @@ Try commands like:
                 // Greeting & Time
                 const hour = new Date().getHours();
                 const salute = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
-                document.getElementById('greeting-text').textContent = `${salute}, Unrea 🧠`;
+                document.getElementById('greeting-text').textContent = `${salute}, Vansh 🧠`;
                 document.getElementById('greeting-time').textContent = data.server_time || new Date().toLocaleString();
 
                 // Stats
