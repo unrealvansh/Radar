@@ -309,6 +309,14 @@ def scan_all_radar():
 
     return {'jobs': len(j), 'events': len(e), 'news': len(n)}
 
+def scan_high_priority():
+    """High-priority scan: Jobs & Hackathons only (quick, focused)."""
+    print("📡 [Radar] Running High-Priority scan (Jobs & Hackathons)...")
+    j = scan_jobs(limit=10)
+    e = scan_events(limit=10)
+    print(f"📡 [Radar] High-priority scan complete: {len(j)} jobs, {len(e)} events found.")
+    return {'jobs': len(j), 'events': len(e), 'news': 0}
+
 def get_radar_items(pillar=None, limit=5):
     """Retrieve items from DB for chat or frontend."""
     init_radar_db()

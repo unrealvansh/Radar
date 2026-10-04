@@ -873,17 +873,18 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from services.notifier import send_push
 
 def scheduled_morning_briefing():
-    """Triggered every morning at 7:30 AM."""
+    """Triggered every morning at 8:30 AM with complete day briefing."""
     try:
         conn = get_db()
-        # Check today's deadlines
         today_str = datetime.now().strftime('%Y-%m-%d')
+        
+        # 1. Deadlines (Due today or urgent next 2 days)
         deadlines = conn.execute(
-            'SELECT title, subject FROM deadlines WHERE completed = 0 AND due_date = ?',
+            'SELECT title, subject, due_date FROM deadlines WHERE completed = 0 AND due_date <= date(?, "+2 days") ORDER BY due_date ASC',
             (today_str,)
         ).fetchall()
         
-        # Check attendance warnings
+        # 2. Attendance warnings (< 78%)
         subjects = conn.execute('SELECT DISTINCT subject FROM attendance').fetchall()
         low_att = []
         for s in subjects:
@@ -893,62 +894,118 @@ def scheduled_morning_briefing():
             if tot > 0:
                 pct = (pres / tot) * 100
                 if pct < 78:
-                    low_att.append(f"{subj}: {pct:.1f}%")
+                    low_att.append(f"{subj} ({pct:.1f}%)")
+        
+        # 3. Money / Budget
+        today_spent = conn.execute(
+            "SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE date = date('now')"
+        ).fetchone()['total']
+        week_spent = conn.execute(
+            "SELECT COALESCE(SUM(amount), 0) as total FROM expenses "
+            "WHERE strftime('%W', date) = strftime('%W', 'now') AND strftime('%Y', date) = strftime('%Y', 'now')"
+        ).fetchone()['total']
+        b_row = conn.execute("SELECT value FROM settings WHERE key = 'weekly_budget'").fetchone()
+        weekly_budget = float(b_row['value']) if b_row else 2000
+        budget_left = weekly_budget - week_spent
+
+        # 4. Top Radar Matches (Jobs, Events, News)
+        top_job = conn.execute("SELECT title, organization FROM radar_items WHERE pillar = 'jobs' ORDER BY id DESC LIMIT 1").fetchone()
+        top_event = conn.execute("SELECT title, extra_info FROM radar_items WHERE pillar = 'events' ORDER BY id DESC LIMIT 1").fetchone()
+        top_news = conn.execute("SELECT title, source FROM radar_items WHERE pillar = 'news' ORDER BY id DESC LIMIT 1").fetchone()
         
         conn.close()
         
-        msg_parts = []
+        sections = []
+        # Deadlines
         if deadlines:
-            d_list = ", ".join([f"{d['title']} ({d['subject'] or 'General'})" for d in deadlines])
-            msg_parts.append(f"⏰ DUE TODAY: {d_list}")
+            d_strs = [f"• {d['title']} ({d['due_date']})" for d in deadlines]
+            sections.append("📅 TASKS & DEADLINES:\n" + "\n".join(d_strs))
         else:
-            msg_parts.append("✅ No deadlines due today.")
+            sections.append("📅 TASKS: No urgent deadlines today! ☕")
             
+        # Attendance
         if low_att:
-            msg_parts.append(f"⚠️ LOW ATTENDANCE: {', '.join(low_att)}")
+            sections.append(f"⚠️ ATTENDANCE ALERT: Cannot bunk: {', '.join(low_att)}")
             
+        # Money
+        sections.append(f"💸 BUDGET: ₹{budget_left:.0f} remaining this week (Spent: ₹{week_spent:.0f})")
+        
+        # Radar Opportunities
+        radar_lines = []
+        if top_job:
+            radar_lines.append(f"💼 Job Match: {top_job['title']} at {top_job['organization']}")
+        if top_event:
+            radar_lines.append(f"🚀 Event/Hackathon: {top_event['title']} ({top_event['extra_info']})")
+        if top_news:
+            radar_lines.append(f"📰 Tech News: {top_news['title']} [{top_news['source']}]")
+            
+        if radar_lines:
+            sections.append("📡 OPPORTUNITY RADAR:\n" + "\n".join(radar_lines))
+            
+        full_briefing = "\n\n".join(sections)
+        
         send_push(
-            title="🌅 Morning Briefing",
-            message="\n".join(msg_parts),
+            title="🌅 PocketBrain Morning Intelligence",
+            message=full_briefing,
             priority="high",
-            tags=["sunrise", "memo"]
+            tags=["sunrise", "brain", "memo"]
         )
     except Exception as e:
         print(f"Error running morning briefing: {e}")
 
 def scheduled_evening_checkin():
-    """Triggered every evening at 9:00 PM for habits & tomorrow's preview."""
+    """Triggered every night at 11:00 PM before sleep."""
     try:
         conn = get_db()
-        # Check uncompleted habits
-        habits = conn.execute('SELECT name FROM habits').fetchall()
-        uncompleted = []
+        # 1. Uncompleted habits
+        habits = conn.execute('SELECT name, icon FROM habits').fetchall()
+        pending_habits = []
+        done_count = 0
         for h in habits:
             done = conn.execute("SELECT 1 FROM habit_logs WHERE habit_name = ? AND date = date('now')", (h['name'],)).fetchone()
-            if not done:
-                uncompleted.append(h['name'])
+            if done:
+                done_count += 1
+            else:
+                pending_habits.append(f"{h['icon']} {h['name']}")
         
-        # Check tomorrow's deadlines
+        # 2. Today's total spending
+        today_spent = conn.execute(
+            "SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE date = date('now')"
+        ).fetchone()['total']
+        
+        # 3. Tomorrow's deadlines
         tomorrow_str = (datetime.now().date() + timedelta(days=1)).strftime('%Y-%m-%d')
         tom_deadlines = conn.execute(
             'SELECT title, subject FROM deadlines WHERE completed = 0 AND due_date = ?',
             (tomorrow_str,)
         ).fetchall()
+        
+        # 4. Fresh opportunities found today
+        today_radar = conn.execute(
+            "SELECT COUNT(*) as c FROM radar_items WHERE date(created_at) = date('now')"
+        ).fetchone()['c']
+        
         conn.close()
         
-        msg = []
-        if uncompleted:
-            msg.append(f"🎯 Pending habits: {', '.join(uncompleted)}")
+        parts = []
+        parts.append(f"🎯 HABITS: {done_count}/{len(habits)} done" + (f" (Pending: {', '.join(pending_habits)})" if pending_habits else " (All complete! 🎉)"))
+        parts.append(f"💸 SPENT TODAY: ₹{today_spent:.0f}")
+        
         if tom_deadlines:
-            msg.append(f"📅 Due tomorrow: {', '.join([d['title'] for d in tom_deadlines])}")
+            t_strs = [f"• {d['title']}" for d in tom_deadlines]
+            parts.append("📅 DUE TOMORROW:\n" + "\n".join(t_strs))
+        else:
+            parts.append("📅 TOMORROW: Clear schedule!")
             
-        if msg:
-            send_push(
-                title="🌙 Evening Check-in",
-                message="\n".join(msg),
-                priority="default",
-                tags=["moon", "check"]
-            )
+        if today_radar > 0:
+            parts.append(f"📡 RADAR: {today_radar} new internships/hackathons found today! Check Saved/Chat.")
+            
+        send_push(
+            title="🌙 PocketBrain Night Wrap-up",
+            message="\n\n".join(parts),
+            priority="default",
+            tags=["moon", "star2", "bed"]
+        )
     except Exception as e:
         print(f"Error in evening checkin: {e}")
 
@@ -1009,14 +1066,24 @@ if __name__ == '__main__':
     else:
         scheduler = BackgroundScheduler()
 
-    scheduler.add_job(scheduled_morning_briefing, 'cron', hour=7, minute=30)
-    scheduler.add_job(scheduled_evening_checkin, 'cron', hour=21, minute=0)
+    from services.unified_radar import scan_all_radar, scan_high_priority
+
+    # 1. Scraping Radar Schedule:
+    # 08:00 AM -> Full Scan
+    scheduler.add_job(scan_all_radar, 'cron', hour=8, minute=0)
+    # 08:30 AM -> Detailed Morning Intelligence Briefing
+    scheduler.add_job(scheduled_morning_briefing, 'cron', hour=8, minute=30)
+    # 14:00 (02:00 PM) -> High-Priority Scan (Jobs & Hackathons)
+    scheduler.add_job(scan_high_priority, 'cron', hour=14, minute=0)
+    # 20:00 (08:00 PM) -> Full Scan
+    scheduler.add_job(scan_all_radar, 'cron', hour=20, minute=0)
+    # 23:00 (11:00 PM) -> Night Wrap-up Briefing (Habits, Spend, Tomorrow Preview)
+    scheduler.add_job(scheduled_evening_checkin, 'cron', hour=23, minute=0)
+    # 02:00 AM -> High-Priority Scan
+    scheduler.add_job(scan_high_priority, 'cron', hour=2, minute=0)
+
+    # Fast Reminder Check every 10 seconds
     scheduler.add_job(check_pending_reminders, 'interval', seconds=10)
-    
-    # Unified Student Radar: scan Jobs, Events, Tech News at 11:00 AM and 05:00 PM
-    from services.unified_radar import scan_all_radar
-    scheduler.add_job(scan_all_radar, 'cron', hour=11, minute=0)
-    scheduler.add_job(scan_all_radar, 'cron', hour=17, minute=0)
     
     scheduler.start()
     
