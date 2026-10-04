@@ -301,7 +301,8 @@ def try_parse_reminder(message):
     msg = message.strip()
     msg_lower = msg.lower()
     
-    if not ('remind' in msg_lower or 'reminder' in msg_lower):
+    remind_triggers = ['remind', 'reminder', 'remin', 'remider', 'alert', 'alarm', 'yaad']
+    if not any(trig in msg_lower for trig in remind_triggers):
         return None
         
     now = datetime.now()
@@ -381,8 +382,7 @@ def try_parse_reminder(message):
     # Find all times mentioned in message: e.g. "at 19:30" or "at 4:40 pm"
     time_matches = list(re.finditer(r'(?:on\s+([a-zA-Z0-9\s/\-]+?)\s+)?at\s+(\d{1,2}:\d{2}(?:\s*[ap]m)?)', msg_lower))
     if time_matches:
-        # Extract title by stripping "remind me", "to", and the time segments
-        clean_title = re.sub(r'^remind\s+(?:me\s+)?(?:to\s+)?', '', msg, flags=re.IGNORECASE)
+        clean_title = re.sub(r'^(?:remind|reminder|remin|remider|alert|alarm)\s+(?:me\s+)?(?:to\s+)?', '', msg, flags=re.IGNORECASE)
         for tm in time_matches:
             clean_title = clean_title.replace(tm.group(0), '')
         clean_title = re.sub(r'\s+and\s+', ' ', clean_title).strip()
