@@ -2,14 +2,15 @@ import os
 import re
 import json
 import subprocess
-from datetime import datetime
+import tempfile
+from datetime import datetime, timedelta
 
-# Paths (check ~/pocketbrain/models or relative to server)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Paths
 MODEL_PATH = os.path.expanduser("~/pocketbrain/models/smollm2-360m-instruct.Q4_K_M.gguf")
 LLAMA_CLI_PATH = os.path.expanduser("~/pocketbrain/llama.cpp/build/bin/llama-cli")
 LLAMA_LEGACY_PATH = os.path.expanduser("~/pocketbrain/llama.cpp/llama-cli")
 LLAMA_MAIN_PATH = os.path.expanduser("~/pocketbrain/llama.cpp/main")
+GRAMMAR_PATH = os.path.expanduser("~/pocketbrain/models/action.gbnf")
 
 def get_llama_binary():
     """Find available llama.cpp binary."""
@@ -23,90 +24,146 @@ def is_llm_available():
     binary = get_llama_binary()
     return binary is not None and os.path.exists(MODEL_PATH)
 
-FEW_SHOT_SYSTEM_PROMPT = """You are PocketBrain's message parser. Convert the user message into exactly ONE JSON action line. No explanation, no markdown.
+def _build_prompt(message: str) -> str:
+    """Build ChatML-formatted prompt with few-shot examples."""
+    today = datetime.now()
+    today_str = today.strftime('%Y-%m-%d')
+    tomorrow_str = (today + timedelta(days=1)).strftime('%Y-%m-%d')
 
-VALID ACTIONS:
-- {"action":"expense","amount":180,"description":"zomato","category":"food"}
-- {"action":"reminder","title":"call mom","date":"YYYY-MM-DD","time":"HH:MM"}
-- {"action":"deadline","title":"assignment","subject":"OS","due_date":"YYYY-MM-DD"}
-- {"action":"attendance","subject":"OS","status":"present|bunked"}
-- {"action":"habit","name":"gym"}
-- {"action":"note","content":"text to save"}
-- {"action":"unknown"}
+    return f"""<|im_start|>system
+You are a JSON converter. Convert user messages into exactly one JSON object. Output ONLY the JSON, nothing else. No explanation.
 
-EXAMPLES:
-User: "parso subah 10 baje doctor jana hai"
-{"action":"reminder","title":"doctor jana hai","date":"DATE_PARSO","time":"10:00"}
-User: "bhai 120 ka roll khaya"
-{"action":"expense","amount":120,"description":"roll","category":"food"}
-User: "OS assignment submit karna hai 12 oct ko"
-{"action":"deadline","title":"assignment submit karna hai","subject":"OS","due_date":"2026-10-12"}
-User: "dsa practice complete ho gayi"
-{"action":"habit","name":"dsa"}
-User: "save this link https://github.com"
-{"action":"note","content":"https://github.com"}
-User: "bunked TOC class today"
-{"action":"attendance","subject":"TOC","status":"bunked"}
+Valid JSON formats:
+{{"action":"expense","amount":NUMBER,"description":"TEXT","category":"food"}}
+{{"action":"reminder","title":"TEXT","date":"{today_str}","time":"HH:MM"}}
+{{"action":"deadline","title":"TEXT","subject":"TEXT","due_date":"{today_str}"}}
+{{"action":"attendance","subject":"TEXT","status":"bunked"}}
+{{"action":"habit","name":"TEXT"}}
+{{"action":"note","content":"TEXT"}}
+{{"action":"unknown"}}
+
+Today is {today_str}. Tomorrow is {tomorrow_str}.
+<|im_end|>
+<|im_start|>user
+120 ka chai pi
+<|im_end|>
+<|im_start|>assistant
+{{"action":"expense","amount":120,"description":"chai","category":"food"}}
+<|im_end|>
+<|im_start|>user
+gym done
+<|im_end|>
+<|im_start|>assistant
+{{"action":"habit","name":"gym"}}
+<|im_end|>
+<|im_start|>user
+bunked CN class
+<|im_end|>
+<|im_start|>assistant
+{{"action":"attendance","subject":"CN","status":"bunked"}}
+<|im_end|>
+<|im_start|>user
+remind me to call mom at 19:30
+<|im_end|>
+<|im_start|>assistant
+{{"action":"reminder","title":"call mom","date":"{today_str}","time":"19:30"}}
+<|im_end|>
+<|im_start|>user
+OS assignment submit by tomorrow
+<|im_end|>
+<|im_start|>assistant
+{{"action":"deadline","title":"assignment submit","subject":"OS","due_date":"{tomorrow_str}"}}
+<|im_end|>
+<|im_start|>user
+save important: placement talk by google on oct 20
+<|im_end|>
+<|im_start|>assistant
+{{"action":"note","content":"placement talk by google on oct 20"}}
+<|im_end|>
+<|im_start|>user
+{message}
+<|im_end|>
+<|im_start|>assistant
 """
 
+
 def extract_json(raw_text):
-    """Safely extract valid JSON object from LLM response."""
+    """Extract valid JSON with 'action' key from raw LLM output."""
     if not raw_text:
         return None
-    # Find all JSON-like candidates in text
-    candidates = re.findall(r'\{[^{}]*\}', raw_text, re.DOTALL)
-    for c in reversed(candidates):
+
+    # Try to find JSON objects in the text
+    candidates = re.findall(r'\{[^{}]*\}', raw_text)
+    for c in candidates:
         try:
             data = json.loads(c)
-            if 'action' in data:
+            if 'action' in data and data['action'] != 'unknown':
                 return data
-        except Exception:
-            pass
+        except (json.JSONDecodeError, ValueError):
+            continue
     return None
+
 
 def llm_parse(message: str) -> dict:
     """
     Fallback LLM parser using SmolLM2 360M via llama.cpp.
-    Returns parsed dict action or None.
+    Returns parsed action dict or None.
     """
     binary = get_llama_binary()
     if not binary or not os.path.exists(MODEL_PATH):
         return None
 
-    today_str = datetime.now().strftime('%Y-%m-%d')
-    prompt = f"""{FEW_SHOT_SYSTEM_PROMPT}
-Current Date: {today_str}
-User: "{message}"
-"""
+    prompt = _build_prompt(message)
 
-    cmd = [
-        binary,
-        "-m", MODEL_PATH,
-        "-p", prompt,
-        "-n", "64",
-        "-t", "4",               # 4 CPU threads
-        "--temp", "0.1",         # Low temperature
-        "--single-turn",         # Run single turn and exit
-        "--simple-io",           # Streamlined output
-        "-c", "512"              # Small context size to save RAM
-    ]
-
+    # Write prompt to a temp file to avoid shell escaping issues
+    tmp = None
     try:
+        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8')
+        tmp.write(prompt)
+        tmp.close()
+
+        cmd = [
+            binary,
+            "-m", MODEL_PATH,
+            "--file", tmp.name,       # Read prompt from file (avoids shell escaping)
+            "-n", "80",               # Max tokens to generate
+            "-t", "4",                # 4 CPU threads
+            "--temp", "0.1",          # Low temperature for deterministic output
+            "--single-turn",          # Exit after one response
+            "--no-display-prompt",    # Don't echo prompt back to stdout
+            "-c", "512",              # Small context window to save RAM
+        ]
+
         proc = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             timeout=20
         )
+
         output = proc.stdout.strip()
+        stderr = proc.stderr.strip()
+
+        # Debug logging
+        print(f"[LLM] stdout: {output[:200]}")
+        if proc.returncode != 0:
+            print(f"[LLM] stderr: {stderr[:200]}")
+
         parsed = extract_json(output)
-        if parsed and 'action' in parsed:
+        if parsed:
             return parsed
+
+        # If stdout failed, also check stderr (some versions print there)
+        parsed = extract_json(stderr)
+        if parsed:
+            return parsed
+
     except subprocess.TimeoutExpired:
         print("⚠️ LLM inference timed out (>20s)")
     except Exception as e:
         print(f"⚠️ LLM execution error: {e}")
-
-    return None
+    finally:
+        if tmp and os.path.exists(tmp.name):
+            os.unlink(tmp.name)
 
     return None
