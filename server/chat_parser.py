@@ -601,7 +601,7 @@ def try_parse_query(message):
         ).fetchall()
         conn.close()
         if not deadlines:
-            return {'type': 'deadlines', 'message': "📅 No upcoming deadlines! Chill piyo. ☕"}
+            return {'type': 'deadlines', 'message': "📅 No upcoming deadlines. All clear! ☕"}
         lines = ["📅 Upcoming Deadlines:"]
         for d in deadlines:
             subj = f"[{d['subject']}] " if d['subject'] else ""
@@ -722,30 +722,37 @@ def try_parse_query(message):
 # HELP RESPONSE
 # ================================================================
 
-HELP_TEXT = """🧠 **PocketBrain Chat Commands**
+HELP_TEXT = """🧠 **PocketBrain Assistant Commands**
 
 💸 **Expenses:**
-• `chai 20` — logs ₹20 expense (food)
-• `auto 30` — logs ₹30 expense (transport)
-• `spent 50 on xerox` — logs ₹50 (study)
+• `coffee 40` — logs ₹40 under Food
+• `cab 150` — logs ₹150 under Transport
+• `spent 80 on notebook` — logs ₹80 under Study
 
-📊 **Attendance:**
-• `bunked OS` — marks OS as absent
-• `attended DBMS` — marks DBMS as present
-• `cancel CN` — marks CN as cancelled
+⏰ **Reminders & Alerts:**
+• `remind me to call mom at 19:30`
+• `remind me in 20 mins to drink water`
+• `alert me tomorrow at 10:00 to submit fee`
 
-🎯 **Habits:**
-• `gym done` — checks in gym habit
-• `did dsa` — checks in DSA habit
-• Just type the habit name: `gym`
+📅 **Deadlines & Tasks:**
+• `assignment OS due 12 oct`
+• `mid sem exam DBMS on 20 oct`
+• `deadlines` — view upcoming deadlines
 
-❓ **Queries:**
-• `how much spent today`
-• `attendance OS`
-• `habits` — today's habit status
-• `status` — overall summary
+📡 **Student Radar:**
+• `jobs` or `internships` — C++, Python, Fintech & WFH roles
+• `events` or `hackathons` — Devpost, DevFest & competitions
+• `tech news` — AI models & Indian tech startups
+• `radar scan` — refresh all radar sources now
 
-💡 Hinglish bhi chalega: `bunked OS`, `chai 20`, `gym ho gaya`"""
+🎯 **Habits & Attendance:**
+• `gym done` or `did 30 pushups`
+• `attended DBMS` / `bunked OS`
+• `habits` — today's checklist
+
+📌 **Quick Saves:**
+• `save: https://github.com/project`
+• `notes` — view recent saved items"""
 
 
 # ================================================================
@@ -978,5 +985,5 @@ def parse_message(message):
     # --- Unknown ---
     return {
         'action': 'unknown',
-        'response': f"🤔 Samajh nahi aaya: \"{msg}\"\nType `help` to see what I can understand!"
+        'response': f"🤔 I didn't recognize: \"{msg}\"\nType `help` to see supported commands or log expenses/tasks directly!"
     }

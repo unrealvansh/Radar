@@ -925,7 +925,7 @@ def scheduled_morning_briefing():
             
         # Attendance
         if low_att:
-            sections.append(f"⚠️ ATTENDANCE ALERT: Cannot bunk: {', '.join(low_att)}")
+            sections.append(f"⚠️ ATTENDANCE ALERT: Low attendance in: {', '.join(low_att)}")
             
         # Money
         sections.append(f"💸 BUDGET: ₹{budget_left:.0f} remaining this week (Spent: ₹{week_spent:.0f})")

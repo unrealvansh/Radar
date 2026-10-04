@@ -764,16 +764,18 @@
         <div class="view-content" id="view-chat">
             <div class="chat-container">
                 <div class="chat-messages" id="chat-messages">
-                    <div class="chat-bubble bot">🧠 Hey! Tell me what you did or what you want to track.
-
-• "chai 20" or "spent 100 on print"
-• "assignment OS submit by 8 oct"
-• "remind me to call mom at 19:30"
-• "gym done"
-• "bunked CN"</div>
+                    <div class="chat-bubble bot">🧠 PocketBrain Assistant Ready.
+Try commands like:
+• `jobs` or `internships`
+• `events` or `hackathons`
+• `tech news` or `ai news`
+• `coffee 40` or `spent 100 on print`
+• `remind me to call mom at 19:30`
+• `assignment OS due 10 oct`
+• `gym done` or `did 30 pushups`</div>
                 </div>
                 <div class="chat-input-bar">
-                    <input type="text" id="chat-input" placeholder="chai 20, assignment OS, gym done..." onkeydown="if(event.key==='Enter') sendChat()">
+                    <input type="text" id="chat-input" placeholder="Type 'help', 'jobs', 'coffee 40'..." onkeydown="if(event.key==='Enter') sendChat()">
                     <button class="btn" onclick="sendChat()" style="border-radius: 12px;">➤</button>
                 </div>
             </div>
@@ -864,7 +866,7 @@
             </div>
             <div style="margin-bottom: 10px;">
                 <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">DESCRIPTION</label>
-                <input type="text" id="exp-desc" placeholder="e.g. Chai, Swiggy, Xerox">
+                <input type="text" id="exp-desc" placeholder="e.g. Coffee, Meal, Stationery">
             </div>
             <div style="margin-bottom: 14px;">
                 <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">CATEGORY</label>
@@ -1121,7 +1123,7 @@
                         <div class="item-card" style="border-left: 3px solid var(--error);">
                             <div class="item-info">
                                 <div class="item-title">${a.subject} — ${a.percentage}%</div>
-                                <div class="item-sub" style="color:var(--error);">Critical! Bunk limit exceeded.</div>
+                                <div class="item-sub" style="color:var(--error);">Critical! Attendance below 75% requirement.</div>
                             </div>
                         </div>
                     `).join('');
