@@ -451,6 +451,16 @@ def add_bookmark():
     return jsonify({'status': 'ok', 'message': 'Bookmark saved!'})
 
 
+@app.route('/api/bookmarks/<int:id>', methods=['DELETE'])
+def delete_bookmark(id):
+    """Delete a saved bookmark."""
+    conn = get_db()
+    conn.execute('DELETE FROM bookmarks WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Bookmark deleted!'})
+
+
 # ============ API: DASHBOARD ============
 
 @app.route('/api/dashboard')

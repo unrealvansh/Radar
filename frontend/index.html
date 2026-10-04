@@ -611,10 +611,11 @@
             align-items: center;
             justify-content: center;
             color: var(--text-tertiary);
-            font-size: 10.5px;
+            font-size: 10px;
             font-weight: 600;
             cursor: pointer;
-            width: 20%;
+            flex: 1;
+            min-width: 0;
             transition: color 0.15s;
         }
         .nav-tab.active {
@@ -812,7 +813,13 @@
             <div id="expenses-full-list">Loading...</div>
         </div>
 
-        <!-- ==================== BOTTOM NAVIGATION (5 Tabs) ==================== -->
+        <!-- ==================== VIEW 6: SAVED / BOOKMARKS ==================== -->
+        <div class="view-content" id="view-saved">
+            <div class="section-title" style="margin-bottom: 12px;">🔖 Saved Opportunities & Links</div>
+            <div id="saved-full-list">Loading...</div>
+        </div>
+
+        <!-- ==================== BOTTOM NAVIGATION (6 Tabs) ==================== -->
         <nav class="bottom-nav">
             <div class="nav-tab active" onclick="switchNav('home', this)">
                 <span class="nav-icon">🏠</span>
@@ -833,6 +840,10 @@
             <div class="nav-tab" onclick="switchNav('money', this)">
                 <span class="nav-icon">💸</span>
                 <span>Money</span>
+            </div>
+            <div class="nav-tab" onclick="switchNav('saved', this)">
+                <span class="nav-icon">🔖</span>
+                <span>Saved</span>
             </div>
         </nav>
     </div>
@@ -1050,9 +1061,8 @@
             if (target) target.classList.add('active');
             
             if (tabEl) tabEl.classList.add('active');
-            else {
                 const tabs = document.querySelectorAll('.nav-tab');
-                const idx = ['home', 'calendar', 'chat', 'reminders', 'money'].indexOf(name);
+                const idx = ['home', 'calendar', 'chat', 'reminders', 'money', 'saved'].indexOf(name);
                 if (idx >= 0 && tabs[idx]) tabs[idx].classList.add('active');
             }
 
@@ -1060,6 +1070,7 @@
             if (name === 'calendar') loadCalendar();
             if (name === 'reminders') loadReminders();
             if (name === 'money') loadExpenses();
+            if (name === 'saved') loadSaved();
         }
 
         // ================================================================
@@ -1717,6 +1728,92 @@
         }
 
         // ================================================================
+        // SAVED / BOOKMARKS
+        // ================================================================
+        async function loadSaved() {
+            const list = document.getElementById('saved-full-list');
+            try {
+                const res = await fetch('/api/bookmarks');
+                const items = res.ok ? await res.json() : [];
+                if (items.length === 0) {
+                    list.innerHTML = `
+                        <div class="card" style="text-align: center; color: var(--text-tertiary); padding: 24px 12px;">
+                            <div style="font-size: 28px; margin-bottom: 8px;">🔖</div>
+                            <div style="font-weight: 600;">No Saved Items Yet</div>
+                            <div style="font-size: 12px; margin-top: 4px;">Tap "[🔖 Save]" on any job, event, or news in chat to save it here!</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                list.innerHTML = items.map(b => `
+                    <div class="item-card">
+                        <div class="item-info">
+                            <div class="item-title">${escapeHtml(b.title || 'Saved Link')}</div>
+                            <div class="item-sub">
+                                <span class="pill-badge" style="background:var(--bg-secondary); color:var(--text-secondary);">${escapeHtml(b.tags || 'bookmark')}</span>
+                                <a href="${escapeHtml(b.url)}" target="_blank" style="color:var(--text-primary); text-decoration:underline; font-weight:600;">Visit ↗</a>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="action-icon-btn delete" onclick="deleteSaved(${b.id})">🗑️</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                list.innerHTML = '<div style="color:var(--text-tertiary);">Failed to load saved items.</div>';
+            }
+        }
+
+        async function saveBookmark(title, url, tags = 'radar') {
+            try {
+                await fetch('/api/bookmarks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, url, tags })
+                });
+                showToast('Saved to Bookmarks! 🔖');
+            } catch (e) {
+                showToast('Failed to save!');
+            }
+        }
+
+        async function deleteSaved(id) {
+            if (!confirm('Remove this saved item?')) return;
+            await fetch(`/api/bookmarks/${id}`, { method: 'DELETE' });
+            showToast('Bookmark removed');
+            loadSaved();
+        }
+
+        function escapeHtml(str) {
+            return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function formatBotMessage(text) {
+            if (!text) return '';
+            let html = escapeHtml(text);
+            // Convert bold markdown **text**
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // Convert newlines
+            html = html.replace(/\n/g, '<br>');
+            // Detect lines with links and attach a [🔖 Save] button
+            const lines = html.split('<br>');
+            const formatted = lines.map(line => {
+                const urlMatch = line.match(/(https?:\/\/[^\s<]+)/);
+                if (urlMatch) {
+                    const fullUrl = urlMatch[1];
+                    const cleanLink = `<a href="${fullUrl}" target="_blank" style="color:var(--text-primary); text-decoration:underline; font-weight:600;">${fullUrl}</a>`;
+                    let res = line.replace(fullUrl, cleanLink);
+                    // Add 1-tap Save Button
+                    res += ` <button onclick="saveBookmark('Opportunity', '${fullUrl}', 'radar')" style="background:var(--bg-secondary); border:1px solid var(--border); color:var(--text-primary); border-radius:6px; padding:2px 8px; font-size:11px; cursor:pointer; margin-left:6px;">🔖 Save</button>`;
+                    return res;
+                }
+                return line;
+            });
+            return formatted.join('<br>');
+        }
+
+        // ================================================================
         // CHAT
         // ================================================================
         function addBubble(text, type, id = null) {
@@ -1724,7 +1821,11 @@
             const bubble = document.createElement('div');
             bubble.className = 'chat-bubble ' + type;
             if (id) bubble.id = id;
-            bubble.textContent = text;
+            if (type === 'user') {
+                bubble.textContent = text;
+            } else {
+                bubble.innerHTML = formatBotMessage(text);
+            }
             el.appendChild(bubble);
             el.scrollTop = el.scrollHeight;
             return bubble;
