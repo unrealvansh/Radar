@@ -350,8 +350,8 @@ def try_parse_reminder(message):
                 pass
         conn.close()
 
-    # Pattern 2: "remind me in X mins/hours to <task>"
-    m_in = re.search(r'remind\s+(?:me\s+)?in\s+(\d+)\s*(mins?|minutes?|hours?|hrs?)(?:\s+(?:to|for)\s+(.*))?$', msg_lower)
+    # Pattern 2: "remind me in X mins/hours to <task>" or "remind me in X mins <task>"
+    m_in = re.search(r'remind\s+(?:me\s+)?in\s+(\d+)\s*(mins?|minutes?|hours?|hrs?)(?:\s+(?:to\s+|for\s+)?(.*))?$', msg_lower)
     if m_in:
         amount = int(m_in.group(1))
         unit = m_in.group(2)
@@ -382,7 +382,7 @@ def try_parse_reminder(message):
     time_matches = list(re.finditer(r'(?:on\s+([a-zA-Z0-9\s/\-]+?)\s+)?at\s+(\d{1,2}:\d{2}(?:\s*[ap]m)?)', msg_lower))
     if time_matches:
         # Extract title by stripping "remind me", "to", and the time segments
-        clean_title = re.sub(r'^(?i)remind\s+(?:me\s+)?(?:to\s+)?', '', msg)
+        clean_title = re.sub(r'^remind\s+(?:me\s+)?(?:to\s+)?', '', msg, flags=re.IGNORECASE)
         for tm in time_matches:
             clean_title = clean_title.replace(tm.group(0), '')
         clean_title = re.sub(r'\s+and\s+', ' ', clean_title).strip()
@@ -481,7 +481,7 @@ def try_parse_deadline(message):
 
 def try_parse_note(message):
     msg = message.strip()
-    m = re.match(r'^(?i)(?:save|note|remember)(?:\:)?\s+(.*)', msg)
+    m = re.match(r'^(?:save|note|remember)(?:\:)?\s+(.*)', msg, flags=re.IGNORECASE)
     if m:
         content = m.group(1).strip()
         if content:
