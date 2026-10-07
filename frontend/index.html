@@ -189,6 +189,61 @@
             color: var(--text-primary);
         }
 
+        /* Bento Grid */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .bento-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 94px;
+            cursor: pointer;
+            transition: transform 0.1s ease, border-color 0.15s ease;
+            position: relative;
+        }
+        .bento-card:active {
+            transform: scale(0.97);
+        }
+        .bento-card:hover {
+            border-color: var(--text-tertiary);
+        }
+        .bento-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .bento-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+        }
+        .bento-chevron {
+            font-size: 14px;
+            color: var(--text-tertiary);
+        }
+        .bento-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+        .bento-sub {
+            font-size: 11.5px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
         /* ================================================================
            BUTTONS & INPUTS
            ================================================================ */
@@ -663,71 +718,85 @@
             <div class="brand-title">
                 <span>🧠</span> PocketBrain
             </div>
-            <div style="display: flex; gap: 6px; align-items: center;">
-                <button class="theme-toggle-btn" onclick="switchNav('modules', null)">
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="theme-toggle-btn" onclick="switchNav('modules', null)" style="border-radius: 20px; padding: 5px 12px;">
                     <span>🧩</span> <span>Modules</span>
                 </button>
-                <button class="theme-toggle-btn" onclick="switchNav('calendar', null)">
-                    <span>📅</span> <span>Cal</span>
-                </button>
-                <button class="theme-toggle-btn" onclick="toggleTheme()" style="padding: 6px 10px;">
+                <button class="theme-toggle-btn" onclick="toggleTheme()" style="padding: 6px 10px; border-radius: 50%;">
                     <span id="theme-icon">☀️</span>
                 </button>
             </div>
         </div>
 
-        <!-- ==================== VIEW 1: HOME (HUB) ==================== -->
+        <!-- ==================== VIEW 1: HOME (BENTO HUB) ==================== -->
         <div class="view-content active" id="view-home">
-            <div class="card" style="background: var(--bg-secondary); border: none; margin-bottom: 16px;">
-                <div style="font-size: 18px; font-weight: 700; margin-bottom: 2px;" id="greeting-text">Welcome back 👋</div>
-                <div style="font-size: 12px; color: var(--text-secondary);" id="greeting-time">Loading...</div>
+            <!-- Hero Intelligence Banner -->
+            <div class="card" style="background: var(--bg-secondary); border: none; margin-bottom: 14px; padding: 14px 16px;">
+                <div style="font-size: 19px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 2px;" id="greeting-text">Welcome back, Vansh 🧠</div>
+                <div style="font-size: 12px; color: var(--text-secondary);" id="greeting-time">Loading briefing...</div>
             </div>
 
-            <!-- Exam Countdown & Syllabus Engine Extension Widget -->
-            <div class="section" id="ext-exams-container">
+            <!-- 2x2 Bento Grid (Zero Scroll Fatigue) -->
+            <div class="bento-grid">
+                <!-- Bento 1: Next Exam -->
+                <div class="bento-card" id="bento-exam" onclick="switchNav('exams')" title="Tap to open Exam Workspace">
+                    <div class="bento-header">
+                        <span class="bento-title">🎓 Next Exam</span>
+                        <span class="bento-chevron">›</span>
+                    </div>
+                    <div>
+                        <div class="bento-value" id="bento-exam-val">--</div>
+                        <div class="bento-sub" id="bento-exam-sub">Syllabus checklist</div>
+                    </div>
+                </div>
+
+                <!-- Bento 2: Attendance Warning -->
+                <div class="bento-card" id="bento-att" onclick="switchNav('calendar')" title="Tap to check attendance">
+                    <div class="bento-header">
+                        <span class="bento-title">📊 Attendance</span>
+                        <span class="bento-chevron">›</span>
+                    </div>
+                    <div>
+                        <div class="bento-value" id="bento-att-val">Safe ✅</div>
+                        <div class="bento-sub" id="bento-att-sub">All subjects &gt; 78%</div>
+                    </div>
+                </div>
+
+                <!-- Bento 3: Money & Spend -->
+                <div class="bento-card" id="bento-money" onclick="switchNav('money')" title="Tap to open Expense Ledger">
+                    <div class="bento-header">
+                        <span class="bento-title">💸 Spent Today</span>
+                        <span class="bento-chevron">›</span>
+                    </div>
+                    <div>
+                        <div class="bento-value" id="bento-money-val">₹0</div>
+                        <div class="bento-sub" id="bento-money-sub">Budget left: --</div>
+                    </div>
+                </div>
+
+                <!-- Bento 4: Habits Checklist -->
+                <div class="bento-card" id="bento-habits" onclick="openHabitModal()" title="Tap to manage habits">
+                    <div class="bento-header">
+                        <span class="bento-title">🎯 Habits</span>
+                        <span class="bento-chevron">›</span>
+                    </div>
+                    <div>
+                        <div class="bento-value" id="bento-habits-val">0/0 Done</div>
+                        <div class="bento-sub">Tap to check-in</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priority Deadlines & Action Stream -->
+            <div class="section">
                 <div class="section-header">
-                    <div class="section-title" style="cursor:pointer;" onclick="switchNav('exams')">🎓 Exam Countdown Engine ➔</div>
-                    <button class="btn btn-secondary btn-sm" onclick="switchNav('exams')">Manage</button>
-                </div>
-                <div id="home-exams-list">Loading exams...</div>
-            </div>
-
-            <!-- Quick Life Stats Widget (Clickable to open Money Workspace) -->
-            <div class="grid-2 section" id="ext-money-container" style="cursor:pointer;" onclick="switchNav('money')" title="Tap to open Money Workspace">
-                <div class="stat-card">
-                    <div class="stat-label">Spent Today ➔</div>
-                    <div class="stat-value" id="home-today-spent">₹0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Budget Left ➔</div>
-                    <div class="stat-value" id="home-budget-left">--</div>
-                </div>
-            </div>
-
-            <!-- Urgent Deadlines Widget (Clickable to open Calendar) -->
-            <div class="section" id="ext-deadlines-container">
-                <div class="section-header">
-                    <div class="section-title" style="cursor:pointer;" onclick="switchNav('calendar')">⏰ Priority Deadlines ➔</div>
-                    <button class="btn btn-secondary btn-sm" onclick="switchNav('calendar')">Calendar</button>
+                    <div class="section-title">⏰ Priority Deadlines &amp; Tasks</div>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn btn-secondary btn-sm" onclick="switchNav('calendar')">Calendar ➔</button>
+                        <button class="btn btn-sm" onclick="openTaskModal()">+ Add</button>
+                    </div>
                 </div>
                 <div id="home-deadlines"><div style="color:var(--text-tertiary); font-size:13px;">No pending deadlines! ☕</div></div>
-            </div>
-
-            <!-- Attendance Health Widget -->
-            <div class="section">
-                <div class="section-header">
-                    <div class="section-title">📊 Attendance Health</div>
-                </div>
-                <div id="home-attendance"><div style="color:var(--text-tertiary); font-size:13px;">All subjects safe (&gt; 78%) ✅</div></div>
-            </div>
-
-            <!-- Daily Habits Check-in Widget -->
-            <div class="section">
-                <div class="section-header">
-                    <div class="section-title">🎯 Today's Habits</div>
-                    <button class="btn btn-secondary btn-sm" onclick="openHabitModal()">+ New</button>
-                </div>
-                <div id="home-habits">Loading habits...</div>
             </div>
         </div>
 
@@ -1279,23 +1348,60 @@ Try commands like:
                 const hour = new Date().getHours();
                 const salute = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
                 document.getElementById('greeting-text').textContent = `${salute}, Vansh 🧠`;
-                document.getElementById('greeting-time').textContent = data.server_time || new Date().toLocaleString();
+                
+                const dCount = data.deadlines ? data.deadlines.length : 0;
+                document.getElementById('greeting-time').textContent = `${data.server_time || new Date().toDateString()} • ${dCount} tasks pending`;
 
-                // Stats
-                document.getElementById('home-today-spent').textContent = `₹${data.today_spending || 0}`;
-                document.getElementById('home-budget-left').textContent = data.budget_remaining !== null ? `₹${data.budget_remaining}` : 'Not set';
+                // Bento 3: Money
+                const spent = data.today_spending || 0;
+                document.getElementById('bento-money-val').textContent = `₹${spent}`;
+                document.getElementById('bento-money-sub').textContent = data.budget_remaining !== null ? `Left: ₹${data.budget_remaining}` : 'Budget: not set';
 
-                // Deadlines
+                // Bento 2: Attendance
+                if (data.attendance_warnings && data.attendance_warnings.length > 0) {
+                    const topW = data.attendance_warnings[0];
+                    document.getElementById('bento-att-val').innerHTML = `<span style="color:#ef4444;">⚠️ ${topW.subject} ${topW.percentage}%</span>`;
+                    document.getElementById('bento-att-sub').textContent = 'Cannot bunk! Tap to view';
+                } else {
+                    document.getElementById('bento-att-val').textContent = 'Safe ✅';
+                    document.getElementById('bento-att-sub').textContent = 'All subjects > 78%';
+                }
+
+                // Bento 4: Habits
+                if (data.habits_today && data.habits_today.length > 0) {
+                    const doneCount = data.habits_today.filter(h => h.done).length;
+                    document.getElementById('bento-habits-val').textContent = `${doneCount}/${data.habits_today.length} Done`;
+                }
+
+                // Bento 1: Exams (fetch nearest exam)
+                try {
+                    const exRes = await fetch('/api/exams');
+                    if (exRes.ok) {
+                        const exams = await exRes.json();
+                        if (exams.length > 0) {
+                            const topEx = exams[0];
+                            const dl = topEx.days_left;
+                            const dlStr = dl <= 0 ? 'Today!' : dl === 1 ? 'Tomorrow!' : `${dl}d left`;
+                            document.getElementById('bento-exam-val').innerHTML = `${escapeHtml(topEx.subject)} <span style="font-size:12px; color:#ef4444; font-weight:700;">(${dlStr})</span>`;
+                            document.getElementById('bento-exam-sub').textContent = topEx.syllabus ? escapeHtml(topEx.syllabus) : 'Syllabus checklist ›';
+                        } else {
+                            document.getElementById('bento-exam-val').textContent = '--';
+                            document.getElementById('bento-exam-sub').textContent = 'No exams scheduled ›';
+                        }
+                    }
+                } catch (exErr) {}
+
+                // Priority Deadlines list
                 const dList = document.getElementById('home-deadlines');
                 if (data.deadlines && data.deadlines.length > 0) {
-                    dList.innerHTML = data.deadlines.slice(0, 3).map(d => {
+                    dList.innerHTML = data.deadlines.slice(0, 4).map(d => {
                         const daysLeft = d.days_left;
                         const urgencyBadge = daysLeft <= 0 ? '🔴 Today' : daysLeft <= 2 ? `🟡 ${daysLeft}d left` : `🟢 ${daysLeft}d left`;
                         return `
                             <div class="item-card">
                                 <div class="item-info">
-                                    <div class="item-title">${d.title}</div>
-                                    <div class="item-sub">${d.subject ? `[${d.subject}]` : ''} Due: ${d.due_date} • ${urgencyBadge}</div>
+                                    <div class="item-title">${escapeHtml(d.title)}</div>
+                                    <div class="item-sub">${d.subject ? `[${escapeHtml(d.subject)}]` : ''} Due: ${d.due_date} • ${urgencyBadge}</div>
                                 </div>
                                 <div class="item-actions">
                                     <button class="action-icon-btn" onclick="completeTask(${d.id})">✓</button>
@@ -1306,45 +1412,6 @@ Try commands like:
                 } else {
                     dList.innerHTML = '<div style="color:var(--text-tertiary); font-size:13px;">No deadlines pending! ☕</div>';
                 }
-
-                // Attendance Warnings
-                const attList = document.getElementById('home-attendance');
-                if (data.attendance_warnings && data.attendance_warnings.length > 0) {
-                    attList.innerHTML = data.attendance_warnings.map(a => `
-                        <div class="item-card" style="border-left: 3px solid var(--error);">
-                            <div class="item-info">
-                                <div class="item-title">${a.subject} — ${a.percentage}%</div>
-                                <div class="item-sub" style="color:var(--error);">Critical! Attendance below 75% requirement.</div>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    attList.innerHTML = '<div style="color:var(--text-tertiary); font-size:13px;">All subjects safe (&gt; 78%) ✅</div>';
-                }
-
-                // Habits
-                const hList = document.getElementById('home-habits');
-                if (data.habits_today && data.habits_today.length > 0) {
-                    hList.innerHTML = data.habits_today.map(h => `
-                        <div class="item-card">
-                            <div class="item-info">
-                                <div class="item-title">${h.icon} ${h.name}</div>
-                            </div>
-                            <div class="item-actions">
-                                <button class="btn btn-sm ${h.done ? 'btn-secondary' : ''}" 
-                                        onclick="toggleHabit('${h.name}', ${h.done})">
-                                    ${h.done ? 'Done ✅' : 'Check In'}
-                                </button>
-                                <button class="action-icon-btn delete" onclick="deleteHabit('${h.name}')">🗑️</button>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    hList.innerHTML = '<div style="color:var(--text-tertiary); font-size:13px;">No habits yet. Tap + New above!</div>';
-                }
-
-                // Load active exams countdown
-                loadExams();
 
             } catch (err) {
                 console.error(err);
@@ -2122,12 +2189,16 @@ Try commands like:
 
         function applyModuleUI(name, enabled) {
             if (name === 'exams') {
-                const el = document.getElementById('ext-exams-container');
-                if (el) el.style.display = enabled ? 'block' : 'none';
+                const bento = document.getElementById('bento-exam');
+                if (bento) bento.style.display = enabled ? 'flex' : 'none';
             }
             if (name === 'money') {
-                const el = document.getElementById('ext-money-container');
-                if (el) el.style.display = enabled ? 'grid' : 'none';
+                const bento = document.getElementById('bento-money');
+                if (bento) bento.style.display = enabled ? 'flex' : 'none';
+            }
+            if (name === 'reminders') {
+                const bento = document.getElementById('bento-att');
+                if (bento) bento.style.display = enabled ? 'flex' : 'none';
             }
         }
 
