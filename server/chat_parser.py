@@ -791,6 +791,18 @@ def parse_message(message):
             'INSERT INTO deadlines (title, subject, due_date) VALUES (?, ?, ?)',
             (deadline['title'], deadline['subject'], deadline['due_date'])
         )
+
+        # Auto-sync to Exam Engine if it's an exam
+        if any(w in deadline['title'].lower() for w in ['exam', 'midsem', 'endsem', 'viva']):
+            try:
+                ex_subj = deadline['subject'] or deadline['title'].replace('exam', '').replace('Exam', '').strip() or 'Exam'
+                conn.execute(
+                    'INSERT INTO exams (subject, exam_date, syllabus) VALUES (?, ?, ?)',
+                    (ex_subj.upper(), deadline['due_date'], 'Units 1-4')
+                )
+            except Exception as ex_err:
+                print(f"⚠️ Exam sync error: {ex_err}")
+
         conn.commit()
         conn.close()
         
@@ -798,18 +810,6 @@ def parse_message(message):
         days_left = (target_date.date() - datetime.now().date()).days
         days_str = f" ({days_left} days left)" if days_left > 1 else " (Tomorrow!)" if days_left == 1 else " (Today!)" if days_left == 0 else " (Overdue!)"
         subj_str = f"{deadline['subject']} " if deadline['subject'] else ""
-        
-        # Auto-sync to Exam Engine if it's an exam
-        if any(w in deadline['title'].lower() for w in ['exam', 'midsem', 'endsem', 'viva']):
-            try:
-                ex_subj = deadline['subject'] or deadline['title']
-                conn.execute(
-                    'INSERT INTO exams (subject, exam_date, syllabus) VALUES (?, ?, ?)',
-                    (ex_subj, deadline['due_date'], 'Units 1-4')
-                )
-                conn.commit()
-            except Exception:
-                pass
         try:
             from services.notifier import send_push
             send_push(
