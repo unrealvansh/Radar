@@ -664,7 +664,7 @@
                 <span>🧠</span> PocketBrain
             </div>
             <div style="display: flex; gap: 6px; align-items: center;">
-                <button class="theme-toggle-btn" onclick="openModal('modal-extensions')">
+                <button class="theme-toggle-btn" onclick="switchNav('modules', null)">
                     <span>🧩</span> <span>Modules</span>
                 </button>
                 <button class="theme-toggle-btn" onclick="switchNav('calendar', null)">
@@ -676,52 +676,52 @@
             </div>
         </div>
 
-        <!-- ==================== VIEW 1: HOME ==================== -->
+        <!-- ==================== VIEW 1: HOME (HUB) ==================== -->
         <div class="view-content active" id="view-home">
             <div class="card" style="background: var(--bg-secondary); border: none; margin-bottom: 16px;">
                 <div style="font-size: 18px; font-weight: 700; margin-bottom: 2px;" id="greeting-text">Welcome back 👋</div>
                 <div style="font-size: 12px; color: var(--text-secondary);" id="greeting-time">Loading...</div>
             </div>
 
-            <!-- Exam Countdown & Syllabus Engine Extension -->
+            <!-- Exam Countdown & Syllabus Engine Extension Widget -->
             <div class="section" id="ext-exams-container">
                 <div class="section-header">
-                    <div class="section-title">🎓 Exam Countdown Engine</div>
-                    <button class="btn" style="padding: 4px 10px; font-size: 11px;" onclick="openExamModal()">+ Add Exam</button>
+                    <div class="section-title" style="cursor:pointer;" onclick="switchNav('exams')">🎓 Exam Countdown Engine ➔</div>
+                    <button class="btn btn-secondary btn-sm" onclick="switchNav('exams')">Manage</button>
                 </div>
                 <div id="home-exams-list">Loading exams...</div>
             </div>
 
-            <!-- Quick Life Stats -->
-            <div class="grid-2 section" id="ext-money-container">
+            <!-- Quick Life Stats Widget (Clickable to open Money Workspace) -->
+            <div class="grid-2 section" id="ext-money-container" style="cursor:pointer;" onclick="switchNav('money')" title="Tap to open Money Workspace">
                 <div class="stat-card">
-                    <div class="stat-label">Spent Today</div>
+                    <div class="stat-label">Spent Today ➔</div>
                     <div class="stat-value" id="home-today-spent">₹0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Budget Left</div>
+                    <div class="stat-label">Budget Left ➔</div>
                     <div class="stat-value" id="home-budget-left">--</div>
                 </div>
             </div>
 
-            <!-- Urgent Deadlines -->
-            <div class="section">
+            <!-- Urgent Deadlines Widget (Clickable to open Calendar) -->
+            <div class="section" id="ext-deadlines-container">
                 <div class="section-header">
-                    <div class="section-title">⏰ Priority Deadlines</div>
-                    <button class="btn btn-secondary btn-sm" onclick="switchNav('calendar')">All</button>
+                    <div class="section-title" style="cursor:pointer;" onclick="switchNav('calendar')">⏰ Priority Deadlines ➔</div>
+                    <button class="btn btn-secondary btn-sm" onclick="switchNav('calendar')">Calendar</button>
                 </div>
                 <div id="home-deadlines"><div style="color:var(--text-tertiary); font-size:13px;">No pending deadlines! ☕</div></div>
             </div>
 
-            <!-- Attendance Health -->
+            <!-- Attendance Health Widget -->
             <div class="section">
                 <div class="section-header">
-                    <div class="section-title">📊 Attendance Warnings</div>
+                    <div class="section-title">📊 Attendance Health</div>
                 </div>
                 <div id="home-attendance"><div style="color:var(--text-tertiary); font-size:13px;">All subjects safe (&gt; 78%) ✅</div></div>
             </div>
 
-            <!-- Daily Habits Check-in -->
+            <!-- Daily Habits Check-in Widget -->
             <div class="section">
                 <div class="section-header">
                     <div class="section-title">🎯 Today's Habits</div>
@@ -810,11 +810,16 @@ Try commands like:
             <div id="reminders-list">Loading reminders...</div>
         </div>
 
-        <!-- ==================== VIEW 5: MONEY (Expenses + Full CRUD) ==================== -->
+        <!-- ==================== VIEW: MONEY WORKSPACE ==================== -->
         <div class="view-content" id="view-money">
-            <div class="section-header">
-                <div class="section-title">💸 Expenses &amp; Budget</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <button class="btn btn-secondary btn-sm" onclick="switchNav('home')">← Back to Hub</button>
                 <button class="btn btn-sm" onclick="openExpenseModal()">+ Add Expense</button>
+            </div>
+
+            <div class="section-title">💸 Money &amp; Expense Workspace</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;">
+                Manage daily canteen/mess expenses, track total burns, and configure weekly budget.
             </div>
 
             <div class="grid-2 section">
@@ -828,37 +833,132 @@ Try commands like:
                 </div>
             </div>
 
+            <!-- Set Weekly Budget Card -->
+            <div class="card" style="margin-bottom: 16px;">
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px;">🎯 Weekly Budget Target</div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="number" id="budget-input" placeholder="e.g. 2000" style="flex: 1;">
+                    <button class="btn" onclick="saveBudgetFromInput()">Set Budget</button>
+                </div>
+                <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 6px;" id="money-budget-status">Loading budget...</div>
+            </div>
+
             <div class="section-title" style="margin-bottom: 8px;">All Logged Expenses</div>
             <div id="expenses-full-list">Loading...</div>
         </div>
 
-        <!-- ==================== VIEW 6: SAVED / BOOKMARKS ==================== -->
+        <!-- ==================== VIEW: EXAMS WORKSPACE ==================== -->
+        <div class="view-content" id="view-exams">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <button class="btn btn-secondary btn-sm" onclick="switchNav('home')">← Back to Hub</button>
+                <button class="btn btn-sm" onclick="openExamModal()">+ Schedule Exam</button>
+            </div>
+            
+            <div class="section-title">🎓 Exam Countdown &amp; Syllabus Engine</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">
+                Track upcoming mid-sems, finals, unit-wise syllabus coverage, and target grades.
+            </div>
+
+            <div id="exams-workspace-list">Loading exams...</div>
+        </div>
+
+        <!-- ==================== VIEW: MODULES EXTENSION HUB ==================== -->
+        <div class="view-content" id="view-modules">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <button class="btn btn-secondary btn-sm" onclick="switchNav('home')">← Back to Hub</button>
+                <div style="font-size:11px; color:var(--text-tertiary); font-weight:700;">EXTENSION STORE</div>
+            </div>
+            
+            <div class="section-title">🧩 Modular Extensions Hub</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">
+                Enable or disable extensions. Tap on any module to open its dedicated workspace.
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <!-- Module 1: Exams -->
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                        <div>
+                            <div style="font-weight:700; font-size:14px;">🎓 Exam Countdown Engine</div>
+                            <div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">Syllabus unit checklist, target grades &amp; days remaining countdown.</div>
+                        </div>
+                        <input type="checkbox" id="mod-toggle-exams" checked onchange="toggleModule('exams', this.checked)" style="width:18px; height:18px; cursor:pointer;">
+                    </div>
+                    <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:6px;" onclick="switchNav('exams')">Open Exam Workspace ➔</button>
+                </div>
+
+                <!-- Module 2: Money -->
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                        <div>
+                            <div style="font-weight:700; font-size:14px;">💸 Money &amp; Expenses</div>
+                            <div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">Track canteen/daily expenses, manage budgets, and view burns.</div>
+                        </div>
+                        <input type="checkbox" id="mod-toggle-money" checked onchange="toggleModule('money', this.checked)" style="width:18px; height:18px; cursor:pointer;">
+                    </div>
+                    <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:6px;" onclick="switchNav('money')">Open Expense Ledger &amp; Budget ➔</button>
+                </div>
+
+                <!-- Module 3: Calendar & Tasks -->
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                        <div>
+                            <div style="font-weight:700; font-size:14px;">📅 AIScheduler Calendar</div>
+                            <div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">Day, week, and month timeline views for assignments and academic tasks.</div>
+                        </div>
+                        <input type="checkbox" id="mod-toggle-calendar" checked onchange="toggleModule('calendar', this.checked)" style="width:18px; height:18px; cursor:pointer;">
+                    </div>
+                    <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:6px;" onclick="switchNav('calendar')">Open Calendar Timeline ➔</button>
+                </div>
+
+                <!-- Module 4: Career Radar -->
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                        <div>
+                            <div style="font-weight:700; font-size:14px;">📡 Unified Career Radar</div>
+                            <div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">Devpost, DevFest, Indian tech startups, C++, Python &amp; Fintech roles.</div>
+                        </div>
+                        <input type="checkbox" id="mod-toggle-radar" checked onchange="toggleModule('radar', this.checked)" style="width:18px; height:18px; cursor:pointer;">
+                    </div>
+                    <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:6px;" onclick="switchNav('saved')">Open Radar &amp; Bookmarks ➔</button>
+                </div>
+
+                <!-- Module 5: Reminders -->
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                        <div>
+                            <div style="font-weight:700; font-size:14px;">⏰ Push Notification Engine</div>
+                            <div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">Exact-minute custom alarms sent directly to your phone via ntfy (Brain_x1).</div>
+                        </div>
+                        <input type="checkbox" id="mod-toggle-reminders" checked onchange="toggleModule('reminders', this.checked)" style="width:18px; height:18px; cursor:pointer;">
+                    </div>
+                    <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:6px;" onclick="switchNav('reminders')">Manage Push Reminders ➔</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== VIEW: RADAR / SAVED ==================== -->
         <div class="view-content" id="view-saved">
-            <div class="section-title" style="margin-bottom: 12px;">🔖 Saved Opportunities & Links</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <div class="section-title">📡 Opportunities &amp; Bookmarks</div>
+                <button class="btn btn-sm" onclick="triggerScanFromUI()">Scan Now</button>
+            </div>
             <div id="saved-full-list">Loading...</div>
         </div>
 
-        <!-- ==================== BOTTOM NAVIGATION (5 Tabs) ==================== -->
+        <!-- ==================== BOTTOM NAVIGATION (3 Clean Tabs) ==================== -->
         <nav class="bottom-nav">
             <div class="nav-tab active" onclick="switchNav('home', this)">
                 <span class="nav-icon">🏠</span>
-                <span>Home</span>
+                <span>Hub</span>
             </div>
             <div class="nav-tab" onclick="switchNav('chat', this)">
                 <span class="nav-icon">💬</span>
                 <span>Chat</span>
             </div>
-            <div class="nav-tab" onclick="switchNav('reminders', this)">
-                <span class="nav-icon">⏰</span>
-                <span>Remind</span>
-            </div>
-            <div class="nav-tab" onclick="switchNav('money', this)">
-                <span class="nav-icon">💸</span>
-                <span>Money</span>
-            </div>
             <div class="nav-tab" onclick="switchNav('saved', this)">
-                <span class="nav-icon">🔖</span>
-                <span>Saved</span>
+                <span class="nav-icon">📡</span>
+                <span>Radar</span>
             </div>
         </nav>
     </div>
@@ -1144,13 +1244,16 @@ Try commands like:
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             
             const target = document.getElementById('view-' + name);
-            if (target) target.classList.add('active');
+            if (target) {
+                target.classList.add('active');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
             
             if (tabEl) {
                 tabEl.classList.add('active');
             } else {
                 const tabs = document.querySelectorAll('.nav-tab');
-                const idx = ['home', 'chat', 'reminders', 'money', 'saved'].indexOf(name);
+                const idx = ['home', 'chat', 'saved'].indexOf(name);
                 if (idx >= 0 && tabs[idx]) tabs[idx].classList.add('active');
             }
 
@@ -1159,6 +1262,8 @@ Try commands like:
             if (name === 'reminders') loadReminders();
             if (name === 'money') loadExpenses();
             if (name === 'saved') loadSaved();
+            if (name === 'exams') loadExamsWorkspace();
+            if (name === 'modules') loadModulesView();
         }
 
         // ================================================================
@@ -2023,13 +2128,101 @@ Try commands like:
             if (name === 'money') {
                 const el = document.getElementById('ext-money-container');
                 if (el) el.style.display = enabled ? 'grid' : 'none';
-                // Also hide Money tab from nav
-                const tabs = document.querySelectorAll('.bottom-nav .nav-tab');
-                tabs.forEach(t => {
-                    if (t.innerText.includes('Money')) {
-                        t.style.display = enabled ? 'flex' : 'none';
+            }
+        }
+
+        async function loadModulesView() {
+            const mods = ['exams', 'money', 'calendar', 'radar', 'reminders'];
+            mods.forEach(m => {
+                const saved = localStorage.getItem('mod_' + m);
+                const enabled = saved === null ? true : saved === 'true';
+                const el = document.getElementById('mod-toggle-' + m);
+                if (el) el.checked = enabled;
+            });
+        }
+
+        async function loadExamsWorkspace() {
+            const el = document.getElementById('exams-workspace-list');
+            if (!el) return;
+            try {
+                const res = await fetch('/api/exams');
+                const exams = res.ok ? await res.json() : [];
+                if (exams.length === 0) {
+                    el.innerHTML = '<div class="card" style="text-align:center; color:var(--text-tertiary); padding:24px 12px;">No exams scheduled yet! Tap "+ Schedule Exam" above.</div>';
+                    return;
+                }
+
+                el.innerHTML = exams.map(x => {
+                    const dl = x.days_left;
+                    let badgeBg = 'rgba(16, 185, 129, 0.15)';
+                    let badgeColor = '#10b981';
+                    let label = `${dl} days left`;
+
+                    if (dl <= 3) {
+                        badgeBg = 'rgba(239, 68, 68, 0.15)';
+                        badgeColor = '#ef4444';
+                        label = `🔥 ${dl} days left!`;
+                    } else if (dl <= 7) {
+                        badgeBg = 'rgba(245, 158, 11, 0.15)';
+                        badgeColor = '#f59e0b';
+                        label = `⚠️ ${dl} days left`;
                     }
+
+                    return `
+                        <div class="card" style="margin-bottom:12px;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <div>
+                                    <div style="font-weight:700; font-size:16px;">${escapeHtml(x.subject)}</div>
+                                    <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">📅 Exam Date: <strong>${x.exam_date}</strong></div>
+                                </div>
+                                <span class="pill-badge" style="background:${badgeBg}; color:${badgeColor}; font-weight:700; font-size:12px;">${label}</span>
+                            </div>
+                            ${x.syllabus ? `<div style="margin-top:10px; font-size:12.5px; background:var(--bg-secondary); padding:8px 10px; border-radius:8px;">📖 <strong>Syllabus:</strong> ${escapeHtml(x.syllabus)}</div>` : ''}
+                            ${x.target_score ? `<div style="margin-top:6px; font-size:12px; color:var(--text-secondary);">🎯 Target Score: <strong>${escapeHtml(x.target_score)}</strong></div>` : ''}
+                            <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+                                <button class="btn btn-secondary btn-sm" onclick="deleteExam(${x.id})">🗑️ Remove</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                el.innerHTML = '<div style="color:var(--text-tertiary);">Failed to load exams.</div>';
+            }
+        }
+
+        async function saveBudgetFromInput() {
+            const input = document.getElementById('budget-input');
+            const val = parseFloat(input.value);
+            if (isNaN(val) || val <= 0) {
+                alert('Please enter a valid weekly budget amount!');
+                return;
+            }
+            try {
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: 'weekly_budget', value: val.toString() })
                 });
+                showToast(`Weekly budget set to ₹${val}! 🎯`);
+                document.getElementById('money-budget-status').textContent = `Active Weekly Target: ₹${val}`;
+                input.value = '';
+                loadHome();
+                loadExpenses();
+            } catch (e) {
+                showToast('Failed to save budget!');
+            }
+        }
+
+        async function triggerScanFromUI() {
+            showToast('📡 Scanning Devpost, DevFest, & Tech news...');
+            try {
+                await fetch('/api/radar/scan', { method: 'POST' });
+                setTimeout(() => {
+                    loadSaved();
+                    showToast('Scan complete! Fresh items synced.');
+                }, 2500);
+            } catch (e) {
+                showToast('Scan error!');
             }
         }
 
