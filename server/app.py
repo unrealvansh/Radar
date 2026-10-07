@@ -157,6 +157,16 @@ def init_db():
             notified INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        -- Exam Countdown & Syllabus Engine Extension
+        CREATE TABLE IF NOT EXISTS exams (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            subject TEXT NOT NULL,
+            exam_date TEXT NOT NULL,
+            syllabus TEXT DEFAULT '',
+            target_score TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
     ''')
     conn.commit()
     conn.close()
@@ -740,6 +750,55 @@ def trigger_radar_scan():
 @app.route('/api/opportunities', methods=['GET'])
 def get_opportunities():
     return get_radar()
+
+# ============ API: EXAMS & SYLLABUS ENGINE ============
+
+@app.route('/api/exams', methods=['GET'])
+def get_exams():
+    """Get all upcoming exams with countdown days."""
+    conn = get_db()
+    rows = conn.execute(
+        'SELECT * FROM exams WHERE exam_date >= date("now") ORDER BY exam_date ASC'
+    ).fetchall()
+    conn.close()
+    
+    exams = []
+    today = datetime.now().date()
+    for r in rows:
+        d = dict(r)
+        try:
+            ex_date = datetime.strptime(r['exam_date'], '%Y-%m-%d').date()
+            d['days_left'] = (ex_date - today).days
+        except Exception:
+            d['days_left'] = 0
+        exams.append(d)
+        
+    return jsonify(exams)
+
+@app.route('/api/exams', methods=['POST'])
+def add_exam():
+    """Add a new exam schedule."""
+    data = request.get_json()
+    if not data or 'subject' not in data or 'exam_date' not in data:
+        return jsonify({'status': 'error', 'message': 'subject and exam_date required'}), 400
+        
+    conn = get_db()
+    conn.execute(
+        'INSERT INTO exams (subject, exam_date, syllabus, target_score) VALUES (?, ?, ?, ?)',
+        (data['subject'].strip(), data['exam_date'], data.get('syllabus', '').strip(), data.get('target_score', '').strip())
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Exam added!'})
+
+@app.route('/api/exams/<int:id>', methods=['DELETE'])
+def delete_exam(id):
+    """Delete an exam."""
+    conn = get_db()
+    conn.execute('DELETE FROM exams WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Exam deleted!'})
 
 # ============ API: BRIEFING ============
 

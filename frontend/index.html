@@ -663,12 +663,15 @@
             <div class="brand-title">
                 <span>🧠</span> PocketBrain
             </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="theme-toggle-btn" onclick="switchNav('calendar', null)">
-                    <span>📅</span> <span>Calendar</span>
+            <div style="display: flex; gap: 6px; align-items: center;">
+                <button class="theme-toggle-btn" onclick="openModal('modal-extensions')">
+                    <span>🧩</span> <span>Modules</span>
                 </button>
-                <button class="theme-toggle-btn" onclick="toggleTheme()">
-                    <span id="theme-icon">☀️</span> <span id="theme-text">Light</span>
+                <button class="theme-toggle-btn" onclick="switchNav('calendar', null)">
+                    <span>📅</span> <span>Cal</span>
+                </button>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" style="padding: 6px 10px;">
+                    <span id="theme-icon">☀️</span>
                 </button>
             </div>
         </div>
@@ -680,8 +683,17 @@
                 <div style="font-size: 12px; color: var(--text-secondary);" id="greeting-time">Loading...</div>
             </div>
 
+            <!-- Exam Countdown & Syllabus Engine Extension -->
+            <div class="section" id="ext-exams-container">
+                <div class="section-header">
+                    <div class="section-title">🎓 Exam Countdown Engine</div>
+                    <button class="btn" style="padding: 4px 10px; font-size: 11px;" onclick="openExamModal()">+ Add Exam</button>
+                </div>
+                <div id="home-exams-list">Loading exams...</div>
+            </div>
+
             <!-- Quick Life Stats -->
-            <div class="grid-2 section">
+            <div class="grid-2 section" id="ext-money-container">
                 <div class="stat-card">
                     <div class="stat-label">Spent Today</div>
                     <div class="stat-value" id="home-today-spent">₹0</div>
@@ -853,6 +865,77 @@ Try commands like:
 
     <!-- ==================== MODALS ==================== -->
     
+    <!-- Modal: Modular Extensions Hub -->
+    <div class="modal-overlay" id="modal-extensions">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">🧩 Modular Extensions Hub</div>
+                <button class="modal-close" onclick="closeModal('modal-extensions')">✕</button>
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;">
+                Toggle modules ON/OFF. PocketBrain adapts to your personal workflow with zero bloat.
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px;">
+                <label style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 13px;">🎓 Exam Countdown Engine</div>
+                        <div style="font-size: 11px; color: var(--text-tertiary);">Syllabus tracker & days remaining</div>
+                    </div>
+                    <input type="checkbox" id="mod-toggle-exams" checked onchange="toggleModule('exams', this.checked)">
+                </label>
+                <label style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 13px;">💸 Money & Expenses</div>
+                        <div style="font-size: 11px; color: var(--text-tertiary);">Track daily canteen & budget</div>
+                    </div>
+                    <input type="checkbox" id="mod-toggle-money" checked onchange="toggleModule('money', this.checked)">
+                </label>
+                <label style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 13px;">📡 Career & Hackathon Radar</div>
+                        <div style="font-size: 11px; color: var(--text-tertiary);">Devpost, DevFest, C++, Python roles</div>
+                    </div>
+                    <input type="checkbox" id="mod-toggle-radar" checked onchange="toggleModule('radar', this.checked)">
+                </label>
+                <label style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 13px;">⏰ Push Intelligence Alerts</div>
+                        <div style="font-size: 11px; color: var(--text-tertiary);">Daily morning briefing & custom alarms</div>
+                    </div>
+                    <input type="checkbox" id="mod-toggle-reminders" checked onchange="toggleModule('reminders', this.checked)">
+                </label>
+            </div>
+            <button class="btn" style="width: 100%;" onclick="closeModal('modal-extensions')">Done</button>
+        </div>
+    </div>
+
+    <!-- Modal: Add Exam Schedule -->
+    <div class="modal-overlay" id="modal-exam">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">Schedule Exam</div>
+                <button class="modal-close" onclick="closeModal('modal-exam')">✕</button>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">SUBJECT</label>
+                <input type="text" id="exam-subj" placeholder="e.g. Operating Systems (OS)">
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">EXAM DATE</label>
+                <input type="date" id="exam-date">
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">SYLLABUS UNITS</label>
+                <input type="text" id="exam-syllabus" placeholder="e.g. Units 1, 2, 3 (Processes, Threads, Memory)">
+            </div>
+            <div style="margin-bottom: 14px;">
+                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">TARGET SCORE / GRADE</label>
+                <input type="text" id="exam-target" placeholder="e.g. 90% or Grade A">
+            </div>
+            <button class="btn" style="width: 100%;" onclick="saveExam()">Save Exam & Countdown</button>
+        </div>
+    </div>
+
     <!-- Modal: Add / Edit Expense -->
     <div class="modal-overlay" id="modal-expense">
         <div class="modal-card">
@@ -1154,6 +1237,9 @@ Try commands like:
                 } else {
                     hList.innerHTML = '<div style="color:var(--text-tertiary); font-size:13px;">No habits yet. Tap + New above!</div>';
                 }
+
+                // Load active exams countdown
+                loadExams();
 
             } catch (err) {
                 console.error(err);
@@ -1790,6 +1876,163 @@ Try commands like:
             loadSaved();
         }
 
+        async function quickTrackOpportunity(url) {
+            try {
+                // Calculate date 14 days from now as default deadline
+                const target = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+                const due_date = target.toISOString().split('T')[0];
+                
+                await fetch('/api/deadlines', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: 'Target Application / Submission',
+                        subject: 'OPPORTUNITY',
+                        due_date: due_date
+                    })
+                });
+                showToast('Added to Deadlines & Calendar! 📅');
+                loadHome();
+            } catch (e) {
+                showToast('Failed to schedule track!');
+            }
+        }
+
+        // ================================================================
+        // EXAM COUNTDOWN & SYLLABUS ENGINE EXTENSION
+        // ================================================================
+        function openExamModal() {
+            document.getElementById('exam-subj').value = '';
+            document.getElementById('exam-date').value = '';
+            document.getElementById('exam-syllabus').value = '';
+            document.getElementById('exam-target').value = '';
+            openModal('modal-exam');
+        }
+
+        async function saveExam() {
+            const subject = document.getElementById('exam-subj').value.trim();
+            const exam_date = document.getElementById('exam-date').value;
+            const syllabus = document.getElementById('exam-syllabus').value.trim();
+            const target_score = document.getElementById('exam-target').value.trim();
+
+            if (!subject || !exam_date) {
+                alert('Please enter Subject and Exam Date!');
+                return;
+            }
+
+            try {
+                await fetch('/api/exams', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subject, exam_date, syllabus, target_score })
+                });
+                closeModal('modal-exam');
+                showToast('Exam scheduled! Countdown active ⏳');
+                loadExams();
+            } catch (e) {
+                showToast('Failed to save exam!');
+            }
+        }
+
+        async function loadExams() {
+            const el = document.getElementById('home-exams-list');
+            if (!el) return;
+            try {
+                const res = await fetch('/api/exams');
+                const exams = res.ok ? await res.json() : [];
+                if (exams.length === 0) {
+                    el.innerHTML = '<div style="color:var(--text-tertiary); font-size:13px;">No exams scheduled. Tap "+ Add Exam" to track!</div>';
+                    return;
+                }
+
+                el.innerHTML = exams.map(x => {
+                    const dl = x.days_left;
+                    let badgeColor = 'var(--text-secondary)';
+                    let badgeBg = 'var(--bg-secondary)';
+                    let label = `${dl} days left`;
+
+                    if (dl <= 3) {
+                        badgeColor = '#ef4444';
+                        badgeBg = 'rgba(239, 68, 68, 0.15)';
+                        label = `🔥 ${dl} days left!`;
+                    } else if (dl <= 7) {
+                        badgeColor = '#f59e0b';
+                        badgeBg = 'rgba(245, 158, 11, 0.15)';
+                        label = `⚠️ ${dl} days left`;
+                    } else {
+                        badgeColor = '#10b981';
+                        badgeBg = 'rgba(16, 185, 129, 0.15)';
+                    }
+
+                    return `
+                        <div class="item-card">
+                            <div class="item-info">
+                                <div class="item-title" style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span>${escapeHtml(x.subject)}</span>
+                                    <span class="pill-badge" style="background:${badgeBg}; color:${badgeColor}; font-weight:700;">${label}</span>
+                                </div>
+                                <div class="item-sub" style="margin-top:4px;">
+                                    <span>📅 ${x.exam_date}</span>
+                                    ${x.syllabus ? ` • <span>📖 ${escapeHtml(x.syllabus)}</span>` : ''}
+                                    ${x.target_score ? ` • <span>🎯 Goal: ${escapeHtml(x.target_score)}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="item-actions">
+                                <button class="action-icon-btn delete" onclick="deleteExam(${x.id})">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                el.innerHTML = '<div style="color:var(--text-tertiary);">Failed to load exams.</div>';
+            }
+        }
+
+        async function deleteExam(id) {
+            if (!confirm('Remove this exam countdown?')) return;
+            await fetch(`/api/exams/${id}`, { method: 'DELETE' });
+            showToast('Exam removed');
+            loadExams();
+        }
+
+        // ================================================================
+        // MODULAR EXTENSIONS SYSTEM
+        // ================================================================
+        function initModules() {
+            const mods = ['exams', 'money', 'radar', 'reminders'];
+            mods.forEach(m => {
+                const saved = localStorage.getItem('mod_' + m);
+                const enabled = saved === null ? true : saved === 'true';
+                const toggle = document.getElementById('mod-toggle-' + m);
+                if (toggle) toggle.checked = enabled;
+                applyModuleUI(m, enabled);
+            });
+        }
+
+        function toggleModule(name, isChecked) {
+            localStorage.setItem('mod_' + name, isChecked);
+            applyModuleUI(name, isChecked);
+            showToast(`${name.toUpperCase()} module ${isChecked ? 'enabled' : 'disabled'}`);
+        }
+
+        function applyModuleUI(name, enabled) {
+            if (name === 'exams') {
+                const el = document.getElementById('ext-exams-container');
+                if (el) el.style.display = enabled ? 'block' : 'none';
+            }
+            if (name === 'money') {
+                const el = document.getElementById('ext-money-container');
+                if (el) el.style.display = enabled ? 'grid' : 'none';
+                // Also hide Money tab from nav
+                const tabs = document.querySelectorAll('.bottom-nav .nav-tab');
+                tabs.forEach(t => {
+                    if (t.innerText.includes('Money')) {
+                        t.style.display = enabled ? 'flex' : 'none';
+                    }
+                });
+            }
+        }
+
         function escapeHtml(str) {
             return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
@@ -1801,7 +2044,7 @@ Try commands like:
             html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             // Convert newlines
             html = html.replace(/\n/g, '<br>');
-            // Detect lines with links and attach a [🔖 Save] button
+            // Detect lines with links and attach [🔖 Save] & [📅 Track] buttons
             const lines = html.split('<br>');
             const formatted = lines.map(line => {
                 const urlMatch = line.match(/(https?:\/\/[^\s<]+)/);
@@ -1811,6 +2054,8 @@ Try commands like:
                     let res = line.replace(fullUrl, cleanLink);
                     // Add 1-tap Save Button
                     res += ` <button onclick="saveBookmark('Opportunity', '${fullUrl}', 'radar')" style="background:var(--bg-secondary); border:1px solid var(--border); color:var(--text-primary); border-radius:6px; padding:2px 8px; font-size:11px; cursor:pointer; margin-left:6px;">🔖 Save</button>`;
+                    // Add 1-tap Track Button
+                    res += ` <button onclick="quickTrackOpportunity('${fullUrl}')" style="background:var(--bg-secondary); border:1px solid var(--border); color:var(--text-primary); border-radius:6px; padding:2px 8px; font-size:11px; cursor:pointer; margin-left:4px;">📅 Track</button>`;
                     return res;
                 }
                 return line;
@@ -1875,6 +2120,7 @@ Try commands like:
         // INITIALIZE
         // ================================================================
         initTheme();
+        initModules();
         loadHome();
     </script>
 </body>

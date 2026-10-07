@@ -799,7 +799,17 @@ def parse_message(message):
         days_str = f" ({days_left} days left)" if days_left > 1 else " (Tomorrow!)" if days_left == 1 else " (Today!)" if days_left == 0 else " (Overdue!)"
         subj_str = f"{deadline['subject']} " if deadline['subject'] else ""
         
-        # Trigger phone push notification!
+        # Auto-sync to Exam Engine if it's an exam
+        if any(w in deadline['title'].lower() for w in ['exam', 'midsem', 'endsem', 'viva']):
+            try:
+                ex_subj = deadline['subject'] or deadline['title']
+                conn.execute(
+                    'INSERT INTO exams (subject, exam_date, syllabus) VALUES (?, ?, ?)',
+                    (ex_subj, deadline['due_date'], 'Units 1-4')
+                )
+                conn.commit()
+            except Exception:
+                pass
         try:
             from services.notifier import send_push
             send_push(
