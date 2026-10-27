@@ -7,7 +7,12 @@ with deadline tracking and push reminders. Runs on a Mobistar C2 phone in Termux
 > is preserved at the git tag `pocketbrain-v1`.
 
 ## Features
-- 📡 **Feed** — jobs & internships (Remotive, Jobicy), hackathons (Devpost, Google Developers), tech news
+- 📡 **Feed** from 70+ websites (see `server/services/sources.py`):
+  hackathons & contests (Unstop, Devpost, Devfolio, MLH, HackerEarth, Codeforces, CodeChef, LeetCode, GDG, dev.events),
+  jobs & internships (Unstop, remote boards, 23 company career pages — India roles only), tech news (22 feeds)
+- 🧹 Duplicates removed (same link ignoring tracking params, or same title)
+- 📅 Only upcoming events and fresh jobs/news (jobs ≤ 21 days, news ≤ 3 days); expired items auto-deleted
+- 🎯 Student filter: no senior / sales / overseas roles; title must match your interest keywords
 - 🔍 Search and filter by type
 - 🔖 **Save** and 📅 **Track** — tracking sets a deadline (Devpost deadlines are detected automatically)
 - 🔔 Push reminders via ntfy: 2 days before and on the deadline day, plus a morning digest

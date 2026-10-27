@@ -373,7 +373,7 @@
             <div class="filter-row">
                 <div class="chip active" data-pillar="opps" onclick="setPillar(this)">All</div>
                 <div class="chip" data-pillar="jobs" onclick="setPillar(this)">💼 Jobs &amp; Internships</div>
-                <div class="chip" data-pillar="events" onclick="setPillar(this)">🚀 Hackathons</div>
+                <div class="chip" data-pillar="events" onclick="setPillar(this)">🚀 Hackathons &amp; Events</div>
                 <div class="chip" data-pillar="news" onclick="setPillar(this)">📰 Tech News</div>
             </div>
             <div id="feed-list"><div class="muted">Loading...</div></div>
@@ -433,7 +433,7 @@
          ================================================================ -->
     <script>
         const PAGE_SIZE = 30;
-        const PILLAR_LABELS = { jobs: '💼 Job', events: '🚀 Hackathon', news: '📰 News' };
+        const PILLAR_LABELS = { jobs: '💼 Job', events: '🚀 Event', news: '📰 News' };
         let currentPillar = 'opps';
         let feedOffset = 0;
         let searchTimer = null;
@@ -572,16 +572,20 @@
             const saved = !!it.saved_id;
             const deadline = it.deadline ? deadlinePill(daysUntil(it.deadline)) : '';
             const canTrack = it.pillar !== 'news';
+            const age = it.posted_at ? -daysUntil(it.posted_at) : null;
+            const isNew = age !== null && age <= 2;
+            const posted = age === null ? '' : age <= 0 ? 'Posted today' : `Posted ${age}d ago`;
             return `
                 <div class="opp-card" id="opp-${it.id}">
                     <div class="opp-top">
                         <span class="pill pill-${it.pillar}">${PILLAR_LABELS[it.pillar] || it.pillar}</span>
                         <span class="pill pill-plain">${escapeHtml(it.source)}</span>
+                        ${isNew ? '<span class="pill pill-soon">🆕 New</span>' : ''}
                         ${deadline}
                     </div>
                     <div class="opp-title">${escapeHtml(it.title)}</div>
                     ${it.organization ? `<div class="opp-org">${escapeHtml(it.organization)}</div>` : ''}
-                    <div class="opp-extra">${escapeHtml([it.extra_info !== it.organization ? it.extra_info : '', it.deadline_or_date].filter(Boolean).join(' • '))}</div>
+                    <div class="opp-extra">${escapeHtml([it.extra_info !== it.organization ? it.extra_info : '', it.deadline_or_date, posted].filter(Boolean).join(' • '))}</div>
                     <div class="opp-actions">
                         <a class="btn btn-sm" href="${safeUrl(it.url)}" target="_blank" rel="noopener">Open ↗</a>
                         <button class="btn btn-secondary btn-sm ${saved ? 'btn-on' : ''}" onclick="saveItem(${it.id}, false, this)">${saved ? '✓ Saved' : '🔖 Save'}</button>
@@ -612,13 +616,11 @@
         }
 
         async function triggerScan() {
-            showToast('📡 Scanning jobs, hackathons & news...');
+            showToast('📡 Scanning 70+ sites — takes 1–3 minutes...');
             try {
                 await api('/api/radar/scan', { method: 'POST' });
-                setTimeout(() => {
-                    loadFeed();
-                    showToast('Scan running — new items appear as they arrive.');
-                }, 6000);
+                // Refresh a few times while the scan runs in the background
+                [20000, 60000, 150000].forEach(ms => setTimeout(() => loadFeed(), ms));
             } catch (e) {
                 if (e.message !== 'unauthorized') showToast('Scan error!');
             }

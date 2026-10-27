@@ -1,29 +1,66 @@
+"""
+Radar scan engine.
+
+- Reads every website in services/sources.py, one at a time (low RAM).
+- Keeps only student-relevant jobs (interest keywords / early-career, no senior roles).
+- Keeps only upcoming events and fresh jobs/news.
+- Removes duplicates: same link (ignoring tracking params) or same title.
+"""
+
 import os
 import re
-import json
 import sqlite3
-import urllib.request
-import urllib.parse
-import xml.etree.ElementTree as ET
-from datetime import datetime
+import threading
+from datetime import datetime, timedelta
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+
+from services.sources import SOURCES, IST
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DB_PATH = os.path.join(BASE_DIR, 'data', 'pocketbrain.db')
 
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-
 # Default interest keywords (overridable from the Settings screen)
 DEFAULT_KEYWORDS = [
-    'intern', 'internship', 'trainee', 'c++', 'python', 'fintech', 'quant', 
-    'trading', 'backend', 'full stack', 'fullstack', 'react', 'node', 
-    'cloud', 'devops', 'cybersecurity', 'security', 'software'
+    'intern', 'internship', 'trainee', 'c++', 'python', 'fintech', 'quant',
+    'trading', 'backend', 'full stack', 'fullstack', 'react', 'node',
+    'cloud', 'devops', 'cybersecurity', 'security', 'software',
+    'developer', 'engineer', 'engineering', 'sde', 'data', 'machine learning', 'ml', 'ai'
 ]
+
+# Always relevant for students, whatever the interests are
+EARLY_CAREER = ['intern', 'internship', 'internships', 'trainee', 'graduate', 'new grad', 'fresher',
+                'freshers', 'campus', 'junior', 'entry level', 'entry-level', 'apprentice', 'student']
+
+# Never relevant for students: senior / mid-level grades, non-tech roles, roles tied to other countries
+SENIOR = ['senior', 'sr', 'lead', 'principal', 'staff', 'manager', 'director', 'head', 'vp',
+          'architect', 'chief', 'president', 'expert', 'intermediate', 'ii', 'iii', 'iv',
+          'sde2', 'sde3', 'sde-2', 'sde-3', 'sde 2', 'sde 3']
+NON_TECH = ['sales', 'account', 'accounts', 'counsel', 'legal', 'marketing', 'recruiter',
+            'recruiting', 'finance', 'audit', 'customer success', 'bilingual']
+FOREIGN = ['emea', 'latam', 'usa', 'united states', 'uk', 'europe', 'spain', 'germany', 'france',
+           'canada', 'brazil', 'mexico', 'japan', 'australia', 'san francisco', 'new york',
+           'london', 'berlin', 'amsterdam', 'singapore', 'dubai']
+EXCLUDE = SENIOR + NON_TECH + FOREIGN
+
+# Freshness windows (days)
+JOB_MAX_AGE = 21
+NEWS_MAX_AGE = 3
+EVENT_UNDATED_MAX_AGE = 14
+
+# Max new items kept per website per scan, so one site can't flood the feed
+PER_SOURCE_CAP = {'events': 12, 'jobs': 12, 'news': 3}
+
+TRACKING_PARAMS = re.compile(r'^(utm_.*|ref|ref_src|source|src|fbclid|gclid|mc_cid|mc_eid|trk|lever-source|gh_src)$', re.I)
+
+_scan_lock = threading.Lock()
+
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
+
 
 def get_keywords():
     """Interest keywords saved in settings ('keywords', comma separated)."""
@@ -37,319 +74,258 @@ def get_keywords():
         pass
     return DEFAULT_KEYWORDS
 
-def parse_devpost_deadline(dates):
-    """'Oct 01 - Nov 15, 2026' / 'Oct 15 - 30, 2026' -> '2026-11-15' (or None)."""
-    if not dates or '-' not in dates:
-        return None
-    start, end = [p.strip() for p in dates.rsplit('-', 1)]
-    if re.match(r'^\d{1,2}, \d{4}$', end):
-        end = start.split()[0] + ' ' + end
-    for fmt in ('%b %d, %Y', '%B %d, %Y'):
-        try:
-            return datetime.strptime(end, fmt).strftime('%Y-%m-%d')
-        except ValueError:
-            continue
-    return None
+
+# =====================================================================
+# DUPLICATE KEYS
+# =====================================================================
+
+def url_key(url):
+    """Same page = same key: lower-case host, no www, no tracking params, no trailing slash."""
+    try:
+        parts = urlsplit(url.strip())
+        host = parts.netloc.lower().removeprefix('www.')
+        query = urlencode([(k, v) for k, v in parse_qsl(parts.query) if not TRACKING_PARAMS.match(k)])
+        return urlunsplit(('https', host, parts.path.rstrip('/'), query, ''))
+    except Exception:
+        return url
+
+
+def title_key(pillar, title, organization):
+    """Jobs are unique per title + company; events and news per title."""
+    norm = lambda s: re.sub(r'[^a-z0-9]', '', (s or '').lower())
+    return norm(title) + ('|' + norm(organization) if pillar == 'jobs' else '')
+
+
+# =====================================================================
+# FILTERS
+# =====================================================================
+
+def _has_word(text, words):
+    return any(re.search(r'(?<![a-z0-9])' + re.escape(w) + r'(?![a-z0-9])', text) for w in words)
+
+
+def is_relevant_job(title, keywords):
+    """No senior roles, and the title must match a field keyword (python, data, ...).
+    'Intern' alone isn't enough — that lets in Sales / HR internships."""
+    t = (title or '').lower()
+    if _has_word(t, EXCLUDE):
+        return False
+    field_words = [k for k in keywords if k not in EARLY_CAREER] or EARLY_CAREER
+    return _has_word(t, field_words)
+
+
+def is_fresh(it, today):
+    """Upcoming events only; jobs and news only if recent."""
+    days_old = lambda iso: (today - datetime.strptime(iso, '%Y-%m-%d').date()).days
+    try:
+        if it['deadline'] and it['deadline'] < today.isoformat():
+            return False
+        if it['pillar'] == 'events':
+            if not it['deadline'] and it['starts_at']:
+                return it['starts_at'] >= today.isoformat()
+            if not it['deadline'] and it['posted_at']:
+                return days_old(it['posted_at']) <= EVENT_UNDATED_MAX_AGE
+            return True
+        if it['pillar'] == 'jobs':
+            return it['deadline'] is not None or not it['posted_at'] or days_old(it['posted_at']) <= JOB_MAX_AGE
+        return not it['posted_at'] or days_old(it['posted_at']) <= NEWS_MAX_AGE
+    except (TypeError, ValueError):
+        return True
+
+
+# Same rules as is_fresh, in SQL, for the feed and the cleanup job
+VISIBLE_SQL = f"""(
+    (deadline IS NOT NULL AND deadline >= date('now', 'localtime'))
+    OR (deadline IS NULL AND pillar = 'events' AND (
+        starts_at >= date('now', 'localtime')
+        OR (starts_at IS NULL AND COALESCE(posted_at, date(created_at)) >= date('now', 'localtime', '-{EVENT_UNDATED_MAX_AGE} days'))))
+    OR (deadline IS NULL AND pillar = 'jobs'
+        AND COALESCE(posted_at, date(created_at)) >= date('now', 'localtime', '-{JOB_MAX_AGE} days'))
+    OR (deadline IS NULL AND pillar = 'news'
+        AND COALESCE(posted_at, date(created_at)) >= date('now', 'localtime', '-{NEWS_MAX_AGE} days'))
+)"""
+
+
+# =====================================================================
+# DATABASE SETUP & ONE-TIME CLEANUP OF OLD DUPLICATES
+# =====================================================================
 
 def init_radar_db():
-    """Ensure radar_items table exists."""
+    """Create radar_items, add new columns to old DBs, remove existing duplicates once."""
     conn = get_db()
     conn.execute('''
         CREATE TABLE IF NOT EXISTS radar_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             pillar TEXT NOT NULL,         -- 'jobs', 'events', 'news'
-            source TEXT NOT NULL,         -- 'LinkedIn', 'Remotive', 'Devpost', 'Devfolio', 'YourStory', etc.
+            source TEXT NOT NULL,
             title TEXT NOT NULL,
-            organization TEXT,            -- Company or Organizer
+            organization TEXT,
             url TEXT NOT NULL UNIQUE,
-            deadline_or_date TEXT,
-            extra_info TEXT,              -- Stipend, Prize, Tags, or Summary
+            deadline_or_date TEXT,        -- human readable date line
+            extra_info TEXT,              -- prize, type, location
             notified INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     cols = [r['name'] for r in conn.execute("PRAGMA table_info(radar_items)")]
-    if 'deadline' not in cols:
-        conn.execute("ALTER TABLE radar_items ADD COLUMN deadline TEXT")  # ISO date, when known
+    for col in ('deadline', 'starts_at', 'posted_at', 'url_key', 'title_key'):
+        if col not in cols:
+            conn.execute(f"ALTER TABLE radar_items ADD COLUMN {col} TEXT")
+
+    if conn.execute("SELECT 1 FROM radar_items WHERE url_key IS NULL LIMIT 1").fetchone():
+        _dedupe_existing(conn)
+
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_radar_url_key ON radar_items(url_key)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_radar_title_key ON radar_items(pillar, title_key)")
     conn.commit()
     conn.close()
 
-def _fetch_rss(url, timeout=10):
-    """Safely fetch and parse an RSS feed."""
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+
+def _dedupe_existing(conn):
+    """Fill keys for old rows and delete duplicates, keeping saved / oldest copies."""
+    # Old 'events' from the Google Developers blog were really news posts
+    conn.execute("UPDATE radar_items SET pillar = 'news' WHERE source = 'Google Developers' AND pillar = 'events'")
+    has_saved = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='saved_items'").fetchone()
+    saved = {r[0] for r in conn.execute("SELECT item_id FROM saved_items")} if has_saved else set()
+
+    seen = {}
+    rows = conn.execute("SELECT id, pillar, title, organization, url FROM radar_items ORDER BY id").fetchall()
+    rows = sorted(rows, key=lambda r: (r['id'] not in saved, r['id']))  # saved copies win
+    for r in rows:
+        keys = (url_key(r['url']), (r['pillar'], title_key(r['pillar'], r['title'], r['organization'])))
+        keep = seen.get(keys[0]) or seen.get(keys[1])
+        if keep:
+            if has_saved:
+                conn.execute("UPDATE OR IGNORE saved_items SET item_id = ? WHERE item_id = ?", (keep, r['id']))
+                conn.execute("DELETE FROM saved_items WHERE item_id = ?", (r['id'],))
+            conn.execute("DELETE FROM radar_items WHERE id = ?", (r['id'],))
+            continue
+        seen[keys[0]] = seen[keys[1]] = r['id']
+        conn.execute("UPDATE radar_items SET url_key = ?, title_key = ? WHERE id = ?",
+                     (keys[0], keys[1][1], r['id']))
+
+
+# =====================================================================
+# SCANNING
+# =====================================================================
+
+def _store(conn, it):
+    """Insert one item unless it's a duplicate. Returns True when new."""
+    ukey = url_key(it['url'])
+    tkey = title_key(it['pillar'], it['title'], it['organization'])
+    dup = conn.execute(
+        "SELECT id, deadline FROM radar_items WHERE url_key = ? OR (pillar = ? AND title_key = ?) LIMIT 1",
+        (ukey, it['pillar'], tkey)
+    ).fetchone()
+    if dup:
+        if not dup['deadline'] and it['deadline']:  # Another site knows the deadline: keep it
+            conn.execute("UPDATE radar_items SET deadline = ? WHERE id = ?", (it['deadline'], dup['id']))
+        return False
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            if response.status == 200:
-                xml_data = response.read()
-                return ET.fromstring(xml_data)
-    except Exception as e:
-        print(f"⚠️ RSS fetch error ({url}): {e}")
-    return None
+        conn.execute('''
+            INSERT INTO radar_items (pillar, source, title, organization, url, deadline_or_date, extra_info,
+                                     deadline, starts_at, posted_at, url_key, title_key)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (it['pillar'], it['source'], it['title'], it['organization'], it['url'], it['date_text'],
+              it['extra_info'], it['deadline'], it['starts_at'], it['posted_at'], ukey, tkey))
+        return True
+    except sqlite3.IntegrityError:
+        return False
 
-def _fetch_json(url, headers=None, timeout=10):
-    """Safely fetch and parse a JSON endpoint."""
-    h = {"User-Agent": USER_AGENT, "Accept": "application/json"}
-    if headers:
-        h.update(headers)
-    req = urllib.request.Request(url, headers=h)
+
+def scan(pillars=('jobs', 'events', 'news')):
+    """Scan every website of the given pillars, sequentially."""
+    if not _scan_lock.acquire(blocking=False):
+        print("📡 [Radar] Scan already running, skipped.")
+        return {}
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            if response.status == 200:
-                return json.loads(response.read().decode('utf-8'))
-    except Exception as e:
-        print(f"⚠️ JSON fetch error ({url}): {e}")
-    return None
+        init_radar_db()
+        keywords = get_keywords()
+        today = datetime.now(IST).date()
+        new_items, failed = [], []
 
-# =====================================================================
-# 1. 💼 JOBS & INTERNSHIPS (C++, Python, Fintech, Backend, DevOps, WFH/Delhi)
-# =====================================================================
-
-def scan_jobs(limit=10):
-    """Scan software & student internships, fintech, C++, Python, and early career roles."""
-    init_radar_db()
-    keywords = get_keywords()
-    new_items = []
-    conn = get_db()
-
-    # Source A: Remotive (Python, Software Dev, Data)
-    for cat in ['software-dev', 'data', 'devops-sysadmin']:
-        try:
-            url = f"https://remotive.com/api/remote-jobs?category={cat}&limit=10"
-            data = _fetch_json(url)
-            if data and "jobs" in data:
-                for job in data["jobs"]:
-                    title = job.get("title", "").strip()
-                    desc = (job.get("description") or "").lower()
-                    title_lower = title.lower()
-                    
-                    # Match user's customized keywords (Fintech, C++, Python, Backend, etc.)
-                    is_match = any(kw in title_lower or kw in desc for kw in keywords)
-                    if not is_match:
-                        continue
-
-                    company = job.get("company_name", "Tech Startup")
-                    job_url = job.get("url", "")
-                    salary = job.get("salary", "") or "Competitive"
-                    published = job.get("publication_date", "")[:10]
-
-                    if not title or not job_url:
-                        continue
-
-                    tag = "💼 Remote / WFH"
-                    if "fintech" in title_lower or "fintech" in desc:
-                        tag = "💎 Fintech Role"
-                    elif "c++" in title_lower or "c++" in desc:
-                        tag = "⚡ C++ Role"
-                    elif "python" in title_lower:
-                        tag = "🐍 Python Role"
-
-                    try:
-                        conn.execute('''
-                            INSERT INTO radar_items (pillar, source, title, organization, url, deadline_or_date, extra_info)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                        ''', ('jobs', 'Remotive', title, company, job_url, published, f"{tag} • {salary}"))
-                        new_items.append({'pillar': 'jobs', 'title': title, 'org': company, 'url': job_url})
-                    except sqlite3.IntegrityError:
-                        pass
-        except Exception as e:
-            print(f"⚠️ Jobs scan error (Remotive-{cat}): {e}")
-
-    # Source B: Jobicy Remote Internships & Junior Roles Feed (Open RSS)
-    try:
-        url = "https://jobicy.com/?feed=job_feed&job_categories=engineering"
-        root = _fetch_rss(url)
-        if root is not None:
-            for item in root.findall('.//item')[:10]:
-                title = item.find('title').text if item.find('title') is not None else ""
-                link = item.find('link').text if item.find('link') is not None else ""
-                pub = item.find('pubDate').text[:16] if item.find('pubDate') is not None else ""
-                title_lower = title.lower()
-                
-                if any(kw in title_lower for kw in keywords):
-                    try:
-                        conn.execute('''
-                            INSERT INTO radar_items (pillar, source, title, organization, url, deadline_or_date, extra_info)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                        ''', ('jobs', 'Jobicy', title, 'Remote Tech', link, pub, "💼 Remote Engineering"))
-                        new_items.append({'pillar': 'jobs', 'title': title, 'org': 'Remote Tech', 'url': link})
-                    except sqlite3.IntegrityError:
-                        pass
-    except Exception as e:
-        print(f"⚠️ Jobs scan error (Jobicy): {e}")
-
-    conn.commit()
-    conn.close()
-    return new_items
-
-# =====================================================================
-# 2. 🚀 TECH EVENTS & HACKATHONS (Devpost, Devfolio, GDG, KonfHub)
-# =====================================================================
-
-def scan_events(limit=10):
-    """Scan active hackathons, DevFest, and Indian tech conferences."""
-    init_radar_db()
-    new_items = []
-    conn = get_db()
-
-    # Source A: Devpost Online Hackathons
-    try:
-        url = "https://devpost.com/api/hackathons?challenge_type[]=online&status[]=open"
-        data = _fetch_json(url)
-        if data and "hackathons" in data:
-            for item in data["hackathons"][:limit]:
-                title = item.get("title", "").strip()
-                event_url = item.get("url", "")
-                raw_prize = item.get("prize_amount", "")
-                prize = re.sub(r'<[^>]+>', '', raw_prize).strip() if raw_prize else "Certificates/Swag"
-                dates = item.get("submission_period_dates", "")
-                org = item.get("organization_name") or "Global Devs"
-
-                if not title or not event_url:
-                    continue
-
-                try:
-                    conn.execute('''
-                        INSERT INTO radar_items (pillar, source, title, organization, url, deadline_or_date, extra_info, deadline)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', ('events', 'Devpost', title, org, event_url, dates, f"💰 {prize}", parse_devpost_deadline(dates)))
-                    new_items.append({'pillar': 'events', 'title': title, 'org': org, 'url': event_url})
-                except sqlite3.IntegrityError:
-                    pass
-    except Exception as e:
-        print(f"⚠️ Events scan error (Devpost): {e}")
-
-    # Source B: Google Developers & DevFest Announcements (RSS)
-    try:
-        url = "https://blog.google/technology/developers/rss/"
-        root = _fetch_rss(url)
-        if root is not None:
-            for item in root.findall('.//item')[:5]:
-                title = item.find('title').text if item.find('title') is not None else ""
-                link = item.find('link').text if item.find('link') is not None else ""
-                pub = item.find('pubDate').text[:16] if item.find('pubDate') is not None else ""
-                title_lower = title.lower()
-                if any(w in title_lower for w in ['devfest', 'hackathon', 'competition', 'summit', 'challenge', 'developer']):
-                    try:
-                        conn.execute('''
-                            INSERT INTO radar_items (pillar, source, title, organization, url, deadline_or_date, extra_info)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                        ''', ('events', 'Google Developers', title, 'Google GDG', link, pub, "🚀 Google DevFest / Event"))
-                        new_items.append({'pillar': 'events', 'title': title, 'org': 'Google GDG', 'url': link})
-                    except sqlite3.IntegrityError:
-                        pass
-    except Exception as e:
-        print(f"⚠️ Events scan error (GDG): {e}")
-
-    conn.commit()
-    conn.close()
-    return new_items
-
-# =====================================================================
-# 3. 📰 TECH NEWS & AI RADAR (Google AI, DeepMind, Hugging Face, YourStory, Inc42, TechCrunch, The Verge)
-# =====================================================================
-
-NEWS_FEEDS = [
-    ("Google AI Blog", "https://blog.google/technology/ai/rss/", "🤖 AI / DeepMind"),
-    ("Hugging Face", "https://huggingface.co/blog/feed.xml", "🤗 Open-Source AI"),
-    ("TechCrunch", "https://techcrunch.com/category/artificial-intelligence/feed/", "⚡ Big Tech & AI"),
-    ("The Verge", "https://www.theverge.com/rss/index.xml", "📱 Tech & Launches"),
-    ("YourStory", "https://yourstory.com/feed", "🇮🇳 Indian Startups"),
-    ("Inc42", "https://inc42.com/feed/", "💰 Indian Tech & Funding"),
-]
-
-def scan_news(limit_per_feed=2):
-    """Scan breaking AI launches, Indian startups, and developer news."""
-    init_radar_db()
-    new_items = []
-    conn = get_db()
-
-    for source_name, feed_url, category_tag in NEWS_FEEDS:
-        try:
-            root = _fetch_rss(feed_url)
-            if root is None:
+        for name, pillar, fetcher in SOURCES:
+            if pillar not in pillars:
+                continue
+            try:
+                items = [it for it in fetcher() if it['title'] and it['url'].startswith('http')]
+            except Exception as e:
+                failed.append(name)
+                print(f"⚠️ [Radar] {name} failed: {e}")
                 continue
 
-            items = root.findall('.//item')
-            for item in items[:limit_per_feed]:
-                title_elem = item.find('title')
-                link_elem = item.find('link')
-                pub_elem = item.find('pubDate')
+            if pillar == 'jobs':
+                items = [it for it in items if is_relevant_job(it['title'], keywords)]
+            items = [it for it in items if is_fresh(it, today)]
+            if pillar == 'events':  # soonest first
+                items.sort(key=lambda it: it['starts_at'] or it['deadline'] or '9999')
+            else:  # newest first
+                items.sort(key=lambda it: it['posted_at'] or '', reverse=True)
 
-                title = title_elem.text.strip() if title_elem is not None and title_elem.text else ""
-                url = link_elem.text.strip() if link_elem is not None and link_elem.text else ""
-                pub_date = pub_elem.text[:16] if pub_elem is not None and pub_elem.text else ""
+            conn = get_db()
+            for it in items[:PER_SOURCE_CAP[pillar]]:
+                if _store(conn, it):
+                    new_items.append(it)
+            conn.commit()
+            conn.close()
 
-                if not title or not url:
-                    continue
+        cleanup_old_items()
+        counts = {p: sum(1 for it in new_items if it['pillar'] == p) for p in pillars}
+        print(f"📡 [Radar] Scan complete: {counts}. Failed sources: {failed or 'none'}")
+        _notify_new(new_items)
+        return counts
+    finally:
+        _scan_lock.release()
 
-                try:
-                    conn.execute('''
-                        INSERT INTO radar_items (pillar, source, title, organization, url, deadline_or_date, extra_info)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', ('news', source_name, title, category_tag, url, pub_date, f"{category_tag}"))
-                    new_items.append({'pillar': 'news', 'title': title, 'org': source_name, 'url': url})
-                except sqlite3.IntegrityError:
-                    pass
-        except Exception as e:
-            print(f"⚠️ News scan error ({source_name}): {e}")
 
-    conn.commit()
-    conn.close()
-    return new_items
+def _notify_new(new_items):
+    """One summary push per scan for new jobs/events (news never pushes)."""
+    opps = [it for it in new_items if it['pillar'] in ('jobs', 'events')]
+    if not opps:
+        return
+    try:
+        from services.notifier import notify
+        jobs = sum(1 for it in opps if it['pillar'] == 'jobs')
+        events = len(opps) - jobs
+        lines = [f"• {it['title'][:60]} ({it['source']})" for it in opps[:4]]
+        notify(
+            title=f"📡 {jobs} new roles, {events} new events",
+            message="\n".join(lines),
+            priority="default",
+            tags=["satellite"]
+        )
+    except Exception as ex:
+        print(f"⚠️ Radar notify error: {ex}")
 
-# =====================================================================
-# UNIFIED SCAN & QUERIES
-# =====================================================================
 
 def scan_all_radar():
-    """Scan all 3 customized pillars and push notifications."""
-    print("📡 [Radar] Starting customized scan for Student Profile...")
-    j = scan_jobs(limit=10)
-    e = scan_events(limit=10)
-    n = scan_news(limit_per_feed=2)
-    
-    total = len(j) + len(e) + len(n)
-    print(f"📡 [Radar] Scan complete. Added {total} new items! (Jobs: {len(j)}, Events: {len(e)}, News: {len(n)})")
+    return scan(('jobs', 'events', 'news'))
 
-    if e or j:
-        try:
-            from services.notifier import notify
-            if e:
-                top_event = e[0]
-                notify(
-                    title=f"🚀 Hackathon: {top_event['title'][:40]}",
-                    message=f"By: {top_event['org']}\nTap to check details.",
-                    priority=4,
-                    tags=["trophy", "computer"],
-                    click_url=top_event['url']
-                )
-            if j:
-                top_job = j[0]
-                notify(
-                    title=f"💼 Job Match: {top_job['title'][:40]}",
-                    message=f"Company: {top_job['org']}\nTap to view role.",
-                    priority=3,
-                    tags=["briefcase"],
-                    click_url=top_job['url']
-                )
-        except Exception as ex:
-            print(f"⚠️ Radar notify error: {ex}")
-
-    return {'jobs': len(j), 'events': len(e), 'news': len(n)}
 
 def scan_high_priority():
-    """High-priority scan: Jobs & Hackathons only (quick, focused)."""
-    print("📡 [Radar] Running High-Priority scan (Jobs & Hackathons)...")
-    j = scan_jobs(limit=10)
-    e = scan_events(limit=10)
-    print(f"📡 [Radar] High-priority scan complete: {len(j)} jobs, {len(e)} events found.")
-    return {'jobs': len(j), 'events': len(e), 'news': 0}
+    """Jobs & hackathons only (quick, focused)."""
+    return scan(('jobs', 'events'))
+
+
+def cleanup_old_items():
+    """Delete expired / stale items nobody saved, so the DB stays small."""
+    conn = get_db()
+    has_saved = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='saved_items'").fetchone()
+    keep_saved = "id NOT IN (SELECT item_id FROM saved_items) AND" if has_saved else ""
+    conn.execute(f"DELETE FROM radar_items WHERE {keep_saved} NOT {VISIBLE_SQL}")
+    conn.commit()
+    conn.close()
+
+
+# =====================================================================
+# QUERIES
+# =====================================================================
 
 def get_radar_items(pillar=None, limit=5, q=None, offset=0):
-    """Retrieve items from DB for the feed, newest first."""
+    """Visible (upcoming / fresh) items, latest first."""
     init_radar_db()
     conn = get_db()
-    sql = "SELECT * FROM radar_items WHERE 1=1"
+    sql = f"SELECT * FROM radar_items WHERE {VISIBLE_SQL}"
     args = []
     if pillar == 'opps':  # Jobs + events, without news
         sql += " AND pillar IN ('jobs', 'events')"
@@ -357,9 +333,9 @@ def get_radar_items(pillar=None, limit=5, q=None, offset=0):
         sql += " AND pillar = ?"
         args.append(pillar)
     if q:
-        sql += " AND (title LIKE ? OR organization LIKE ? OR extra_info LIKE ?)"
-        args += [f"%{q}%"] * 3
-    sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
+        sql += " AND (title LIKE ? OR organization LIKE ? OR extra_info LIKE ? OR source LIKE ?)"
+        args += [f"%{q}%"] * 4
+    sql += " ORDER BY COALESCE(posted_at, date(created_at)) DESC, id DESC LIMIT ? OFFSET ?"
     args += [limit, offset]
     rows = conn.execute(sql, args).fetchall()
     conn.close()

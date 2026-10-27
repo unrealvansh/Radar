@@ -399,7 +399,7 @@ if __name__ == '__main__':
     else:
         scheduler = BackgroundScheduler()
 
-    from services.unified_radar import scan_all_radar, scan_high_priority
+    from services.unified_radar import scan_all_radar, scan_high_priority, cleanup_old_items
 
     # 08:00 / 20:00 -> Full Scan, 14:00 / 02:00 -> High-Priority Scan (Jobs & Hackathons)
     scheduler.add_job(scan_all_radar, 'cron', hour=8, minute=0)
@@ -411,6 +411,8 @@ if __name__ == '__main__':
     # 09:00 / 18:00 -> Tracked deadline reminders
     scheduler.add_job(check_tracked_deadlines, 'cron', hour=9, minute=0)
     scheduler.add_job(check_tracked_deadlines, 'cron', hour=18, minute=0)
+    # 03:00 -> Drop expired / stale items nobody saved
+    scheduler.add_job(cleanup_old_items, 'cron', hour=3, minute=0)
 
     scheduler.start()
 
