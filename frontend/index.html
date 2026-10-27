@@ -3,37 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PocketBrain</title>
-    
+    <title>Radar</title>
+
     <meta name="theme-color" content="#121212">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="/manifest.json">
-    
+
     <style>
         /* ================================================================
            STOIC MINIMALIST PALETTE
            ================================================================ */
         :root {
-            --white: #FFFFFF;
-            --black: #000000;
             --success: #10B981;
             --warning: #F59E0B;
             --error: #EF4444;
-
-            /* Category Colors */
-            --cat-homework: #3B82F6;
-            --cat-homework-light: rgba(59, 130, 246, 0.15);
-            --cat-assignment: #8B5CF6;
-            --cat-assignment-light: rgba(139, 92, 246, 0.15);
-            --cat-gym: #EF4444;
-            --cat-gym-light: rgba(239, 68, 68, 0.15);
-            --cat-skills: #10B981;
-            --cat-skills-light: rgba(16, 185, 129, 0.15);
-            --cat-exam: #F59E0B;
-            --cat-exam-light: rgba(245, 158, 11, 0.15);
-            --cat-personal: #EC4899;
-            --cat-personal-light: rgba(236, 72, 153, 0.15);
+            --jobs: #3B82F6;
+            --jobs-light: rgba(59, 130, 246, 0.15);
+            --events: #8B5CF6;
+            --events-light: rgba(139, 92, 246, 0.15);
+            --news: #10B981;
+            --news-light: rgba(16, 185, 129, 0.15);
         }
 
         /* Dark Stoic Theme (Default) */
@@ -45,7 +35,6 @@
             --text-primary: #FDFBF7;
             --text-secondary: #A8A29E;
             --text-tertiary: #78716C;
-            --accent: #44403C;
             --border: #292524;
             --nav-bg: rgba(28, 25, 23, 0.95);
             --input-bg: #292524;
@@ -60,7 +49,6 @@
             --text-primary: #121212;
             --text-secondary: #57534E;
             --text-tertiary: #78716C;
-            --accent: #D6D3CD;
             --border: #E7E5E4;
             --nav-bg: rgba(243, 239, 230, 0.95);
             --input-bg: #FFFFFF;
@@ -97,28 +85,25 @@
         }
 
         /* ================================================================
-           HEADER & TOP BAR
+           HEADER
            ================================================================ */
         .top-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 18px;
+            margin-bottom: 14px;
             padding-bottom: 12px;
             border-bottom: 1px solid var(--border);
         }
-
         .brand-title {
             font-size: 20px;
             font-weight: 700;
             letter-spacing: -0.5px;
-            color: var(--text-primary);
             display: flex;
             align-items: center;
             gap: 6px;
         }
-
-        .theme-toggle-btn {
+        .icon-btn {
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             color: var(--text-secondary);
@@ -127,23 +112,6 @@
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        /* ================================================================
-           CARDS & SECTIONS
-           ================================================================ */
-        .section {
-            margin-bottom: 20px;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
         }
 
         .section-title {
@@ -152,100 +120,25 @@
             text-transform: uppercase;
             letter-spacing: 0.8px;
             color: var(--text-tertiary);
+            margin-bottom: 10px;
         }
-
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 14px;
             padding: 14px;
             margin-bottom: 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
-
-        /* Grid */
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 12px 14px;
-        }
-        .stat-label {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
+        .muted { color: var(--text-tertiary); font-size: 12px; }
+        .empty {
+            text-align: center;
             color: var(--text-tertiary);
-            margin-bottom: 4px;
+            padding: 28px 12px;
         }
-        .stat-value {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        /* Bento Grid */
-        .bento-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-        .bento-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 12px 14px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            min-height: 94px;
-            cursor: pointer;
-            transition: transform 0.1s ease, border-color 0.15s ease;
-            position: relative;
-        }
-        .bento-card:active {
-            transform: scale(0.97);
-        }
-        .bento-card:hover {
-            border-color: var(--text-tertiary);
-        }
-        .bento-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-        }
-        .bento-title {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-tertiary);
-        }
-        .bento-chevron {
-            font-size: 14px;
-            color: var(--text-tertiary);
-        }
-        .bento-value {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.2;
-        }
-        .bento-sub {
-            font-size: 11.5px;
-            color: var(--text-secondary);
-            margin-top: 4px;
-        }
+        .empty .big { font-size: 28px; margin-bottom: 8px; }
 
         /* ================================================================
-           BUTTONS & INPUTS
+           BUTTONS, INPUTS, CHIPS
            ================================================================ */
         .btn {
             background: var(--text-primary);
@@ -260,28 +153,22 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
-            transition: opacity 0.15s;
+            text-decoration: none;
         }
         .btn:active { opacity: 0.8; }
-
-        .btn-sm {
-            padding: 5px 10px;
-            font-size: 12px;
-            border-radius: 8px;
-        }
-
+        .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
         .btn-secondary {
             background: var(--bg-secondary);
             color: var(--text-primary);
             border: 1px solid var(--border);
         }
-
-        .btn-danger {
-            background: var(--error);
+        .btn-on {
+            background: var(--success);
             color: #FFFFFF;
+            border-color: var(--success);
         }
 
-        input, select, textarea {
+        input, textarea {
             width: 100%;
             background: var(--input-bg);
             color: var(--text-primary);
@@ -292,355 +179,99 @@
             outline: none;
             font-family: inherit;
         }
-        input:focus, select:focus, textarea:focus {
-            border-color: var(--text-secondary);
-        }
+        input:focus, textarea:focus { border-color: var(--text-secondary); }
 
-        .pill-badge {
-            display: inline-block;
-            font-size: 11px;
-            font-weight: 600;
-            padding: 2px 8px;
-            border-radius: 12px;
-            text-transform: uppercase;
-        }
-
-        /* ================================================================
-           CALENDAR SCREEN (AIScheduler Replica)
-           ================================================================ */
-        .cal-header {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 14px;
-            margin-bottom: 14px;
-        }
-        .cal-top {
+        .filter-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
+            gap: 6px;
+            overflow-x: auto;
+            margin: 10px 0 14px 0;
+            scrollbar-width: none;
         }
-        .cal-title {
-            font-size: 18px;
-            font-weight: 700;
-        }
-        .cal-today-btn {
-            background: var(--text-primary);
-            color: var(--bg-primary);
-            border: none;
-            border-radius: 14px;
-            padding: 4px 12px;
-            font-size: 11px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-        .cal-switcher {
-            display: flex;
-            background: var(--bg-tertiary);
-            border-radius: 10px;
-            padding: 3px;
-            margin-bottom: 12px;
-        }
-        .cal-tab {
-            flex: 1;
-            text-align: center;
-            padding: 6px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            cursor: pointer;
-        }
-        .cal-tab.active {
-            background: var(--bg-card);
-            color: var(--text-primary);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        .cal-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .cal-nav-btn {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .cal-nav-title {
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        /* Day View Hourly Grid */
-        .day-timeline {
-            position: relative;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 10px 0;
-            max-height: 440px;
-            overflow-y: auto;
-        }
-        .hour-row {
-            display: flex;
-            align-items: center;
-            height: 48px;
-            border-bottom: 1px dashed var(--border);
-            position: relative;
-        }
-        .hour-label {
-            width: 48px;
-            padding-left: 10px;
-            font-size: 11px;
-            color: var(--text-tertiary);
-            font-weight: 600;
+        .filter-row::-webkit-scrollbar { display: none; }
+        .chip {
             flex-shrink: 0;
-        }
-        .hour-line {
-            flex: 1;
-            height: 100%;
-            position: relative;
-        }
-        .timeline-event {
-            position: absolute;
-            left: 54px;
-            right: 12px;
-            border-radius: 8px;
-            padding: 4px 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            border-radius: 20px;
+            padding: 6px 12px;
             font-size: 12px;
             font-weight: 600;
-            border-left: 3px solid;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            z-index: 2;
-        }
-
-        /* Week View Grid */
-        .week-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-            margin-bottom: 12px;
-        }
-        .week-day-col {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 8px 4px;
-            text-align: center;
             cursor: pointer;
         }
-        .week-day-col.selected {
+        .chip.active {
+            background: var(--text-primary);
+            color: var(--bg-primary);
             border-color: var(--text-primary);
-            background: var(--bg-secondary);
         }
-        .week-day-name { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; }
-        .week-day-num { font-size: 14px; font-weight: 700; margin-top: 2px; }
-        .week-indicator { width: 5px; height: 5px; border-radius: 50%; margin: 4px auto 0 auto; background: var(--text-tertiary); }
 
-        /* Month View Calendar */
-        .month-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
+        .pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .pill-jobs { background: var(--jobs-light); color: var(--jobs); }
+        .pill-events { background: var(--events-light); color: var(--events); }
+        .pill-news { background: var(--news-light); color: var(--news); }
+        .pill-urgent { background: rgba(239, 68, 68, 0.15); color: var(--error); }
+        .pill-soon { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .pill-ok { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .pill-plain { background: var(--bg-tertiary); color: var(--text-secondary); }
+
+        /* ================================================================
+           OPPORTUNITY CARDS
+           ================================================================ */
+        .opp-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 14px;
-            padding: 10px;
-        }
-        .month-header {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-tertiary);
-            text-align: center;
-            padding-bottom: 6px;
-        }
-        .month-cell {
-            aspect-ratio: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            position: relative;
-        }
-        .month-cell.today {
-            background: var(--text-primary);
-            color: var(--bg-primary);
-            font-weight: 700;
-        }
-        .month-cell.selected {
-            border: 1px solid var(--text-primary);
-        }
-        .month-cell .dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--success);
-            position: absolute;
-            bottom: 3px;
-        }
-
-        /* ================================================================
-           CHAT VIEW
-           ================================================================ */
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: calc(100vh - 170px);
-        }
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding-bottom: 12px;
-        }
-        .chat-bubble {
-            max-width: 85%;
-            padding: 10px 14px;
-            border-radius: 16px;
-            margin-bottom: 8px;
-            font-size: 13.5px;
-            line-height: 1.5;
-            white-space: pre-line;
-            word-wrap: break-word;
-        }
-        .chat-bubble.user {
-            background: var(--text-primary);
-            color: var(--bg-primary);
-            margin-left: auto;
-            border-bottom-right-radius: 4px;
-        }
-        .chat-bubble.bot {
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            margin-right: auto;
-            border-bottom-left-radius: 4px;
-        }
-        .chat-input-bar {
-            display: flex;
-            gap: 8px;
-            padding-top: 10px;
-            border-top: 1px solid var(--border);
-        }
-
-        /* ================================================================
-           LIST ITEMS & ACTIONS (Full Edit & Delete)
-           ================================================================ */
-        .item-card {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
             padding: 12px 14px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
-        .item-info {
-            flex: 1;
-            min-width: 0;
-            padding-right: 10px;
+        .opp-top {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 6px;
         }
-        .item-title {
-            font-size: 14px;
-            font-weight: 600;
+        .opp-title {
+            font-size: 14.5px;
+            font-weight: 650;
+            line-height: 1.35;
             color: var(--text-primary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            word-break: break-word;
         }
-        .item-sub {
+        .opp-org {
             font-size: 12px;
             color: var(--text-secondary);
             margin-top: 2px;
+        }
+        .opp-extra {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+            word-break: break-word;
+        }
+        .opp-actions {
             display: flex;
-            align-items: center;
             gap: 6px;
+            margin-top: 10px;
+            flex-wrap: wrap;
         }
-        .item-actions {
+        .opp-actions .btn { flex: 1; min-width: 80px; }
+        .deadline-row {
             display: flex;
             align-items: center;
-            gap: 6px;
-            flex-shrink: 0;
+            gap: 8px;
+            margin-top: 10px;
         }
-        .action-icon-btn {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            color: var(--text-secondary);
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        .action-icon-btn:hover {
-            color: var(--text-primary);
-            border-color: var(--text-tertiary);
-        }
-        .action-icon-btn.delete:hover {
-            color: var(--error);
-            border-color: var(--error);
-        }
+        .deadline-row input { flex: 1; padding: 7px 10px; }
 
-        /* ================================================================
-           MODAL FOR EDIT & ADD
-           ================================================================ */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-        .modal-overlay.active {
-            display: flex;
-        }
-        .modal-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            width: 100%;
-            max-width: 400px;
-            padding: 18px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-        }
-        .modal-title {
-            font-size: 16px;
-            font-weight: 700;
-        }
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            color: var(--text-secondary);
-        }
+        .load-more { width: 100%; margin-top: 4px; }
 
         /* ================================================================
            BOTTOM NAVIGATION
@@ -673,21 +304,24 @@
             min-width: 0;
             transition: color 0.15s;
         }
-        .nav-tab.active {
-            color: var(--text-primary);
-        }
-        .nav-icon {
-            font-size: 18px;
-            margin-bottom: 2px;
-        }
+        .nav-tab.active { color: var(--text-primary); }
+        .nav-icon { font-size: 18px; margin-bottom: 2px; }
 
-        /* Views */
-        .view-content {
+        .view-content { display: none; }
+        .view-content.active { display: block; }
+
+        /* ================================================================
+           LOGIN SCREEN & TOAST
+           ================================================================ */
+        .login {
             display: none;
+            max-width: 360px;
+            margin: 18vh auto 0 auto;
+            padding: 0 16px;
+            text-align: center;
         }
-        .view-content.active {
-            display: block;
-        }
+        .login.active { display: block; }
+        .login input { margin: 14px 0 10px 0; text-align: center; }
 
         .toast {
             position: fixed;
@@ -704,6 +338,8 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s, transform 0.2s;
+            max-width: calc(100vw - 32px);
+            text-align: center;
         }
         .toast.show {
             opacity: 1;
@@ -712,538 +348,81 @@
     </style>
 </head>
 <body>
-    <div class="app-container">
+    <!-- ==================== LOGIN (access token) ==================== -->
+    <div class="login" id="login">
+        <div style="font-size: 36px;">📡</div>
+        <div style="font-size: 20px; font-weight: 700; margin-top: 6px;">Radar</div>
+        <div class="muted" style="margin-top: 6px;">Enter your access token. It is printed in the server log when Radar starts (or in data/access_token.txt).</div>
+        <input type="password" id="login-token" placeholder="Access token" autocomplete="current-password" onkeydown="if (event.key === 'Enter') doLogin()">
+        <button class="btn" style="width: 100%;" onclick="doLogin()">Unlock</button>
+    </div>
+
+    <div class="app-container" id="app" style="display: none;">
         <!-- Top App Bar -->
         <div class="top-bar">
-            <div class="brand-title">
-                <span>🧠</span> PocketBrain
-            </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="theme-toggle-btn" onclick="switchNav('modules', null)" style="border-radius: 20px; padding: 5px 12px;">
-                    <span>🧩</span> <span>Modules</span>
-                </button>
-                <button class="theme-toggle-btn" onclick="toggleTheme()" style="padding: 6px 10px; border-radius: 50%;">
-                    <span id="theme-icon">☀️</span>
-                </button>
+            <div class="brand-title"><span>📡</span> Radar</div>
+            <div style="display: flex; gap: 8px;">
+                <button class="icon-btn" onclick="triggerScan()">↻ Scan</button>
+                <button class="icon-btn" onclick="toggleTheme()" style="padding: 6px 10px;"><span id="theme-icon">🌙</span></button>
             </div>
         </div>
 
-        <!-- ==================== VIEW 1: HOME (BENTO HUB) ==================== -->
-        <div class="view-content active" id="view-home">
-            <!-- Hero Intelligence Banner -->
-            <div class="card" style="background: var(--bg-secondary); border: none; margin-bottom: 14px; padding: 14px 16px;">
-                <div style="font-size: 19px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 2px;" id="greeting-text">Welcome back, Vansh 🧠</div>
-                <div style="font-size: 12px; color: var(--text-secondary);" id="greeting-time">Loading briefing...</div>
+        <!-- ==================== VIEW 1: FEED ==================== -->
+        <div class="view-content active" id="view-feed">
+            <input type="search" id="feed-search" placeholder="Search roles, hackathons, companies..." oninput="onSearchInput()">
+            <div class="filter-row">
+                <div class="chip active" data-pillar="opps" onclick="setPillar(this)">All</div>
+                <div class="chip" data-pillar="jobs" onclick="setPillar(this)">💼 Jobs &amp; Internships</div>
+                <div class="chip" data-pillar="events" onclick="setPillar(this)">🚀 Hackathons</div>
+                <div class="chip" data-pillar="news" onclick="setPillar(this)">📰 Tech News</div>
             </div>
-
-            <!-- 2x2 Bento Grid (Zero Scroll Fatigue) -->
-            <div class="bento-grid">
-                <!-- Bento 1: Next Exam -->
-                <div class="bento-card" id="bento-exam" onclick="switchNav('exams')" title="Tap to open Exam Workspace">
-                    <div class="bento-header">
-                        <span class="bento-title">🎓 Next Exam</span>
-                        <span class="bento-chevron">›</span>
-                    </div>
-                    <div>
-                        <div class="bento-value" id="bento-exam-val">--</div>
-                        <div class="bento-sub" id="bento-exam-sub">Syllabus checklist</div>
-                    </div>
-                </div>
-
-                <!-- Bento 2: Attendance Warning -->
-                <div class="bento-card" id="bento-att" onclick="switchNav('calendar')" title="Tap to check attendance">
-                    <div class="bento-header">
-                        <span class="bento-title">📊 Attendance</span>
-                        <span class="bento-chevron">›</span>
-                    </div>
-                    <div>
-                        <div class="bento-value" id="bento-att-val">Safe ✅</div>
-                        <div class="bento-sub" id="bento-att-sub">All subjects &gt; 78%</div>
-                    </div>
-                </div>
-
-                <!-- Bento 3: Money & Spend -->
-                <div class="bento-card" id="bento-money" onclick="switchNav('money')" title="Tap to open Expense Ledger">
-                    <div class="bento-header">
-                        <span class="bento-title">💸 Spent Today</span>
-                        <span class="bento-chevron">›</span>
-                    </div>
-                    <div>
-                        <div class="bento-value" id="bento-money-val">₹0</div>
-                        <div class="bento-sub" id="bento-money-sub">Budget left: --</div>
-                    </div>
-                </div>
-
-                <!-- Bento 4: Habits Checklist -->
-                <div class="bento-card" id="bento-habits" onclick="openHabitModal()" title="Tap to manage habits">
-                    <div class="bento-header">
-                        <span class="bento-title">🎯 Habits</span>
-                        <span class="bento-chevron">›</span>
-                    </div>
-                    <div>
-                        <div class="bento-value" id="bento-habits-val">0/0 Done</div>
-                        <div class="bento-sub">Tap to check-in</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Priority Deadlines & Action Stream -->
-            <div class="section">
-                <div class="section-header">
-                    <div class="section-title">⏰ Priority Deadlines &amp; Tasks</div>
-                    <div style="display: flex; gap: 6px;">
-                        <button class="btn btn-secondary btn-sm" onclick="switchNav('calendar')">Calendar ➔</button>
-                        <button class="btn btn-sm" onclick="openTaskModal()">+ Add</button>
-                    </div>
-                </div>
-                <div id="home-deadlines"><div style="color:var(--text-tertiary); font-size:13px;">No pending deadlines! ☕</div></div>
-            </div>
+            <div id="feed-list"><div class="muted">Loading...</div></div>
+            <button class="btn btn-secondary load-more" id="feed-more" style="display: none;" onclick="loadFeed(true)">Load more</button>
         </div>
 
-        <!-- ==================== VIEW 2: CALENDAR (AIScheduler Style) ==================== -->
-        <div class="view-content" id="view-calendar">
-            <div class="cal-header">
-                <div class="cal-top">
-                    <div class="cal-title">Calendar</div>
-                    <button class="cal-today-btn" onclick="goToToday()">Today</button>
-                </div>
-                <div class="cal-switcher">
-                    <div class="cal-tab active" id="tab-day" onclick="setCalMode('day')">Day</div>
-                    <div class="cal-tab" id="tab-week" onclick="setCalMode('week')">Week</div>
-                    <div class="cal-tab" id="tab-month" onclick="setCalMode('month')">Month</div>
-                </div>
-                <div class="cal-nav">
-                    <button class="cal-nav-btn" onclick="prevCalDate()">&lt;</button>
-                    <div class="cal-nav-title" id="cal-nav-title">Today</div>
-                    <button class="cal-nav-btn" onclick="nextCalDate()">&gt;</button>
-                </div>
-            </div>
-
-            <!-- Day View Timeline -->
-            <div id="cal-day-view">
-                <div class="day-timeline" id="day-timeline-container">
-                    <!-- Hours 00 to 23 rendered via JS -->
-                </div>
-            </div>
-
-            <!-- Week View Grid -->
-            <div id="cal-week-view" style="display:none;">
-                <div class="week-grid" id="week-days-container"></div>
-                <div class="section-title" style="margin: 12px 0 8px 0;">Tasks &amp; Events This Week</div>
-                <div id="week-events-list"></div>
-            </div>
-
-            <!-- Month View Grid -->
-            <div id="cal-month-view" style="display:none;">
-                <div class="month-grid" id="month-grid-container"></div>
-                <div class="section-title" style="margin: 14px 0 8px 0;" id="month-selected-day-title">Events on this day</div>
-                <div id="month-events-list"></div>
-            </div>
-
-            <!-- Add Task / Deadline button in calendar -->
-            <div style="margin-top: 14px;">
-                <button class="btn" style="width: 100%;" onclick="openTaskModal()">+ Add Task / Deadline</button>
-            </div>
-        </div>
-
-        <!-- ==================== VIEW 3: CHAT ==================== -->
-        <div class="view-content" id="view-chat">
-            <div class="chat-container">
-                <div class="chat-messages" id="chat-messages">
-                    <div class="chat-bubble bot">🧠 PocketBrain Assistant Ready.
-Try commands like:
-• `jobs` or `internships`
-• `events` or `hackathons`
-• `tech news` or `ai news`
-• `coffee 40` or `spent 100 on print`
-• `remind me to call mom at 19:30`
-• `assignment OS due 10 oct`
-• `gym done` or `did 30 pushups`</div>
-                </div>
-                <div class="chat-input-bar">
-                    <input type="text" id="chat-input" placeholder="Type 'help', 'jobs', 'coffee 40'..." onkeydown="if(event.key==='Enter') sendChat()">
-                    <button class="btn" onclick="sendChat()" style="border-radius: 12px;">➤</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ==================== VIEW 4: REMINDERS (Custom Reminder Engine) ==================== -->
-        <div class="view-content" id="view-reminders">
-            <div class="section-header">
-                <div class="section-title">⏰ Custom Push Reminders</div>
-                <button class="btn btn-sm" onclick="openReminderModal()">+ New</button>
-            </div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
-                Direct push alerts will be sent to your phone via <strong>Brain_x1</strong> at the exact minute.
-            </div>
-            <div id="reminders-list">Loading reminders...</div>
-        </div>
-
-        <!-- ==================== VIEW: MONEY WORKSPACE ==================== -->
-        <div class="view-content" id="view-money">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                <button class="btn btn-secondary btn-sm" onclick="switchNav('home')">← Back to Hub</button>
-                <button class="btn btn-sm" onclick="openExpenseModal()">+ Add Expense</button>
-            </div>
-
-            <div class="section-title">💸 Money &amp; Expense Workspace</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;">
-                Manage daily canteen/mess expenses, track total burns, and configure weekly budget.
-            </div>
-
-            <div class="grid-2 section">
-                <div class="stat-card">
-                    <div class="stat-label">Today's Spend</div>
-                    <div class="stat-value" id="money-today">₹0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">This Month</div>
-                    <div class="stat-value" id="money-month">₹0</div>
-                </div>
-            </div>
-
-            <!-- Set Weekly Budget Card -->
-            <div class="card" style="margin-bottom: 16px;">
-                <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px;">🎯 Weekly Budget Target</div>
-                <div style="display: flex; gap: 8px;">
-                    <input type="number" id="budget-input" placeholder="e.g. 2000" style="flex: 1;">
-                    <button class="btn" onclick="saveBudgetFromInput()">Set Budget</button>
-                </div>
-                <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 6px;" id="money-budget-status">Loading budget...</div>
-            </div>
-
-            <div class="section-title" style="margin-bottom: 8px;">All Logged Expenses</div>
-            <div id="expenses-full-list">Loading...</div>
-        </div>
-
-        <!-- ==================== VIEW: EXAMS WORKSPACE ==================== -->
-        <div class="view-content" id="view-exams">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                <button class="btn btn-secondary btn-sm" onclick="switchNav('home')">← Back to Hub</button>
-                <button class="btn btn-sm" onclick="openExamModal()">+ Schedule Exam</button>
-            </div>
-            
-            <div class="section-title">🎓 Exam Countdown &amp; Syllabus Engine</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">
-                Track upcoming mid-sems, finals, unit-wise syllabus coverage, and target grades.
-            </div>
-
-            <div id="exams-workspace-list">Loading exams...</div>
-        </div>
-
-        <!-- ==================== VIEW: MODULES EXTENSION HUB ==================== -->
-        <div class="view-content" id="view-modules">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                <button class="btn btn-secondary btn-sm" onclick="switchNav('home')">← Back to Hub</button>
-                <div style="font-size:11px; color:var(--text-tertiary); font-weight:700;">EXTENSION STORE</div>
-            </div>
-            
-            <div class="section-title">🧩 Modular Extensions Hub</div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">
-                Enable or disable extensions. Tap on any module to open its dedicated workspace.
-            </div>
-
-            <div style="display:flex; flex-direction:column; gap:12px;">
-                <!-- Module 1: Exams -->
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
-                        <div>
-                            <div style="font-weight:700; font-size:14px;">🎓 Exam Countdown Engine</div>
-                            <div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">Syllabus unit checklist, target grades &amp; days remaining countdown.</div>
-                        </div>
-                        <input type="checkbox" id="mod-toggle-exams" checked onchange="toggleModule('exams', this.checked)" style="width:18px; height:18px; cursor:pointer;">
-                    </div>
-                    <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:6px;" onclick="switchNav('exams')">Open Exam Workspace ➔</button>
-                </div>
-
-                <!-- Module 2: Money -->
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
-                        <div>
-                            <div style="font-weight:700; font-size:14px;">💸 Money &amp; Expenses</div>
-                            <div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">Track canteen/daily expenses, manage budgets, and view burns.</div>
-                        </div>
-                        <input type="checkbox" id="mod-toggle-money" checked onchange="toggleModule('money', this.checked)" style="width:18px; height:18px; cursor:pointer;">
-                    </div>
-                    <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:6px;" onclick="switchNav('money')">Open Expense Ledger &amp; Budget ➔</button>
-                </div>
-
-                <!-- Module 3: Calendar & Tasks -->
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
-                        <div>
-                            <div style="font-weight:700; font-size:14px;">📅 AIScheduler Calendar</div>
-                            <div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">Day, week, and month timeline views for assignments and academic tasks.</div>
-                        </div>
-                        <input type="checkbox" id="mod-toggle-calendar" checked onchange="toggleModule('calendar', this.checked)" style="width:18px; height:18px; cursor:pointer;">
-                    </div>
-                    <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:6px;" onclick="switchNav('calendar')">Open Calendar Timeline ➔</button>
-                </div>
-
-                <!-- Module 4: Career Radar -->
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
-                        <div>
-                            <div style="font-weight:700; font-size:14px;">📡 Unified Career Radar</div>
-                            <div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">Devpost, DevFest, Indian tech startups, C++, Python &amp; Fintech roles.</div>
-                        </div>
-                        <input type="checkbox" id="mod-toggle-radar" checked onchange="toggleModule('radar', this.checked)" style="width:18px; height:18px; cursor:pointer;">
-                    </div>
-                    <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:6px;" onclick="switchNav('saved')">Open Radar &amp; Bookmarks ➔</button>
-                </div>
-
-                <!-- Module 5: Reminders -->
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
-                        <div>
-                            <div style="font-weight:700; font-size:14px;">⏰ Push Notification Engine</div>
-                            <div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">Exact-minute custom alarms sent directly to your phone via ntfy (Brain_x1).</div>
-                        </div>
-                        <input type="checkbox" id="mod-toggle-reminders" checked onchange="toggleModule('reminders', this.checked)" style="width:18px; height:18px; cursor:pointer;">
-                    </div>
-                    <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:6px;" onclick="switchNav('reminders')">Manage Push Reminders ➔</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ==================== VIEW: RADAR / SAVED ==================== -->
+        <!-- ==================== VIEW 2: SAVED & TRACKED ==================== -->
         <div class="view-content" id="view-saved">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                <div class="section-title">📡 Opportunities &amp; Bookmarks</div>
-                <button class="btn btn-sm" onclick="triggerScanFromUI()">Scan Now</button>
-            </div>
-            <div id="saved-full-list">Loading...</div>
+            <div class="section-title">🔖 Saved &amp; Tracked</div>
+            <div id="saved-list"><div class="muted">Loading...</div></div>
         </div>
 
-        <!-- ==================== BOTTOM NAVIGATION (3 Clean Tabs) ==================== -->
+        <!-- ==================== VIEW 3: SETTINGS ==================== -->
+        <div class="view-content" id="view-settings">
+            <div class="section-title">🎯 Your Interests</div>
+            <div class="card">
+                <div class="muted" style="margin-bottom: 8px;">Comma-separated keywords. Jobs are matched against these on every scan.</div>
+                <textarea id="set-keywords" rows="4"></textarea>
+                <button class="btn" style="width: 100%; margin-top: 10px;" onclick="saveKeywords()">Save Interests</button>
+            </div>
+
+            <div class="section-title" style="margin-top: 18px;">🔔 Notifications</div>
+            <div class="card">
+                <div class="muted">Install the <b>ntfy</b> app and subscribe to this private topic to get deadline reminders and the morning digest:</div>
+                <div style="font-family: monospace; font-size: 13px; background: var(--bg-tertiary); padding: 8px 10px; border-radius: 8px; margin: 8px 0; word-break: break-all;" id="set-topic">--</div>
+                <div style="display: flex; gap: 6px;">
+                    <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="copyTopic()">Copy topic</button>
+                    <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="testPush()">Send test</button>
+                </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 18px;">🔑 Access</div>
+            <div class="card">
+                <button class="btn btn-secondary" style="width: 100%;" onclick="logout()">Lock this device</button>
+            </div>
+        </div>
+
+        <!-- ==================== BOTTOM NAVIGATION ==================== -->
         <nav class="bottom-nav">
-            <div class="nav-tab active" onclick="switchNav('home', this)">
-                <span class="nav-icon">🏠</span>
-                <span>Hub</span>
+            <div class="nav-tab active" data-view="feed" onclick="switchNav('feed')">
+                <span class="nav-icon">📡</span><span>Feed</span>
             </div>
-            <div class="nav-tab" onclick="switchNav('chat', this)">
-                <span class="nav-icon">💬</span>
-                <span>Chat</span>
+            <div class="nav-tab" data-view="saved" onclick="switchNav('saved')">
+                <span class="nav-icon">🔖</span><span>Saved</span>
             </div>
-            <div class="nav-tab" onclick="switchNav('saved', this)">
-                <span class="nav-icon">📡</span>
-                <span>Radar</span>
+            <div class="nav-tab" data-view="settings" onclick="switchNav('settings')">
+                <span class="nav-icon">⚙️</span><span>Settings</span>
             </div>
         </nav>
-    </div>
-
-    <!-- ==================== MODALS ==================== -->
-    
-    <!-- Modal: Modular Extensions Hub -->
-    <div class="modal-overlay" id="modal-extensions">
-        <div class="modal-card">
-            <div class="modal-header">
-                <div class="modal-title">🧩 Modular Extensions Hub</div>
-                <button class="modal-close" onclick="closeModal('modal-extensions')">✕</button>
-            </div>
-            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;">
-                Toggle modules ON/OFF. PocketBrain adapts to your personal workflow with zero bloat.
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px;">
-                <label style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
-                    <div>
-                        <div style="font-weight: 600; font-size: 13px;">🎓 Exam Countdown Engine</div>
-                        <div style="font-size: 11px; color: var(--text-tertiary);">Syllabus tracker & days remaining</div>
-                    </div>
-                    <input type="checkbox" id="mod-toggle-exams" checked onchange="toggleModule('exams', this.checked)">
-                </label>
-                <label style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
-                    <div>
-                        <div style="font-weight: 600; font-size: 13px;">💸 Money & Expenses</div>
-                        <div style="font-size: 11px; color: var(--text-tertiary);">Track daily canteen & budget</div>
-                    </div>
-                    <input type="checkbox" id="mod-toggle-money" checked onchange="toggleModule('money', this.checked)">
-                </label>
-                <label style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
-                    <div>
-                        <div style="font-weight: 600; font-size: 13px;">📡 Career & Hackathon Radar</div>
-                        <div style="font-size: 11px; color: var(--text-tertiary);">Devpost, DevFest, C++, Python roles</div>
-                    </div>
-                    <input type="checkbox" id="mod-toggle-radar" checked onchange="toggleModule('radar', this.checked)">
-                </label>
-                <label style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
-                    <div>
-                        <div style="font-weight: 600; font-size: 13px;">⏰ Push Intelligence Alerts</div>
-                        <div style="font-size: 11px; color: var(--text-tertiary);">Daily morning briefing & custom alarms</div>
-                    </div>
-                    <input type="checkbox" id="mod-toggle-reminders" checked onchange="toggleModule('reminders', this.checked)">
-                </label>
-            </div>
-            <button class="btn" style="width: 100%;" onclick="closeModal('modal-extensions')">Done</button>
-        </div>
-    </div>
-
-    <!-- Modal: Add Exam Schedule -->
-    <div class="modal-overlay" id="modal-exam">
-        <div class="modal-card">
-            <div class="modal-header">
-                <div class="modal-title">Schedule Exam</div>
-                <button class="modal-close" onclick="closeModal('modal-exam')">✕</button>
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">SUBJECT</label>
-                <input type="text" id="exam-subj" placeholder="e.g. Operating Systems (OS)">
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">EXAM DATE</label>
-                <input type="date" id="exam-date">
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">SYLLABUS UNITS</label>
-                <input type="text" id="exam-syllabus" placeholder="e.g. Units 1, 2, 3 (Processes, Threads, Memory)">
-            </div>
-            <div style="margin-bottom: 14px;">
-                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">TARGET SCORE / GRADE</label>
-                <input type="text" id="exam-target" placeholder="e.g. 90% or Grade A">
-            </div>
-            <button class="btn" style="width: 100%;" onclick="saveExam()">Save Exam & Countdown</button>
-        </div>
-    </div>
-
-    <!-- Modal: Add / Edit Expense -->
-    <div class="modal-overlay" id="modal-expense">
-        <div class="modal-card">
-            <div class="modal-header">
-                <div class="modal-title" id="modal-expense-title">Add Expense</div>
-                <button class="modal-close" onclick="closeModal('modal-expense')">✕</button>
-            </div>
-            <input type="hidden" id="exp-id">
-            <div style="margin-bottom: 10px;">
-                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">AMOUNT (₹)</label>
-                <input type="number" id="exp-amount" placeholder="e.g. 50">
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">DESCRIPTION</label>
-                <input type="text" id="exp-desc" placeholder="e.g. Coffee, Meal, Stationery">
-            </div>
-            <div style="margin-bottom: 14px;">
-                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">CATEGORY</label>
-                <select id="exp-cat">
-                    <option value="food">🍕 Food</option>
-                    <option value="transport">🚌 Transport</option>
-                    <option value="study">📚 Study</option>
-                    <option value="recharge">📱 Recharge</option>
-                    <option value="entertainment">🎬 Entertainment</option>
-                    <option value="misc">📦 Misc</option>
-                </select>
-            </div>
-            <button class="btn" style="width: 100%;" onclick="saveExpense()">Save Expense</button>
-        </div>
-    </div>
-
-    <!-- Modal: Add / Edit Deadline or Task -->
-    <div class="modal-overlay" id="modal-task">
-        <div class="modal-card">
-            <div class="modal-header">
-                <div class="modal-title" id="modal-task-title">Add Task / Deadline</div>
-                <button class="modal-close" onclick="closeModal('modal-task')">✕</button>
-            </div>
-            <input type="hidden" id="task-id">
-            <div style="margin-bottom: 10px;">
-                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">TITLE</label>
-                <input type="text" id="task-name" placeholder="e.g. OS Assignment Submission">
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">SUBJECT / TAG</label>
-                <input type="text" id="task-subject" placeholder="e.g. OS, DBMS, DAA">
-            </div>
-            <div class="grid-2" style="margin-bottom: 14px;">
-                <div>
-                    <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">DUE DATE</label>
-                    <input type="date" id="task-due-date">
-                </div>
-                <div>
-                    <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">DUE TIME</label>
-                    <input type="time" id="task-due-time" value="23:59">
-                </div>
-            </div>
-            <div style="margin-bottom: 14px;">
-                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; display: block; margin-bottom: 6px;">PUSH NOTIFICATION ALERTS</label>
-                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-secondary);">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="task-rem-1d" style="width: auto;"> 1 day before
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="task-rem-3h" style="width: auto;"> 3 hours before
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="task-rem-10m" style="width: auto;" checked> 10 minutes before deadline
-                    </label>
-                </div>
-            </div>
-            <button class="btn" style="width: 100%;" onclick="saveTask()">Save Task</button>
-        </div>
-    </div>
-
-    <!-- Modal: Add / Edit Reminder -->
-    <div class="modal-overlay" id="modal-reminder">
-        <div class="modal-card">
-            <div class="modal-header">
-                <div class="modal-title" id="modal-reminder-title">Set Push Reminder</div>
-                <button class="modal-close" onclick="closeModal('modal-reminder')">✕</button>
-            </div>
-            <input type="hidden" id="rem-id">
-            <div style="margin-bottom: 10px;">
-                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">REMINDER TITLE</label>
-                <input type="text" id="rem-title" placeholder="e.g. Submit lab record, Call home">
-            </div>
-            <div class="grid-2" style="margin-bottom: 10px;">
-                <div>
-                    <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">DATE</label>
-                    <input type="date" id="rem-date">
-                </div>
-                <div>
-                    <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">TIME</label>
-                    <input type="time" id="rem-time" value="18:00">
-                </div>
-            </div>
-            <div class="grid-2" style="margin-bottom: 14px;">
-                <div>
-                    <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">CATEGORY</label>
-                    <select id="rem-category">
-                        <option value="homework">Homework</option>
-                        <option value="assignment">Assignment</option>
-                        <option value="gym">Gym</option>
-                        <option value="skills">Skills</option>
-                        <option value="exam">Exam</option>
-                        <option value="personal" selected>Personal</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">REPEAT</label>
-                    <select id="rem-repeat">
-                        <option value="none">Once</option>
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                    </select>
-                </div>
-            </div>
-            <button class="btn" style="width: 100%;" onclick="saveReminder()">Schedule Alert</button>
-        </div>
-    </div>
-
-    <!-- Modal: Add Habit -->
-    <div class="modal-overlay" id="modal-habit">
-        <div class="modal-card">
-            <div class="modal-header">
-                <div class="modal-title">New Daily Habit</div>
-                <button class="modal-close" onclick="closeModal('modal-habit')">✕</button>
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">HABIT NAME</label>
-                <input type="text" id="habit-name" placeholder="e.g. Gym, DSA, Reading">
-            </div>
-            <div style="margin-bottom: 14px;">
-                <label style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">ICON EMOJI</label>
-                <input type="text" id="habit-icon" value="💪">
-            </div>
-            <button class="btn" style="width: 100%;" onclick="saveHabit()">Add Habit</button>
-        </div>
     </div>
 
     <!-- Toast Notification -->
@@ -1253,50 +432,74 @@ Try commands like:
          FRONTEND JAVASCRIPT
          ================================================================ -->
     <script>
-        const API = '';
-        let currentCalMode = 'day';
-        let calSelectedDate = new Date();
-        let cachedDeadlines = [];
-        let cachedReminders = [];
+        const PAGE_SIZE = 30;
+        const PILLAR_LABELS = { jobs: '💼 Job', events: '🚀 Hackathon', news: '📰 News' };
+        let currentPillar = 'opps';
+        let feedOffset = 0;
+        let searchTimer = null;
 
-        // Category Palette Mapping
-        const CATEGORY_COLORS = {
-            homework: { main: '#3B82F6', light: 'rgba(59, 130, 246, 0.15)' },
-            assignment: { main: '#8B5CF6', light: 'rgba(139, 92, 246, 0.15)' },
-            gym: { main: '#EF4444', light: 'rgba(239, 68, 68, 0.15)' },
-            skills: { main: '#10B981', light: 'rgba(16, 185, 129, 0.15)' },
-            exam: { main: '#F59E0B', light: 'rgba(245, 158, 11, 0.15)' },
-            personal: { main: '#EC4899', light: 'rgba(236, 72, 153, 0.15)' },
-        };
-
-        // ---- THEME TOGGLE ----
-        function initTheme() {
-            const saved = localStorage.getItem('pb_theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', saved);
-            updateThemeUI(saved);
+        // ---- STORAGE (may be blocked in private mode) ----
+        function store(key, value) {
+            try {
+                if (value === null) localStorage.removeItem(key);
+                else localStorage.setItem(key, value);
+            } catch (e) { /* ignore */ }
+        }
+        function load(key) {
+            try { return localStorage.getItem(key); } catch (e) { return null; }
         }
 
-        function toggleTheme() {
-            const current = document.documentElement.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', next);
-            localStorage.setItem('pb_theme', next);
-            updateThemeUI(next);
+        // ---- API (sends the access token on every call) ----
+        async function api(path, options = {}) {
+            const headers = Object.assign({ 'X-Access-Token': load('radar_token') || '' }, options.headers || {});
+            if (options.body) headers['Content-Type'] = 'application/json';
+            const res = await fetch(path, Object.assign({}, options, { headers }));
+            if (res.status === 401) {
+                showLogin();
+                throw new Error('unauthorized');
+            }
+            return res.json();
         }
 
-        function updateThemeUI(theme) {
-            const icon = document.getElementById('theme-icon');
-            const text = document.getElementById('theme-text');
-            if (theme === 'dark') {
-                icon.textContent = '🌙';
-                text.textContent = 'Dark';
-            } else {
-                icon.textContent = '☀️';
-                text.textContent = 'Light';
+        // ---- LOGIN ----
+        function showLogin() {
+            document.getElementById('app').style.display = 'none';
+            document.getElementById('login').classList.add('active');
+        }
+        function showApp() {
+            document.getElementById('login').classList.remove('active');
+            document.getElementById('app').style.display = 'block';
+        }
+        async function doLogin() {
+            const token = document.getElementById('login-token').value.trim();
+            if (!token) return;
+            store('radar_token', token);
+            try {
+                await api('/api/auth/check');
+                showApp();
+                loadFeed();
+            } catch (e) {
+                showToast('Wrong token');
             }
         }
+        function logout() {
+            store('radar_token', null);
+            showLogin();
+        }
 
-        // ---- TOAST & MODALS ----
+        // ---- THEME ----
+        function initTheme() {
+            const saved = load('pb_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+            document.getElementById('theme-icon').textContent = saved === 'dark' ? '🌙' : '☀️';
+        }
+        function toggleTheme() {
+            const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            store('pb_theme', next);
+            initTheme();
+        }
+
+        // ---- TOAST ----
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.textContent = msg;
@@ -1304,1088 +507,255 @@ Try commands like:
             setTimeout(() => t.classList.remove('show'), 2200);
         }
 
-        function openModal(id) { document.getElementById(id).classList.add('active'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
         // ---- NAVIGATION ----
-        function switchNav(name, tabEl) {
+        function switchNav(name) {
             document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            
-            const target = document.getElementById('view-' + name);
-            if (target) {
-                target.classList.add('active');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-            
-            if (tabEl) {
-                tabEl.classList.add('active');
-            } else {
-                const tabs = document.querySelectorAll('.nav-tab');
-                const idx = ['home', 'chat', 'saved'].indexOf(name);
-                if (idx >= 0 && tabs[idx]) tabs[idx].classList.add('active');
-            }
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view === name));
+            document.getElementById('view-' + name).classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            if (name === 'home') loadHome();
-            if (name === 'calendar') loadCalendar();
-            if (name === 'reminders') loadReminders();
-            if (name === 'money') loadExpenses();
+            if (name === 'feed') loadFeed();
             if (name === 'saved') loadSaved();
-            if (name === 'exams') loadExamsWorkspace();
-            if (name === 'modules') loadModulesView();
+            if (name === 'settings') loadSettings();
         }
 
         // ================================================================
-        // HOME / BRIEFING
+        // FEED
         // ================================================================
-        async function loadHome() {
+        function setPillar(chip) {
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            currentPillar = chip.dataset.pillar;
+            loadFeed();
+        }
+
+        function onSearchInput() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => loadFeed(), 300);
+        }
+
+        async function loadFeed(append = false) {
+            const list = document.getElementById('feed-list');
+            const more = document.getElementById('feed-more');
+            if (!append) feedOffset = 0;
+
+            const params = new URLSearchParams({ limit: PAGE_SIZE, offset: feedOffset });
+            if (currentPillar) params.set('pillar', currentPillar);
+            const q = document.getElementById('feed-search').value.trim();
+            if (q) params.set('q', q);
+
             try {
-                const res = await fetch('/api/briefing');
-                if (!res.ok) return;
-                const data = await res.json();
+                const data = await api('/api/radar?' + params.toString());
+                const items = data.items || [];
+                const html = items.map(renderFeedCard).join('');
 
-                // Greeting & Time
-                const hour = new Date().getHours();
-                const salute = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
-                document.getElementById('greeting-text').textContent = `${salute}, Vansh 🧠`;
-                
-                const dCount = data.deadlines ? data.deadlines.length : 0;
-                document.getElementById('greeting-time').textContent = `${data.server_time || new Date().toDateString()} • ${dCount} tasks pending`;
-
-                // Bento 3: Money
-                const spent = data.today_spending || 0;
-                document.getElementById('bento-money-val').textContent = `₹${spent}`;
-                document.getElementById('bento-money-sub').textContent = data.budget_remaining !== null ? `Left: ₹${data.budget_remaining}` : 'Budget: not set';
-
-                // Bento 2: Attendance
-                if (data.attendance_warnings && data.attendance_warnings.length > 0) {
-                    const topW = data.attendance_warnings[0];
-                    document.getElementById('bento-att-val').innerHTML = `<span style="color:#ef4444;">⚠️ ${topW.subject} ${topW.percentage}%</span>`;
-                    document.getElementById('bento-att-sub').textContent = 'Cannot bunk! Tap to view';
+                if (!append && items.length === 0) {
+                    list.innerHTML = `
+                        <div class="card empty">
+                            <div class="big">📡</div>
+                            <div style="font-weight: 600;">Nothing here yet</div>
+                            <div style="font-size: 12px; margin-top: 4px;">Tap "↻ Scan" to fetch fresh opportunities.</div>
+                        </div>`;
+                } else if (append) {
+                    list.insertAdjacentHTML('beforeend', html);
                 } else {
-                    document.getElementById('bento-att-val').textContent = 'Safe ✅';
-                    document.getElementById('bento-att-sub').textContent = 'All subjects > 78%';
+                    list.innerHTML = html;
                 }
-
-                // Bento 4: Habits
-                if (data.habits_today && data.habits_today.length > 0) {
-                    const doneCount = data.habits_today.filter(h => h.done).length;
-                    document.getElementById('bento-habits-val').textContent = `${doneCount}/${data.habits_today.length} Done`;
-                }
-
-                // Bento 1: Exams (fetch nearest exam)
-                try {
-                    const exRes = await fetch('/api/exams');
-                    if (exRes.ok) {
-                        const exams = await exRes.json();
-                        if (exams.length > 0) {
-                            const topEx = exams[0];
-                            const dl = topEx.days_left;
-                            const dlStr = dl <= 0 ? 'Today!' : dl === 1 ? 'Tomorrow!' : `${dl}d left`;
-                            document.getElementById('bento-exam-val').innerHTML = `${escapeHtml(topEx.subject)} <span style="font-size:12px; color:#ef4444; font-weight:700;">(${dlStr})</span>`;
-                            document.getElementById('bento-exam-sub').textContent = topEx.syllabus ? escapeHtml(topEx.syllabus) : 'Syllabus checklist ›';
-                        } else {
-                            document.getElementById('bento-exam-val').textContent = '--';
-                            document.getElementById('bento-exam-sub').textContent = 'No exams scheduled ›';
-                        }
-                    }
-                } catch (exErr) {}
-
-                // Priority Deadlines list
-                const dList = document.getElementById('home-deadlines');
-                if (data.deadlines && data.deadlines.length > 0) {
-                    dList.innerHTML = data.deadlines.slice(0, 4).map(d => {
-                        const daysLeft = d.days_left;
-                        const urgencyBadge = daysLeft <= 0 ? '🔴 Today' : daysLeft <= 2 ? `🟡 ${daysLeft}d left` : `🟢 ${daysLeft}d left`;
-                        return `
-                            <div class="item-card">
-                                <div class="item-info">
-                                    <div class="item-title">${escapeHtml(d.title)}</div>
-                                    <div class="item-sub">${d.subject ? `[${escapeHtml(d.subject)}]` : ''} Due: ${d.due_date} • ${urgencyBadge}</div>
-                                </div>
-                                <div class="item-actions">
-                                    <button class="action-icon-btn" onclick="completeTask(${d.id})">✓</button>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                } else {
-                    dList.innerHTML = '<div style="color:var(--text-tertiary); font-size:13px;">No deadlines pending! ☕</div>';
-                }
-
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        async function toggleHabit(name, isDone) {
-            const endpoint = isDone ? '/api/habits/uncheck' : '/api/habits/check';
-            await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
-            });
-            showToast(isDone ? 'Habit unchecked' : 'Habit checked! 💪');
-            loadHome();
-        }
-
-        async function deleteHabit(name) {
-            if (!confirm(`Delete habit "${name}"?`)) return;
-            await fetch(`/api/habits/${name}`, { method: 'DELETE' });
-            showToast('Habit deleted');
-            loadHome();
-        }
-
-        // ================================================================
-        // CALENDAR SCREEN (AIScheduler Day / Week / Month Logic)
-        // ================================================================
-        function setCalMode(mode) {
-            currentCalMode = mode;
-            ['day', 'week', 'month'].forEach(m => {
-                document.getElementById('tab-' + m).classList.toggle('active', m === mode);
-                document.getElementById('cal-' + m + '-view').style.display = m === mode ? 'block' : 'none';
-            });
-            renderCalendar();
-        }
-
-        function goToToday() {
-            calSelectedDate = new Date();
-            renderCalendar();
-        }
-
-        function prevCalDate() {
-            if (currentCalMode === 'day') calSelectedDate.setDate(calSelectedDate.getDate() - 1);
-            else if (currentCalMode === 'week') calSelectedDate.setDate(calSelectedDate.getDate() - 7);
-            else calSelectedDate.setMonth(calSelectedDate.getMonth() - 1);
-            renderCalendar();
-        }
-
-        function nextCalDate() {
-            if (currentCalMode === 'day') calSelectedDate.setDate(calSelectedDate.getDate() + 1);
-            else if (currentCalMode === 'week') calSelectedDate.setDate(calSelectedDate.getDate() + 7);
-            else calSelectedDate.setMonth(calSelectedDate.getMonth() + 1);
-            renderCalendar();
-        }
-
-        async function loadCalendar() {
-            try {
-                const [dRes, rRes] = await Promise.all([
-                    fetch('/api/deadlines'),
-                    fetch('/api/reminders')
-                ]);
-                cachedDeadlines = dRes.ok ? await dRes.json() : [];
-                cachedReminders = rRes.ok ? await rRes.json() : [];
+                feedOffset += items.length;
+                more.style.display = items.length === PAGE_SIZE ? 'block' : 'none';
             } catch (e) {
-                console.error(e);
-            }
-            renderCalendar();
-        }
-
-        function renderCalendar() {
-            // Update Title
-            const titleEl = document.getElementById('cal-nav-title');
-            const opts = { month: 'short', day: 'numeric', year: 'numeric' };
-            if (currentCalMode === 'day') {
-                titleEl.textContent = calSelectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-                renderDayView();
-            } else if (currentCalMode === 'week') {
-                const end = new Date(calSelectedDate);
-                end.setDate(end.getDate() + 6);
-                titleEl.textContent = `${calSelectedDate.getDate()} ${calSelectedDate.toLocaleString('default', {month:'short'})} - ${end.getDate()} ${end.toLocaleString('default', {month:'short'})}`;
-                renderWeekView();
-            } else {
-                titleEl.textContent = calSelectedDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-                renderMonthView();
+                if (e.message !== 'unauthorized') list.innerHTML = '<div class="muted">Failed to load feed.</div>';
             }
         }
 
-        function renderDayView() {
-            const container = document.getElementById('day-timeline-container');
-            const targetDateStr = calSelectedDate.toISOString().split('T')[0];
-
-            // Filter deadlines and reminders for this day
-            const dayDeadlines = cachedDeadlines.filter(d => d.due_date === targetDateStr);
-            const dayReminders = cachedReminders.filter(r => r.remind_at && r.remind_at.startsWith(targetDateStr));
-
-            let html = '';
-            for (let h = 0; h < 24; h++) {
-                const timeLabel = (h < 10 ? '0' : '') + h + ':00';
-                html += `
-                    <div class="hour-row">
-                        <div class="hour-label">${timeLabel}</div>
-                        <div class="hour-line" id="hour-slot-${h}"></div>
+        function renderFeedCard(it) {
+            const saved = !!it.saved_id;
+            const deadline = it.deadline ? deadlinePill(daysUntil(it.deadline)) : '';
+            const canTrack = it.pillar !== 'news';
+            return `
+                <div class="opp-card" id="opp-${it.id}">
+                    <div class="opp-top">
+                        <span class="pill pill-${it.pillar}">${PILLAR_LABELS[it.pillar] || it.pillar}</span>
+                        <span class="pill pill-plain">${escapeHtml(it.source)}</span>
+                        ${deadline}
                     </div>
-                `;
-            }
-            container.innerHTML = html;
-
-            // Place deadline and reminder markers
-            dayDeadlines.forEach(d => {
-                const hour = d.due_time ? parseInt(d.due_time.split(':')[0]) : 23;
-                const slot = document.getElementById(`hour-slot-${hour}`);
-                if (slot) {
-                    const el = document.createElement('div');
-                    el.className = 'timeline-event';
-                    el.style.backgroundColor = CATEGORY_COLORS.assignment.light;
-                    el.style.borderColor = CATEGORY_COLORS.assignment.main;
-                    el.style.color = 'var(--text-primary)';
-                    el.innerHTML = `📝 ${d.title} (${d.subject || 'Task'})`;
-                    el.onclick = () => editTask(d);
-                    slot.appendChild(el);
-                }
-            });
-
-            dayReminders.forEach(r => {
-                const timePart = r.remind_at.split(' ')[1] || '09:00';
-                const hour = parseInt(timePart.split(':')[0]);
-                const slot = document.getElementById(`hour-slot-${hour}`);
-                if (slot) {
-                    const cat = CATEGORY_COLORS[r.category] || CATEGORY_COLORS.personal;
-                    const el = document.createElement('div');
-                    el.className = 'timeline-event';
-                    el.style.backgroundColor = cat.light;
-                    el.style.borderColor = cat.main;
-                    el.style.color = 'var(--text-primary)';
-                    el.innerHTML = `⏰ ${r.title}`;
-                    el.onclick = () => editReminder(r);
-                    slot.appendChild(el);
-                }
-            });
-        }
-
-        function renderWeekView() {
-            const weekContainer = document.getElementById('week-days-container');
-            const eventsList = document.getElementById('week-events-list');
-            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-            let weekHtml = '';
-            const weekDates = [];
-            for (let i = 0; i < 7; i++) {
-                const d = new Date(calSelectedDate);
-                d.setDate(d.getDate() + i);
-                weekDates.push(d);
-                const isSelected = d.toDateString() === calSelectedDate.toDateString();
-                weekHtml += `
-                    <div class="week-day-col ${isSelected ? 'selected' : ''}" onclick="selectDateFromWeek('${d.toISOString()}')">
-                        <div class="week-day-name">${days[d.getDay()]}</div>
-                        <div class="week-day-num">${d.getDate()}</div>
-                        <div class="week-indicator"></div>
+                    <div class="opp-title">${escapeHtml(it.title)}</div>
+                    ${it.organization ? `<div class="opp-org">${escapeHtml(it.organization)}</div>` : ''}
+                    <div class="opp-extra">${escapeHtml([it.extra_info !== it.organization ? it.extra_info : '', it.deadline_or_date].filter(Boolean).join(' • '))}</div>
+                    <div class="opp-actions">
+                        <a class="btn btn-sm" href="${safeUrl(it.url)}" target="_blank" rel="noopener">Open ↗</a>
+                        <button class="btn btn-secondary btn-sm ${saved ? 'btn-on' : ''}" onclick="saveItem(${it.id}, false, this)">${saved ? '✓ Saved' : '🔖 Save'}</button>
+                        ${canTrack ? `<button class="btn btn-secondary btn-sm" onclick="saveItem(${it.id}, true, this)">📅 Track</button>` : ''}
                     </div>
-                `;
-            }
-            weekContainer.innerHTML = weekHtml;
-
-            // List events in this week
-            const startStr = weekDates[0].toISOString().split('T')[0];
-            const endStr = weekDates[6].toISOString().split('T')[0];
-            const weekTasks = cachedDeadlines.filter(d => d.due_date >= startStr && d.due_date <= endStr);
-            
-            if (weekTasks.length > 0) {
-                eventsList.innerHTML = weekTasks.map(t => `
-                    <div class="item-card">
-                        <div class="item-info">
-                            <div class="item-title">${t.title}</div>
-                            <div class="item-sub">Due: ${t.due_date} ${t.due_time || ''}</div>
-                        </div>
-                        <div class="item-actions">
-                            <button class="action-icon-btn" onclick="editTask(${JSON.stringify(t).replace(/"/g, '&quot;')})">✎</button>
-                            <button class="action-icon-btn delete" onclick="deleteTask(${t.id})">🗑️</button>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                eventsList.innerHTML = '<div style="color:var(--text-tertiary); font-size:13px;">No tasks this week!</div>';
-            }
+                </div>`;
         }
 
-        function selectDateFromWeek(iso) {
-            calSelectedDate = new Date(iso);
-            setCalMode('day');
-        }
-
-        function renderMonthView() {
-            const grid = document.getElementById('month-grid-container');
-            const year = calSelectedDate.getFullYear();
-            const month = calSelectedDate.getMonth();
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-            const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-            let html = dayNames.map(d => `<div class="month-header">${d}</div>`).join('');
-
-            // Empty cells
-            for (let i = 0; i < firstDay; i++) {
-                html += `<div></div>`;
-            }
-
-            const today = new Date();
-            for (let day = 1; day <= daysInMonth; day++) {
-                const cellDate = new Date(year, month, day);
-                const isToday = cellDate.toDateString() === today.toDateString();
-                const isSelected = cellDate.toDateString() === calSelectedDate.toDateString();
-                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                
-                const hasItem = cachedDeadlines.some(d => d.due_date === dateStr) || 
-                                cachedReminders.some(r => r.remind_at && r.remind_at.startsWith(dateStr));
-
-                html += `
-                    <div class="month-cell ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" 
-                         onclick="selectDateFromMonth(${year}, ${month}, ${day})">
-                        ${day}
-                        ${hasItem ? '<div class="dot"></div>' : ''}
-                    </div>
-                `;
-            }
-            grid.innerHTML = html;
-
-            // Render selected day's items
-            const selStr = `${year}-${String(month+1).padStart(2,'0')}-${String(calSelectedDate.getDate()).padStart(2,'0')}`;
-            document.getElementById('month-selected-day-title').textContent = `Events for ${calSelectedDate.toLocaleDateString(undefined, {month:'short', day:'numeric'})}`;
-            
-            const dayItems = cachedDeadlines.filter(d => d.due_date === selStr);
-            const eventsList = document.getElementById('month-events-list');
-            if (dayItems.length > 0) {
-                eventsList.innerHTML = dayItems.map(d => `
-                    <div class="item-card">
-                        <div class="item-info">
-                            <div class="item-title">${d.title}</div>
-                            <div class="item-sub">${d.due_time || '23:59'} • ${d.subject || 'Task'}</div>
-                        </div>
-                        <div class="item-actions">
-                            <button class="action-icon-btn" onclick="editTask(${JSON.stringify(d).replace(/"/g, '&quot;')})">✎</button>
-                            <button class="action-icon-btn delete" onclick="deleteTask(${d.id})">🗑️</button>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                eventsList.innerHTML = '<div style="color:var(--text-tertiary); font-size:13px;">No events scheduled for this day.</div>';
-            }
-        }
-
-        function selectDateFromMonth(year, month, day) {
-            calSelectedDate = new Date(year, month, day);
-            renderMonthView();
-        }
-
-        // ================================================================
-        // TASK / DEADLINE CRUD
-        // ================================================================
-        function openTaskModal() {
-            document.getElementById('modal-task-title').textContent = 'Add Task / Deadline';
-            document.getElementById('task-id').value = '';
-            document.getElementById('task-name').value = '';
-            document.getElementById('task-subject').value = '';
-            document.getElementById('task-due-date').value = calSelectedDate.toISOString().split('T')[0];
-            document.getElementById('task-due-time').value = '23:59';
-            openModal('modal-task');
-        }
-
-        function editTask(task) {
-            document.getElementById('modal-task-title').textContent = 'Edit Task / Deadline';
-            document.getElementById('task-id').value = task.id;
-            document.getElementById('task-name').value = task.title;
-            document.getElementById('task-subject').value = task.subject || '';
-            document.getElementById('task-due-date').value = task.due_date;
-            document.getElementById('task-due-time').value = task.due_time || '23:59';
-            openModal('modal-task');
-        }
-
-        async function saveTask() {
-            const id = document.getElementById('task-id').value;
-            const title = document.getElementById('task-name').value.trim();
-            const subject = document.getElementById('task-subject').value.trim();
-            const due_date = document.getElementById('task-due-date').value;
-            const due_time = document.getElementById('task-due-time').value;
-
-            if (!title || !due_date) {
-                alert('Please enter title and due date!');
-                return;
-            }
-
-            const method = id ? 'PUT' : 'POST';
-            const url = id ? `/api/deadlines/${id}` : '/api/deadlines';
-
-            await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, subject, due_date, due_time })
-            });
-
-            // Schedule multiple reminders if checked
+        async function saveItem(id, track, btn) {
             try {
-                const dueDt = new Date(`${due_date}T${due_time || '23:59'}:00`);
-                const formatRemindStr = (d) => {
-                    const YYYY = d.getFullYear();
-                    const MM = String(d.getMonth() + 1).padStart(2, '0');
-                    const DD = String(d.getDate()).padStart(2, '0');
-                    const hh = String(d.getHours()).padStart(2, '0');
-                    const mm = String(d.getMinutes()).padStart(2, '0');
-                    return `${YYYY}-${MM}-${DD} ${hh}:${mm}`;
-                };
-
-                const scheduleSubReminder = async (remDate, label) => {
-                    if (remDate > new Date()) {
-                        await fetch('/api/reminders', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                title: `${title} (${label})`,
-                                remind_at: formatRemindStr(remDate),
-                                category: 'assignment',
-                                repeat: 'none'
-                            })
-                        });
-                    }
-                };
-
-                if (document.getElementById('task-rem-1d')?.checked) {
-                    const d1 = new Date(dueDt.getTime() - 24 * 60 * 60 * 1000);
-                    await scheduleSubReminder(d1, '1 day before');
+                const res = await api('/api/saved', {
+                    method: 'POST',
+                    body: JSON.stringify({ item_id: id, track })
+                });
+                if (track) {
+                    showToast(`Tracking • deadline ${res.deadline}. Edit it in Saved.`);
+                    const saveBtn = btn.parentElement.children[1];
+                    saveBtn.classList.add('btn-on');
+                    saveBtn.textContent = '✓ Saved';
+                } else {
+                    showToast(res.message);
+                    btn.classList.add('btn-on');
+                    btn.textContent = '✓ Saved';
                 }
-                if (document.getElementById('task-rem-3h')?.checked) {
-                    const d3h = new Date(dueDt.getTime() - 3 * 60 * 60 * 1000);
-                    await scheduleSubReminder(d3h, '3 hours before');
-                }
-                if (document.getElementById('task-rem-10m')?.checked) {
-                    const d10m = new Date(dueDt.getTime() - 10 * 60 * 1000);
-                    await scheduleSubReminder(d10m, '10 mins before');
-                }
-            } catch (remErr) {
-                console.error(remErr);
+            } catch (e) {
+                if (e.message !== 'unauthorized') showToast('Failed to save');
             }
-
-            closeModal('modal-task');
-            showToast(id ? 'Task updated!' : 'Task & Reminders set! ⏰');
-            loadCalendar();
-            loadHome();
         }
 
-        async function deleteTask(id) {
-            if (!confirm('Delete this task?')) return;
-            await fetch(`/api/deadlines/${id}`, { method: 'DELETE' });
-            showToast('Task deleted');
-            loadCalendar();
-            loadHome();
-        }
-
-        async function completeTask(id) {
-            await fetch(`/api/deadlines/${id}/complete`, { method: 'POST' });
-            showToast('Completed! 🎉');
-            loadCalendar();
-            loadHome();
-        }
-
-        // ================================================================
-        // CUSTOM REMINDERS CRUD
-        // ================================================================
-        async function loadReminders() {
+        async function triggerScan() {
+            showToast('📡 Scanning jobs, hackathons & news...');
             try {
-                const res = await fetch('/api/reminders');
-                if (!res.ok) return;
-                const reminders = await res.json();
-                const list = document.getElementById('reminders-list');
-
-                if (reminders.length === 0) {
-                    list.innerHTML = '<div style="color:var(--text-tertiary); font-size:13px;">No reminders set. Click + New above!</div>';
-                    return;
-                }
-
-                list.innerHTML = reminders.map(r => {
-                    const cat = CATEGORY_COLORS[r.category] || CATEGORY_COLORS.personal;
-                    return `
-                        <div class="item-card">
-                            <div class="item-info">
-                                <div class="item-title">${r.title}</div>
-                                <div class="item-sub">
-                                    <span class="pill-badge" style="background:${cat.light}; color:${cat.main}">${r.category}</span>
-                                    <span>${r.remind_at}</span>
-                                    ${r.repeat !== 'none' ? `<span>(${r.repeat})</span>` : ''}
-                                </div>
-                            </div>
-                            <div class="item-actions">
-                                <button class="action-icon-btn" onclick="editReminder(${JSON.stringify(r).replace(/"/g, '&quot;')})">✎</button>
-                                <button class="action-icon-btn delete" onclick="deleteReminder(${r.id})">🗑️</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            } catch (err) {
-                console.error(err);
+                await api('/api/radar/scan', { method: 'POST' });
+                setTimeout(() => {
+                    loadFeed();
+                    showToast('Scan running — new items appear as they arrive.');
+                }, 6000);
+            } catch (e) {
+                if (e.message !== 'unauthorized') showToast('Scan error!');
             }
         }
 
-        function openReminderModal() {
-            document.getElementById('modal-reminder-title').textContent = 'Set Push Reminder';
-            document.getElementById('rem-id').value = '';
-            document.getElementById('rem-title').value = '';
-            document.getElementById('rem-date').value = new Date().toISOString().split('T')[0];
-            document.getElementById('rem-time').value = '18:00';
-            document.getElementById('rem-category').value = 'personal';
-            document.getElementById('rem-repeat').value = 'none';
-            openModal('modal-reminder');
-        }
-
-        function editReminder(r) {
-            document.getElementById('modal-reminder-title').textContent = 'Edit Reminder';
-            document.getElementById('rem-id').value = r.id;
-            document.getElementById('rem-title').value = r.title;
-            const parts = r.remind_at.split(' ');
-            document.getElementById('rem-date').value = parts[0] || '';
-            document.getElementById('rem-time').value = parts[1] || '12:00';
-            document.getElementById('rem-category').value = r.category || 'personal';
-            document.getElementById('rem-repeat').value = r.repeat || 'none';
-            openModal('modal-reminder');
-        }
-
-        async function saveReminder() {
-            const id = document.getElementById('rem-id').value;
-            const title = document.getElementById('rem-title').value.trim();
-            const date = document.getElementById('rem-date').value;
-            const time = document.getElementById('rem-time').value;
-            const category = document.getElementById('rem-category').value;
-            const repeat = document.getElementById('rem-repeat').value;
-
-            if (!title || !date || !time) {
-                alert('Please enter title, date, and time!');
-                return;
-            }
-
-            const remind_at = `${date} ${time}`;
-            const method = id ? 'PUT' : 'POST';
-            const url = id ? `/api/reminders/${id}` : '/api/reminders';
-
-            await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, remind_at, category, repeat })
-            });
-
-            closeModal('modal-reminder');
-            showToast(id ? 'Reminder updated!' : 'Reminder scheduled!');
-            loadReminders();
-        }
-
-        async function deleteReminder(id) {
-            if (!confirm('Delete this reminder?')) return;
-            await fetch(`/api/reminders/${id}`, { method: 'DELETE' });
-            showToast('Reminder deleted');
-            loadReminders();
-        }
-
         // ================================================================
-        // EXPENSES CRUD
-        // ================================================================
-        async function loadExpenses() {
-            try {
-                const [expRes, sumRes] = await Promise.all([
-                    fetch('/api/expenses'),
-                    fetch('/api/expenses/summary')
-                ]);
-                const expenses = expRes.ok ? await expRes.json() : [];
-                const summary = sumRes.ok ? await sumRes.json() : { today: 0, this_month: 0 };
-
-                document.getElementById('money-today').textContent = `₹${summary.today}`;
-                document.getElementById('money-month').textContent = `₹${summary.this_month}`;
-
-                const list = document.getElementById('expenses-full-list');
-                if (expenses.length === 0) {
-                    list.innerHTML = '<div style="color:var(--text-tertiary); font-size:13px;">No expenses logged yet!</div>';
-                    return;
-                }
-
-                list.innerHTML = expenses.map(e => `
-                    <div class="item-card">
-                        <div class="item-info">
-                            <div class="item-title">₹${e.amount} — ${e.description || 'Expense'}</div>
-                            <div class="item-sub">
-                                <span class="pill-badge" style="background:var(--bg-secondary); color:var(--text-secondary);">${e.category}</span>
-                                <span>${e.date}</span>
-                            </div>
-                        </div>
-                        <div class="item-actions">
-                            <button class="action-icon-btn" onclick="editExpense(${JSON.stringify(e).replace(/"/g, '&quot;')})">✎</button>
-                            <button class="action-icon-btn delete" onclick="deleteExpense(${e.id})">🗑️</button>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        function openExpenseModal() {
-            document.getElementById('modal-expense-title').textContent = 'Add Expense';
-            document.getElementById('exp-id').value = '';
-            document.getElementById('exp-amount').value = '';
-            document.getElementById('exp-desc').value = '';
-            document.getElementById('exp-cat').value = 'food';
-            openModal('modal-expense');
-        }
-
-        function editExpense(exp) {
-            document.getElementById('modal-expense-title').textContent = 'Edit Expense';
-            document.getElementById('exp-id').value = exp.id;
-            document.getElementById('exp-amount').value = exp.amount;
-            document.getElementById('exp-desc').value = exp.description || '';
-            document.getElementById('exp-cat').value = exp.category || 'misc';
-            openModal('modal-expense');
-        }
-
-        async function saveExpense() {
-            const id = document.getElementById('exp-id').value;
-            const amount = parseFloat(document.getElementById('exp-amount').value);
-            const description = document.getElementById('exp-desc').value.trim();
-            const category = document.getElementById('exp-cat').value;
-
-            if (isNaN(amount) || amount <= 0) {
-                alert('Please enter a valid amount!');
-                return;
-            }
-
-            const method = id ? 'PUT' : 'POST';
-            const url = id ? `/api/expenses/${id}` : '/api/expenses';
-
-            await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount, description, category })
-            });
-
-            closeModal('modal-expense');
-            showToast(id ? 'Expense updated!' : 'Expense logged!');
-            loadExpenses();
-            loadHome();
-        }
-
-        async function deleteExpense(id) {
-            if (!confirm('Delete this expense?')) return;
-            await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
-            showToast('Expense deleted');
-            loadExpenses();
-            loadHome();
-        }
-
-        // ================================================================
-        // HABITS
-        // ================================================================
-        function openHabitModal() {
-            document.getElementById('habit-name').value = '';
-            document.getElementById('habit-icon').value = '💪';
-            openModal('modal-habit');
-        }
-
-        async function saveHabit() {
-            const name = document.getElementById('habit-name').value.trim();
-            const icon = document.getElementById('habit-icon').value.trim() || '✅';
-            if (!name) return;
-
-            await fetch('/api/habits', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, icon })
-            });
-
-            closeModal('modal-habit');
-            showToast('Habit added!');
-            loadHome();
-        }
-
-        // ================================================================
-        // SAVED / BOOKMARKS
+        // SAVED & TRACKED
         // ================================================================
         async function loadSaved() {
-            const list = document.getElementById('saved-full-list');
+            const list = document.getElementById('saved-list');
             try {
-                const res = await fetch('/api/bookmarks');
-                const items = res.ok ? await res.json() : [];
+                const items = await api('/api/saved');
                 if (items.length === 0) {
                     list.innerHTML = `
-                        <div class="card" style="text-align: center; color: var(--text-tertiary); padding: 24px 12px;">
-                            <div style="font-size: 28px; margin-bottom: 8px;">🔖</div>
-                            <div style="font-weight: 600;">No Saved Items Yet</div>
-                            <div style="font-size: 12px; margin-top: 4px;">Tap "[🔖 Save]" on any job, event, or news in chat to save it here!</div>
-                        </div>
-                    `;
+                        <div class="card empty">
+                            <div class="big">🔖</div>
+                            <div style="font-weight: 600;">No saved items yet</div>
+                            <div style="font-size: 12px; margin-top: 4px;">Tap 🔖 Save or 📅 Track on anything in the Feed.</div>
+                        </div>`;
                     return;
                 }
+                list.innerHTML = items.map(renderSavedCard).join('');
+            } catch (e) {
+                if (e.message !== 'unauthorized') list.innerHTML = '<div class="muted">Failed to load saved items.</div>';
+            }
+        }
 
-                list.innerHTML = items.map(b => `
-                    <div class="item-card">
-                        <div class="item-info">
-                            <div class="item-title">${escapeHtml(b.title || 'Saved Link')}</div>
-                            <div class="item-sub">
-                                <span class="pill-badge" style="background:var(--bg-secondary); color:var(--text-secondary);">${escapeHtml(b.tags || 'bookmark')}</span>
-                                <a href="${escapeHtml(b.url)}" target="_blank" style="color:var(--text-primary); text-decoration:underline; font-weight:600;">Visit ↗</a>
-                            </div>
-                        </div>
-                        <div class="item-actions">
-                            <button class="action-icon-btn delete" onclick="deleteSaved(${b.id})">🗑️</button>
-                        </div>
+        function renderSavedCard(s) {
+            const applied = s.status === 'applied';
+            return `
+                <div class="opp-card" style="${applied ? 'opacity: 0.6;' : ''}">
+                    <div class="opp-top">
+                        <span class="pill pill-${s.pillar}">${PILLAR_LABELS[s.pillar] || s.pillar}</span>
+                        ${s.deadline ? deadlinePill(s.days_left) : '<span class="pill pill-plain">No deadline</span>'}
+                        ${applied ? '<span class="pill pill-ok">✓ Applied</span>' : ''}
                     </div>
-                `).join('');
-            } catch (e) {
-                list.innerHTML = '<div style="color:var(--text-tertiary);">Failed to load saved items.</div>';
-            }
+                    <div class="opp-title">${escapeHtml(s.title)}</div>
+                    ${s.organization ? `<div class="opp-org">${escapeHtml(s.organization)}</div>` : ''}
+                    <div class="deadline-row">
+                        <span class="muted">Deadline</span>
+                        <input type="date" value="${s.deadline || ''}" onchange="updateSaved(${s.id}, { deadline: this.value })">
+                    </div>
+                    <div class="opp-actions">
+                        <a class="btn btn-sm" href="${safeUrl(s.url)}" target="_blank" rel="noopener">Open ↗</a>
+                        <button class="btn btn-secondary btn-sm" onclick="updateSaved(${s.id}, { status: '${applied ? 'saved' : 'applied'}' })">${applied ? 'Undo applied' : '✓ Applied'}</button>
+                        <button class="btn btn-secondary btn-sm" onclick="removeSaved(${s.id})">🗑️</button>
+                    </div>
+                </div>`;
         }
 
-        async function saveBookmark(title, url, tags = 'radar') {
+        async function updateSaved(id, changes) {
             try {
-                await fetch('/api/bookmarks', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title, url, tags })
-                });
-                showToast('Saved to Bookmarks! 🔖');
+                await api(`/api/saved/${id}`, { method: 'PUT', body: JSON.stringify(changes) });
+                showToast('Updated!');
+                loadSaved();
             } catch (e) {
-                showToast('Failed to save!');
+                if (e.message !== 'unauthorized') showToast('Update failed');
             }
         }
 
-        async function deleteSaved(id) {
+        async function removeSaved(id) {
             if (!confirm('Remove this saved item?')) return;
-            await fetch(`/api/bookmarks/${id}`, { method: 'DELETE' });
-            showToast('Bookmark removed');
+            await api(`/api/saved/${id}`, { method: 'DELETE' });
+            showToast('Removed');
             loadSaved();
         }
 
-        async function quickTrackOpportunity(url) {
+        // ================================================================
+        // SETTINGS
+        // ================================================================
+        async function loadSettings() {
             try {
-                // Calculate date 14 days from now as default deadline
-                const target = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-                const due_date = target.toISOString().split('T')[0];
-                
-                await fetch('/api/deadlines', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title: 'Target Application / Submission',
-                        subject: 'OPPORTUNITY',
-                        due_date: due_date
-                    })
-                });
-                showToast('Added to Deadlines & Calendar! 📅');
-                loadHome();
+                const s = await api('/api/settings');
+                document.getElementById('set-keywords').value = s.keywords;
+                document.getElementById('set-topic').textContent = s.ntfy_topic;
+            } catch (e) { /* login screen handles 401 */ }
+        }
+
+        async function saveKeywords() {
+            const keywords = document.getElementById('set-keywords').value;
+            const res = await api('/api/settings', { method: 'POST', body: JSON.stringify({ keywords }) });
+            showToast(res.message + ' Applies from the next scan.');
+        }
+
+        async function copyTopic() {
+            try {
+                await navigator.clipboard.writeText(document.getElementById('set-topic').textContent);
+                showToast('Topic copied!');
             } catch (e) {
-                showToast('Failed to schedule track!');
+                showToast('Copy failed — long-press the topic to copy');
             }
+        }
+
+        async function testPush() {
+            const res = await api('/api/notify/test', { method: 'POST' });
+            showToast(res.status === 'ok' ? 'Test notification sent!' : 'Failed to send');
         }
 
         // ================================================================
-        // EXAM COUNTDOWN & SYLLABUS ENGINE EXTENSION
+        // HELPERS
         // ================================================================
-        function openExamModal() {
-            document.getElementById('exam-subj').value = '';
-            document.getElementById('exam-date').value = '';
-            document.getElementById('exam-syllabus').value = '';
-            document.getElementById('exam-target').value = '';
-            openModal('modal-exam');
+        function daysUntil(iso) {
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const d = new Date(iso + 'T00:00:00');
+            return Math.round((d - today) / 86400000);
         }
 
-        async function saveExam() {
-            const subject = document.getElementById('exam-subj').value.trim();
-            const exam_date = document.getElementById('exam-date').value;
-            const syllabus = document.getElementById('exam-syllabus').value.trim();
-            const target_score = document.getElementById('exam-target').value.trim();
-
-            if (!subject || !exam_date) {
-                alert('Please enter Subject and Exam Date!');
-                return;
-            }
-
-            try {
-                await fetch('/api/exams', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ subject, exam_date, syllabus, target_score })
-                });
-                closeModal('modal-exam');
-                showToast('Exam scheduled! Countdown active ⏳');
-                loadExams();
-            } catch (e) {
-                showToast('Failed to save exam!');
-            }
-        }
-
-        async function loadExams() {
-            const el = document.getElementById('home-exams-list');
-            if (!el) return;
-            try {
-                const res = await fetch('/api/exams');
-                const exams = res.ok ? await res.json() : [];
-                if (exams.length === 0) {
-                    el.innerHTML = '<div style="color:var(--text-tertiary); font-size:13px;">No exams scheduled. Tap "+ Add Exam" to track!</div>';
-                    return;
-                }
-
-                el.innerHTML = exams.map(x => {
-                    const dl = x.days_left;
-                    let badgeColor = 'var(--text-secondary)';
-                    let badgeBg = 'var(--bg-secondary)';
-                    let label = `${dl} days left`;
-
-                    if (dl <= 3) {
-                        badgeColor = '#ef4444';
-                        badgeBg = 'rgba(239, 68, 68, 0.15)';
-                        label = `🔥 ${dl} days left!`;
-                    } else if (dl <= 7) {
-                        badgeColor = '#f59e0b';
-                        badgeBg = 'rgba(245, 158, 11, 0.15)';
-                        label = `⚠️ ${dl} days left`;
-                    } else {
-                        badgeColor = '#10b981';
-                        badgeBg = 'rgba(16, 185, 129, 0.15)';
-                    }
-
-                    return `
-                        <div class="item-card">
-                            <div class="item-info">
-                                <div class="item-title" style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span>${escapeHtml(x.subject)}</span>
-                                    <span class="pill-badge" style="background:${badgeBg}; color:${badgeColor}; font-weight:700;">${label}</span>
-                                </div>
-                                <div class="item-sub" style="margin-top:4px;">
-                                    <span>📅 ${x.exam_date}</span>
-                                    ${x.syllabus ? ` • <span>📖 ${escapeHtml(x.syllabus)}</span>` : ''}
-                                    ${x.target_score ? ` • <span>🎯 Goal: ${escapeHtml(x.target_score)}</span>` : ''}
-                                </div>
-                            </div>
-                            <div class="item-actions">
-                                <button class="action-icon-btn delete" onclick="deleteExam(${x.id})">🗑️</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            } catch (e) {
-                el.innerHTML = '<div style="color:var(--text-tertiary);">Failed to load exams.</div>';
-            }
-        }
-
-        async function deleteExam(id) {
-            if (!confirm('Remove this exam countdown?')) return;
-            await fetch(`/api/exams/${id}`, { method: 'DELETE' });
-            showToast('Exam removed');
-            loadExams();
-        }
-
-        // ================================================================
-        // MODULAR EXTENSIONS SYSTEM
-        // ================================================================
-        function initModules() {
-            const mods = ['exams', 'money', 'radar', 'reminders'];
-            mods.forEach(m => {
-                const saved = localStorage.getItem('mod_' + m);
-                const enabled = saved === null ? true : saved === 'true';
-                const toggle = document.getElementById('mod-toggle-' + m);
-                if (toggle) toggle.checked = enabled;
-                applyModuleUI(m, enabled);
-            });
-        }
-
-        function toggleModule(name, isChecked) {
-            localStorage.setItem('mod_' + name, isChecked);
-            applyModuleUI(name, isChecked);
-            showToast(`${name.toUpperCase()} module ${isChecked ? 'enabled' : 'disabled'}`);
-        }
-
-        function applyModuleUI(name, enabled) {
-            if (name === 'exams') {
-                const bento = document.getElementById('bento-exam');
-                if (bento) bento.style.display = enabled ? 'flex' : 'none';
-            }
-            if (name === 'money') {
-                const bento = document.getElementById('bento-money');
-                if (bento) bento.style.display = enabled ? 'flex' : 'none';
-            }
-            if (name === 'reminders') {
-                const bento = document.getElementById('bento-att');
-                if (bento) bento.style.display = enabled ? 'flex' : 'none';
-            }
-        }
-
-        async function loadModulesView() {
-            const mods = ['exams', 'money', 'calendar', 'radar', 'reminders'];
-            mods.forEach(m => {
-                const saved = localStorage.getItem('mod_' + m);
-                const enabled = saved === null ? true : saved === 'true';
-                const el = document.getElementById('mod-toggle-' + m);
-                if (el) el.checked = enabled;
-            });
-        }
-
-        async function loadExamsWorkspace() {
-            const el = document.getElementById('exams-workspace-list');
-            if (!el) return;
-            try {
-                const res = await fetch('/api/exams');
-                const exams = res.ok ? await res.json() : [];
-                if (exams.length === 0) {
-                    el.innerHTML = '<div class="card" style="text-align:center; color:var(--text-tertiary); padding:24px 12px;">No exams scheduled yet! Tap "+ Schedule Exam" above.</div>';
-                    return;
-                }
-
-                el.innerHTML = exams.map(x => {
-                    const dl = x.days_left;
-                    let badgeBg = 'rgba(16, 185, 129, 0.15)';
-                    let badgeColor = '#10b981';
-                    let label = `${dl} days left`;
-
-                    if (dl <= 3) {
-                        badgeBg = 'rgba(239, 68, 68, 0.15)';
-                        badgeColor = '#ef4444';
-                        label = `🔥 ${dl} days left!`;
-                    } else if (dl <= 7) {
-                        badgeBg = 'rgba(245, 158, 11, 0.15)';
-                        badgeColor = '#f59e0b';
-                        label = `⚠️ ${dl} days left`;
-                    }
-
-                    return `
-                        <div class="card" style="margin-bottom:12px;">
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                                <div>
-                                    <div style="font-weight:700; font-size:16px;">${escapeHtml(x.subject)}</div>
-                                    <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">📅 Exam Date: <strong>${x.exam_date}</strong></div>
-                                </div>
-                                <span class="pill-badge" style="background:${badgeBg}; color:${badgeColor}; font-weight:700; font-size:12px;">${label}</span>
-                            </div>
-                            ${x.syllabus ? `<div style="margin-top:10px; font-size:12.5px; background:var(--bg-secondary); padding:8px 10px; border-radius:8px;">📖 <strong>Syllabus:</strong> ${escapeHtml(x.syllabus)}</div>` : ''}
-                            ${x.target_score ? `<div style="margin-top:6px; font-size:12px; color:var(--text-secondary);">🎯 Target Score: <strong>${escapeHtml(x.target_score)}</strong></div>` : ''}
-                            <div style="display:flex; justify-content:flex-end; margin-top:10px;">
-                                <button class="btn btn-secondary btn-sm" onclick="deleteExam(${x.id})">🗑️ Remove</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            } catch (e) {
-                el.innerHTML = '<div style="color:var(--text-tertiary);">Failed to load exams.</div>';
-            }
-        }
-
-        async function saveBudgetFromInput() {
-            const input = document.getElementById('budget-input');
-            const val = parseFloat(input.value);
-            if (isNaN(val) || val <= 0) {
-                alert('Please enter a valid weekly budget amount!');
-                return;
-            }
-            try {
-                await fetch('/api/settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key: 'weekly_budget', value: val.toString() })
-                });
-                showToast(`Weekly budget set to ₹${val}! 🎯`);
-                document.getElementById('money-budget-status').textContent = `Active Weekly Target: ₹${val}`;
-                input.value = '';
-                loadHome();
-                loadExpenses();
-            } catch (e) {
-                showToast('Failed to save budget!');
-            }
-        }
-
-        async function triggerScanFromUI() {
-            showToast('📡 Scanning Devpost, DevFest, & Tech news...');
-            try {
-                await fetch('/api/radar/scan', { method: 'POST' });
-                setTimeout(() => {
-                    loadSaved();
-                    showToast('Scan complete! Fresh items synced.');
-                }, 2500);
-            } catch (e) {
-                showToast('Scan error!');
-            }
+        function deadlinePill(days) {
+            if (days === null || days === undefined || isNaN(days)) return '';
+            if (days < 0) return '<span class="pill pill-plain">Closed</span>';
+            if (days === 0) return '<span class="pill pill-urgent">🔥 Closes today</span>';
+            if (days <= 3) return `<span class="pill pill-urgent">🔥 ${days}d left</span>`;
+            if (days <= 7) return `<span class="pill pill-soon">⚠️ ${days}d left</span>`;
+            return `<span class="pill pill-ok">🟢 ${days}d left</span>`;
         }
 
         function escapeHtml(str) {
-            return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
-        function formatBotMessage(text) {
-            if (!text) return '';
-            let html = escapeHtml(text);
-            // Convert bold markdown **text**
-            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            // Convert newlines
-            html = html.replace(/\n/g, '<br>');
-            // Detect lines with links and attach [🔖 Save] & [📅 Track] buttons
-            const lines = html.split('<br>');
-            const formatted = lines.map(line => {
-                const urlMatch = line.match(/(https?:\/\/[^\s<]+)/);
-                if (urlMatch) {
-                    const fullUrl = urlMatch[1];
-                    const cleanLink = `<a href="${fullUrl}" target="_blank" style="color:var(--text-primary); text-decoration:underline; font-weight:600;">${fullUrl}</a>`;
-                    let res = line.replace(fullUrl, cleanLink);
-                    // Add 1-tap Save Button
-                    res += ` <button onclick="saveBookmark('Opportunity', '${fullUrl}', 'radar')" style="background:var(--bg-secondary); border:1px solid var(--border); color:var(--text-primary); border-radius:6px; padding:2px 8px; font-size:11px; cursor:pointer; margin-left:6px;">🔖 Save</button>`;
-                    // Add 1-tap Track Button
-                    res += ` <button onclick="quickTrackOpportunity('${fullUrl}')" style="background:var(--bg-secondary); border:1px solid var(--border); color:var(--text-primary); border-radius:6px; padding:2px 8px; font-size:11px; cursor:pointer; margin-left:4px;">📅 Track</button>`;
-                    return res;
-                }
-                return line;
-            });
-            return formatted.join('<br>');
+        function safeUrl(url) {
+            return /^https?:\/\//i.test(url || '') ? escapeHtml(url) : '#';
         }
 
-        // ================================================================
-        // CHAT
-        // ================================================================
-        function addBubble(text, type, id = null) {
-            const el = document.getElementById('chat-messages');
-            const bubble = document.createElement('div');
-            bubble.className = 'chat-bubble ' + type;
-            if (id) bubble.id = id;
-            if (type === 'user') {
-                bubble.textContent = text;
-            } else {
-                bubble.innerHTML = formatBotMessage(text);
-            }
-            el.appendChild(bubble);
-            el.scrollTop = el.scrollHeight;
-            return bubble;
-        }
-
-        async function sendChat() {
-            const input = document.getElementById('chat-input');
-            const msg = input.value.trim();
-            if (!msg) return;
-
-            addBubble(msg, 'user');
-            input.value = '';
-
-            // Add thinking bubble
-            const thinkingId = 'bubble-thinking-' + Date.now();
-            const thinkingBubble = addBubble('🧠 Thinking...', 'bot', thinkingId);
-
-            try {
-                const res = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: msg })
-                });
-                
-                // Remove thinking bubble
-                thinkingBubble.remove();
-
-                if (res.ok) {
-                    const data = await res.json();
-                    addBubble(data.response, 'bot');
-                    loadHome();
-                } else {
-                    addBubble('⚠️ Error processing message.', 'bot');
-                }
-            } catch (e) {
-                thinkingBubble.remove();
-                addBubble('⚠️ Server unreachable. Check connection!', 'bot');
-            }
-        }
-
-        // ================================================================
-        // INITIALIZE
-        // ================================================================
+        // ---- BOOT ----
         initTheme();
-        initModules();
-        loadHome();
+        (async () => {
+            if (!load('radar_token')) return showLogin();
+            try {
+                await api('/api/auth/check');
+                showApp();
+                loadFeed();
+            } catch (e) {
+                // 401 already showed the login; anything else (server down) still shows the app
+                if (e.message !== 'unauthorized') { showApp(); loadFeed(); }
+            }
+        })();
     </script>
 </body>
 </html>

@@ -22,16 +22,5 @@ Thumbs.db
 .vscode/
 .idea/
 
-# User storage (don't commit personal files)
-storage/cloud/*
-storage/notes/*
-storage/downloads/*
-storage/bookmarks/*
-storage/print-queue/*
-
-# Keep empty directories
-!storage/cloud/.gitkeep
-!storage/notes/.gitkeep
-!storage/downloads/.gitkeep
-!storage/bookmarks/.gitkeep
-!storage/print-queue/.gitkeep
+# Secrets (access token, private ntfy topic)
+data/*.txt

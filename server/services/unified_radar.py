@@ -12,20 +12,44 @@ DB_PATH = os.path.join(BASE_DIR, 'data', 'pocketbrain.db')
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 
-# User's Customized Keywords
-INTERN_KEYWORDS = [
+# Default interest keywords (overridable from the Settings screen)
+DEFAULT_KEYWORDS = [
     'intern', 'internship', 'trainee', 'c++', 'python', 'fintech', 'quant', 
     'trading', 'backend', 'full stack', 'fullstack', 'react', 'node', 
     'cloud', 'devops', 'cybersecurity', 'security', 'software'
 ]
-
-TARGET_LOCATIONS = ['remote', 'wfh', 'delhi', 'noida', 'gurgaon', 'gurugram', 'anywhere', 'india']
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
+
+def get_keywords():
+    """Interest keywords saved in settings ('keywords', comma separated)."""
+    try:
+        conn = get_db()
+        row = conn.execute("SELECT value FROM settings WHERE key = 'keywords'").fetchone()
+        conn.close()
+        if row and row['value'].strip():
+            return [k.strip().lower() for k in row['value'].split(',') if k.strip()]
+    except sqlite3.Error:
+        pass
+    return DEFAULT_KEYWORDS
+
+def parse_devpost_deadline(dates):
+    """'Oct 01 - Nov 15, 2026' / 'Oct 15 - 30, 2026' -> '2026-11-15' (or None)."""
+    if not dates or '-' not in dates:
+        return None
+    start, end = [p.strip() for p in dates.rsplit('-', 1)]
+    if re.match(r'^\d{1,2}, \d{4}$', end):
+        end = start.split()[0] + ' ' + end
+    for fmt in ('%b %d, %Y', '%B %d, %Y'):
+        try:
+            return datetime.strptime(end, fmt).strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+    return None
 
 def init_radar_db():
     """Ensure radar_items table exists."""
@@ -44,6 +68,9 @@ def init_radar_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    cols = [r['name'] for r in conn.execute("PRAGMA table_info(radar_items)")]
+    if 'deadline' not in cols:
+        conn.execute("ALTER TABLE radar_items ADD COLUMN deadline TEXT")  # ISO date, when known
     conn.commit()
     conn.close()
 
@@ -80,6 +107,7 @@ def _fetch_json(url, headers=None, timeout=10):
 def scan_jobs(limit=10):
     """Scan software & student internships, fintech, C++, Python, and early career roles."""
     init_radar_db()
+    keywords = get_keywords()
     new_items = []
     conn = get_db()
 
@@ -95,7 +123,7 @@ def scan_jobs(limit=10):
                     title_lower = title.lower()
                     
                     # Match user's customized keywords (Fintech, C++, Python, Backend, etc.)
-                    is_match = any(kw in title_lower or kw in desc for kw in INTERN_KEYWORDS)
+                    is_match = any(kw in title_lower or kw in desc for kw in keywords)
                     if not is_match:
                         continue
 
@@ -137,7 +165,7 @@ def scan_jobs(limit=10):
                 pub = item.find('pubDate').text[:16] if item.find('pubDate') is not None else ""
                 title_lower = title.lower()
                 
-                if any(kw in title_lower for kw in INTERN_KEYWORDS):
+                if any(kw in title_lower for kw in keywords):
                     try:
                         conn.execute('''
                             INSERT INTO radar_items (pillar, source, title, organization, url, deadline_or_date, extra_info)
@@ -181,9 +209,9 @@ def scan_events(limit=10):
 
                 try:
                     conn.execute('''
-                        INSERT INTO radar_items (pillar, source, title, organization, url, deadline_or_date, extra_info)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', ('events', 'Devpost', title, org, event_url, dates, f"💰 {prize}"))
+                        INSERT INTO radar_items (pillar, source, title, organization, url, deadline_or_date, extra_info, deadline)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', ('events', 'Devpost', title, org, event_url, dates, f"💰 {prize}", parse_devpost_deadline(dates)))
                     new_items.append({'pillar': 'events', 'title': title, 'org': org, 'url': event_url})
                 except sqlite3.IntegrityError:
                     pass
@@ -317,19 +345,22 @@ def scan_high_priority():
     print(f"📡 [Radar] High-priority scan complete: {len(j)} jobs, {len(e)} events found.")
     return {'jobs': len(j), 'events': len(e), 'news': 0}
 
-def get_radar_items(pillar=None, limit=5):
-    """Retrieve items from DB for chat or frontend."""
+def get_radar_items(pillar=None, limit=5, q=None, offset=0):
+    """Retrieve items from DB for the feed, newest first."""
     init_radar_db()
     conn = get_db()
-    if pillar:
-        rows = conn.execute(
-            "SELECT * FROM radar_items WHERE pillar = ? ORDER BY id DESC LIMIT ?",
-            (pillar, limit)
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            "SELECT * FROM radar_items ORDER BY id DESC LIMIT ?",
-            (limit,)
-        ).fetchall()
+    sql = "SELECT * FROM radar_items WHERE 1=1"
+    args = []
+    if pillar == 'opps':  # Jobs + events, without news
+        sql += " AND pillar IN ('jobs', 'events')"
+    elif pillar:
+        sql += " AND pillar = ?"
+        args.append(pillar)
+    if q:
+        sql += " AND (title LIKE ? OR organization LIKE ? OR extra_info LIKE ?)"
+        args += [f"%{q}%"] * 3
+    sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
+    args += [limit, offset]
+    rows = conn.execute(sql, args).fetchall()
     conn.close()
     return [dict(r) for r in rows]

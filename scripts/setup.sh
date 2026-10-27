@@ -1,10 +1,10 @@
 #!/bin/bash
 # ============================================================
-# PocketBrain — One-Time Setup Script for Termux
+# Radar — One-Time Setup Script for Termux
 # Run this ONCE when you first set up the phone.
 # ============================================================
 
-echo "🧠 PocketBrain — Initial Setup"
+echo "📡 Radar — Initial Setup"
 echo "================================"
 
 # 1. Update packages
@@ -21,8 +21,7 @@ PROJ_DIR="$HOME/pocketbrain"
 
 # If pocketbrain doesn't exist yet, create it
 if [ ! -d "$PROJ_DIR" ]; then
-    mkdir -p "$PROJ_DIR"/{server,frontend,data,storage,logs,config,scripts}
-    mkdir -p "$PROJ_DIR"/storage/{cloud,notes,downloads,bookmarks,print-queue}
+    mkdir -p "$PROJ_DIR"/{server,frontend,data,logs,scripts}
     echo "✅ Project directories created!"
 else
     echo "ℹ️  Project directory already exists, skipping."

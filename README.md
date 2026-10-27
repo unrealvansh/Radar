@@ -1,15 +1,18 @@
-# 🧠 PocketBrain
+# 📡 Radar
 
-A self-hosted personal automation server running on a Mobistar C2 phone.
+A student opportunity radar: internships, jobs and hackathons in one feed,
+with deadline tracking and push reminders. Runs on a Mobistar C2 phone in Termux.
 
-## What is this?
+> The full PocketBrain personal OS (expenses, habits, attendance, exams, chat)
+> is preserved at the git tag `pocketbrain-v1`.
 
-Your own JARVIS — an always-on server that:
-- 💸 Tracks your expenses
-- 🎯 Tracks your habits & streaks
-- 📊 Calculates attendance & bunk predictions
-- 🔔 Sends push notifications (coming soon)
-- 🌐 Accessible from any device on your network
+## Features
+- 📡 **Feed** — jobs & internships (Remotive, Jobicy), hackathons (Devpost, Google Developers), tech news
+- 🔍 Search and filter by type
+- 🔖 **Save** and 📅 **Track** — tracking sets a deadline (Devpost deadlines are detected automatically)
+- 🔔 Push reminders via ntfy: 2 days before and on the deadline day, plus a morning digest
+- 🎯 Interest keywords (Settings) decide which jobs are picked up on each scan
+- 🔑 Access-token login on every API call
 
 ## Quick Start (on Termux)
 
@@ -19,49 +22,18 @@ bash scripts/setup.sh
 
 # 2. Copy project files to ~/pocketbrain/
 
-# 3. Start the server
+# 3. Start the server (prints the access token and ntfy topic)
 bash scripts/start.sh
 
-# 4. Open in browser
-# http://localhost:5000
+# 4. Open http://localhost:5000 and enter the access token
 ```
+
+## Secrets
+Created on first start, git-ignored:
+- `data/access_token.txt` — login token (override with `RADAR_TOKEN`)
+- `data/ntfy_topic.txt` — private ntfy topic to subscribe to (override with `NTFY_TOPIC`)
 
 ## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Backend | Python + Flask |
-| Database | SQLite (WAL mode) |
-| Frontend | Vanilla HTML/CSS/JS (PWA) |
-| Scheduler | APScheduler (coming soon) |
-| Notifications | ntfy (coming soon) |
-
-## Project Structure
-
-```
-pocketbrain/
-├── server/          # Python backend
-│   ├── app.py       # Main Flask application
-│   └── requirements.txt
-├── frontend/        # PWA dashboard
-│   ├── index.html   # Dashboard UI
-│   └── manifest.json
-├── data/            # SQLite database
-├── storage/         # Personal cloud files
-├── logs/            # Application logs
-├── config/          # Settings (timetable, menu, etc.)
-└── scripts/         # Setup & management scripts
-```
-
-## Access from Other Devices
-
-Find your phone's IP:
-```bash
-ifconfig wlan0 | grep "inet "
-```
-
-Then open `http://<phone-IP>:5000` on any device on the same Wi-Fi.
-
-## License
-
-Personal project — built with 🧠
+- **Backend:** Python Flask + SQLite (WAL) + APScheduler
+- **Frontend:** single-file PWA, vanilla JS, no build step
+- **Notifications:** ntfy.sh
