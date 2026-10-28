@@ -20,7 +20,8 @@ SERVER_DIR = os.path.dirname(os.path.abspath(__file__))
 if SERVER_DIR not in sys.path:
     sys.path.insert(0, SERVER_DIR)
 
-from services.unified_radar import init_radar_db, get_radar_items, DEFAULT_KEYWORDS
+from services.unified_radar import init_radar_db, get_radar_items, get_counts, is_scanning, DEFAULT_KEYWORDS
+from services.sources import SOURCES
 from services.notifier import send_push, get_topic
 
 # ============ APP SETUP ============
@@ -154,12 +155,15 @@ def auth_check():
 
 @app.route('/api/radar', methods=['GET'])
 def get_radar():
-    """Feed items. Query params: pillar (jobs/events/news), q, limit, offset."""
+    """Feed items. Query params: pillar (opps/jobs/events/news), q, source,
+    sort (latest/closing/picks), limit, offset."""
     pillar = request.args.get('pillar') or None
     q = (request.args.get('q') or '').strip() or None
     limit = min(int(request.args.get('limit', 30)), 100)
     offset = int(request.args.get('offset', 0))
-    items = get_radar_items(pillar=pillar, limit=limit, q=q, offset=offset)
+    items = get_radar_items(pillar=pillar, limit=limit, q=q, offset=offset,
+                            sort=request.args.get('sort', 'latest'),
+                            source=request.args.get('source') or None)
 
     conn = get_db()
     saved = {r['item_id']: r['id'] for r in conn.execute('SELECT id, item_id FROM saved_items')}
@@ -176,6 +180,72 @@ def trigger_radar_scan():
     import threading
     threading.Thread(target=scan_all_radar, daemon=True).start()
     return jsonify({'status': 'ok', 'message': 'Full radar scan initiated!'})
+
+
+@app.route('/api/sources', methods=['GET'])
+def get_sources():
+    """Sources with visible item counts (feed source filter)."""
+    _, sources, _ = get_counts()
+    return jsonify(sources)
+
+
+# ============ API: DASHBOARD STATS ============
+
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    """Numbers for the dashboard tiles and the scan status."""
+    pillars, sources, new_today = get_counts()
+    conn = get_db()
+    saved = conn.execute('''
+        SELECT
+            SUM(status = 'saved') AS saved,
+            SUM(status = 'applied') AS applied,
+            SUM(status = 'done') AS done,
+            SUM(deadline IS NOT NULL AND status != 'done') AS tracked,
+            SUM(deadline BETWEEN date('now', 'localtime') AND date('now', 'localtime', '+7 days')
+                AND status = 'saved') AS closing_week
+        FROM saved_items
+    ''').fetchone()
+    last = conn.execute("SELECT value FROM settings WHERE key = 'last_scan_at'").fetchone()
+    conn.close()
+    return jsonify({
+        'new_today': new_today,
+        'pillars': pillars,
+        'saved': saved['saved'] or 0,
+        'applied': saved['applied'] or 0,
+        'done': saved['done'] or 0,
+        'tracked': saved['tracked'] or 0,
+        'closing_week': saved['closing_week'] or 0,
+        'sources_total': len(SOURCES),
+        'sources_active': len({s['source'] for s in sources}),
+        'last_scan_at': last['value'] if last else None,
+        'scanning': is_scanning(),
+    })
+
+
+# ============ API: CALENDAR ============
+
+@app.route('/api/calendar', methods=['GET'])
+def get_calendar():
+    """Tracked deadlines + upcoming events in a month. Query: month=YYYY-MM"""
+    month = request.args.get('month') or datetime.now().strftime('%Y-%m')
+    conn = get_db()
+    tracked = conn.execute('''
+        SELECT r.*, s.id AS saved_id, s.status, s.deadline AS date
+        FROM saved_items s JOIN radar_items r ON r.id = s.item_id
+        WHERE s.deadline IS NOT NULL AND strftime('%Y-%m', s.deadline) = ?
+    ''', (month,)).fetchall()
+    tracked_ids = {r['item_id'] for r in conn.execute('SELECT item_id FROM saved_items')}
+    events = conn.execute('''
+        SELECT *, COALESCE(starts_at, deadline) AS date FROM radar_items
+        WHERE pillar = 'events' AND strftime('%Y-%m', COALESCE(starts_at, deadline)) = ?
+        AND COALESCE(starts_at, deadline) >= date('now', 'localtime')
+    ''', (month,)).fetchall()
+    conn.close()
+    entries = [dict(r, kind='tracked') for r in tracked]
+    entries += [dict(r, kind='event', saved_id=None) for r in events if r['id'] not in tracked_ids]
+    entries.sort(key=lambda e: e['date'])
+    return jsonify({'month': month, 'entries': entries})
 
 
 # ============ API: SAVED & TRACKED ============
@@ -195,7 +265,7 @@ def get_saved():
     rows = conn.execute('''
         SELECT s.id, s.item_id, s.deadline, s.status, s.created_at AS saved_at,
                r.pillar, r.source, r.title, r.organization, r.url,
-               r.deadline_or_date, r.extra_info
+               r.deadline_or_date, r.extra_info, r.starts_at, r.posted_at
         FROM saved_items s JOIN radar_items r ON r.id = s.item_id
         ORDER BY s.deadline IS NULL, s.deadline ASC, s.id DESC
     ''').fetchall()
@@ -243,7 +313,8 @@ def save_item():
 
 @app.route('/api/saved/<int:id>', methods=['PUT'])
 def update_saved(id):
-    """Update deadline and/or status. JSON: {"deadline": "2026-11-15" | null, "status": "applied"}"""
+    """Update deadline and/or status. JSON: {"deadline": "2026-11-15" | null, "status": "applied"}
+    status: saved -> applied -> done (Board columns)."""
     data = request.get_json() or {}
     conn = get_db()
     if 'deadline' in data:
@@ -251,7 +322,7 @@ def update_saved(id):
             'UPDATE saved_items SET deadline = ?, reminded_2d = 0, reminded_0d = 0 WHERE id = ?',
             (data['deadline'] or None, id)
         )
-    if data.get('status') in ('saved', 'applied'):
+    if data.get('status') in ('saved', 'applied', 'done'):
         conn.execute('UPDATE saved_items SET status = ? WHERE id = ?', (data['status'], id))
     conn.commit()
     conn.close()
@@ -272,27 +343,31 @@ def delete_saved(id):
 
 @app.route('/api/settings', methods=['GET'])
 def get_settings():
-    """Interest keywords + the private ntfy topic to subscribe to."""
+    """Interest keywords, display name + the private ntfy topic to subscribe to."""
     conn = get_db()
-    row = conn.execute("SELECT value FROM settings WHERE key = 'keywords'").fetchone()
+    values = {r['key']: r['value'] for r in conn.execute(
+        "SELECT key, value FROM settings WHERE key IN ('keywords', 'display_name')")}
     conn.close()
     return jsonify({
-        'keywords': row['value'] if row else ', '.join(DEFAULT_KEYWORDS),
+        'keywords': values.get('keywords', ', '.join(DEFAULT_KEYWORDS)),
+        'display_name': values.get('display_name', ''),
         'ntfy_topic': get_topic(),
     })
 
 
 @app.route('/api/settings', methods=['POST'])
 def set_settings():
-    """Save interest keywords. JSON: {"keywords": "python, c++, intern"}"""
+    """Save settings. JSON: {"keywords": "python, c++, intern", "display_name": "Vansh"}"""
     data = request.get_json() or {}
-    if 'keywords' not in data:
-        return jsonify({'status': 'error', 'message': 'keywords is required'}), 400
+    fields = {k: str(data[k]).strip() for k in ('keywords', 'display_name') if k in data}
+    if not fields:
+        return jsonify({'status': 'error', 'message': 'keywords or display_name is required'}), 400
     conn = get_db()
-    conn.execute("REPLACE INTO settings (key, value) VALUES ('keywords', ?)", (data['keywords'],))
+    for key, value in fields.items():
+        conn.execute("REPLACE INTO settings (key, value) VALUES (?, ?)", (key, value))
     conn.commit()
     conn.close()
-    return jsonify({'status': 'ok', 'message': 'Interests saved!'})
+    return jsonify({'status': 'ok', 'message': 'Settings saved!'})
 
 
 @app.route('/api/notify/test', methods=['POST'])

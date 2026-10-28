@@ -270,6 +270,11 @@ def scan(pillars=('jobs', 'events', 'news')):
             conn.close()
 
         cleanup_old_items()
+        conn = get_db()
+        conn.execute("REPLACE INTO settings (key, value) VALUES ('last_scan_at', ?)",
+                     (datetime.now(IST).strftime('%Y-%m-%dT%H:%M:%S'),))
+        conn.commit()
+        conn.close()
         counts = {p: sum(1 for it in new_items if it['pillar'] == p) for p in pillars}
         print(f"📡 [Radar] Scan complete: {counts}. Failed sources: {failed or 'none'}")
         _notify_new(new_items)
@@ -321,8 +326,22 @@ def cleanup_old_items():
 # QUERIES
 # =====================================================================
 
-def get_radar_items(pillar=None, limit=5, q=None, offset=0):
-    """Visible (upcoming / fresh) items, latest first."""
+def is_scanning():
+    return _scan_lock.locked()
+
+
+def _pick_score(row, keywords):
+    """How many interest keywords appear in the item — used for 'Top picks'."""
+    text = ' '.join(filter(None, (row['title'], row['organization'], row['extra_info']))).lower()
+    return sum(1 for k in keywords if _has_word(text, [k]))
+
+
+def get_radar_items(pillar=None, limit=5, q=None, offset=0, sort='latest', source=None):
+    """Visible (upcoming / fresh) items.
+
+    sort: 'latest' (newest first), 'closing' (nearest deadline first),
+          'picks' (best match with interest keywords, then newest).
+    """
     init_radar_db()
     conn = get_db()
     sql = f"SELECT * FROM radar_items WHERE {VISIBLE_SQL}"
@@ -332,11 +351,45 @@ def get_radar_items(pillar=None, limit=5, q=None, offset=0):
     elif pillar:
         sql += " AND pillar = ?"
         args.append(pillar)
+    if source:
+        sql += " AND source = ?"
+        args.append(source)
     if q:
         sql += " AND (title LIKE ? OR organization LIKE ? OR extra_info LIKE ? OR source LIKE ?)"
         args += [f"%{q}%"] * 4
-    sql += " ORDER BY COALESCE(posted_at, date(created_at)) DESC, id DESC LIMIT ? OFFSET ?"
+
+    latest = " ORDER BY COALESCE(posted_at, date(created_at)) DESC, id DESC"
+    if sort == 'picks':
+        rows = conn.execute(sql + latest + " LIMIT 400", args).fetchall()
+        conn.close()
+        keywords = get_keywords()
+        scored = [(_pick_score(r, keywords), i, r) for i, r in enumerate(rows)]
+        scored = [s for s in scored if s[0] > 0]
+        scored.sort(key=lambda s: (-s[0], s[1]))  # best score, then newest
+        return [dict(r, score=sc) for sc, _, r in scored[offset:offset + limit]]
+
+    if sort == 'closing':
+        sql += " AND deadline IS NOT NULL ORDER BY deadline ASC, id DESC"
+    else:
+        sql += latest
+    sql += " LIMIT ? OFFSET ?"
     args += [limit, offset]
     rows = conn.execute(sql, args).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def get_counts():
+    """Visible items per pillar and per source (feed chips and source filter)."""
+    init_radar_db()
+    conn = get_db()
+    pillars = {r[0]: r[1] for r in conn.execute(
+        f"SELECT pillar, COUNT(*) FROM radar_items WHERE {VISIBLE_SQL} GROUP BY pillar")}
+    sources = [{'source': r[0], 'pillar': r[1], 'count': r[2]} for r in conn.execute(
+        f"SELECT source, pillar, COUNT(*) FROM radar_items WHERE {VISIBLE_SQL} "
+        "GROUP BY source, pillar ORDER BY COUNT(*) DESC")]
+    new_today = conn.execute(
+        f"SELECT COUNT(*) FROM radar_items WHERE {VISIBLE_SQL} AND pillar IN ('jobs', 'events') "
+        "AND date(created_at, 'localtime') = date('now', 'localtime')").fetchone()[0]
+    conn.close()
+    return pillars, sources, new_today

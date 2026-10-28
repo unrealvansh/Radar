@@ -19,6 +19,25 @@ with deadline tracking and push reminders. Runs on a Mobistar C2 phone in Termux
 - 🎯 Interest keywords (Settings) decide which jobs are picked up on each scan
 - 🔑 Access-token login on every API call
 
+## App
+Dark-first UI (matching light theme) in pale lavender + polished silver, no gradients.
+Desktop gets a sidebar and a slide-in detail panel; phones get a bottom tab bar and a swipeable bottom sheet.
+- **Dashboard** — New today / Closing this week / Tracked / Applied, Closing soon, Top picks, Just in, coverage
+- **Feed** — sort by Latest / Closing soon / Top picks, filter by type and source, grid or list, infinite scroll
+- **Calendar** — month view of tracked deadlines and upcoming events
+- **Board** — Saved → Applied → Done (drag and drop on desktop, arrows everywhere)
+- **Command palette** — `Ctrl K` or `/` to search everything and run commands
+
+| Keys | Action |
+|---|---|
+| `Ctrl K`, `/` | Search & commands |
+| `G` then `D` `F` `C` `B` `S` | Dashboard, Feed, Calendar, Board, Settings |
+| `J` / `K` | Next / previous card |
+| `Enter` | Open details |
+| `S` / `T` / `O` | Save / Track / Open link |
+| `R` | Scan now |
+| `?` | All shortcuts |
+
 ## Quick Start (on Termux)
 
 ```bash
