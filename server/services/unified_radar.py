@@ -312,6 +312,11 @@ def scan_high_priority():
     return scan(('jobs', 'events'))
 
 
+def scan_jobs_only():
+    """Jobs & internships only — they change fastest."""
+    return scan(('jobs',))
+
+
 def cleanup_old_items():
     """Delete expired / stale items nobody saved, so the DB stays small."""
     conn = get_db()

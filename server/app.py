@@ -469,20 +469,24 @@ if __name__ == '__main__':
     except Exception:
         tz = None
 
+    # If the phone dozes past a job's time, still run it (up to 15 min late) instead of skipping it
+    job_defaults = {'misfire_grace_time': 900, 'coalesce': True}
     if tz:
-        scheduler = BackgroundScheduler(timezone=tz)
+        scheduler = BackgroundScheduler(timezone=tz, job_defaults=job_defaults)
     else:
-        scheduler = BackgroundScheduler()
+        scheduler = BackgroundScheduler(job_defaults=job_defaults)
 
-    from services.unified_radar import scan_all_radar, scan_high_priority, cleanup_old_items
+    from services.unified_radar import scan_all_radar, scan_high_priority, scan_jobs_only, cleanup_old_items
 
-    # 08:00 / 20:00 -> Full Scan, 14:00 / 02:00 -> High-Priority Scan (Jobs & Hackathons)
-    scheduler.add_job(scan_all_radar, 'cron', hour=8, minute=0)
-    scheduler.add_job(scan_high_priority, 'cron', hour=14, minute=0)
-    scheduler.add_job(scan_all_radar, 'cron', hour=20, minute=0)
-    scheduler.add_job(scan_high_priority, 'cron', hour=2, minute=0)
-    # 08:30 -> Morning digest
-    scheduler.add_job(scheduled_morning_digest, 'cron', hour=8, minute=30)
+    # 5 scans a day, none at night. Jobs change fastest, so they're in every scan:
+    # 07:30 full -> 11:00 jobs -> 15:00 jobs + events -> 19:00 jobs -> 22:00 full
+    scheduler.add_job(scan_all_radar, 'cron', hour=7, minute=30)
+    scheduler.add_job(scan_jobs_only, 'cron', hour=11, minute=0)
+    scheduler.add_job(scan_high_priority, 'cron', hour=15, minute=0)
+    scheduler.add_job(scan_jobs_only, 'cron', hour=19, minute=0)
+    scheduler.add_job(scan_all_radar, 'cron', hour=22, minute=0)
+    # 08:00 -> Morning digest, right after the 07:30 full scan
+    scheduler.add_job(scheduled_morning_digest, 'cron', hour=8, minute=0)
     # 09:00 / 18:00 -> Tracked deadline reminders
     scheduler.add_job(check_tracked_deadlines, 'cron', hour=9, minute=0)
     scheduler.add_job(check_tracked_deadlines, 'cron', hour=18, minute=0)
