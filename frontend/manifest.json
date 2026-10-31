@@ -4,8 +4,8 @@
     "description": "Student opportunity radar",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#12100E",
-    "theme_color": "#12100E",
+    "background_color": "#1D1915",
+    "theme_color": "#1D1915",
     "orientation": "portrait",
     "icons": [
         {

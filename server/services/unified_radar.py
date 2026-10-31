@@ -14,7 +14,7 @@ import threading
 from datetime import datetime, timedelta
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
-from services.sources import SOURCES, IST
+from services.sources import SOURCES, IST, tidy
 from services import locations
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -107,7 +107,7 @@ def _has_word(text, words):
 
 def is_relevant_job(title, keywords):
     """No senior roles, and the title must match a field keyword (python, data, ...).
-    'Intern' alone isn't enough — that lets in Sales / HR internships."""
+    'Intern' alone isn't enough: that lets in Sales / HR internships."""
     t = (title or '').lower()
     if _has_word(t, EXCLUDE):
         return False
@@ -180,6 +180,7 @@ def init_radar_db():
         _dedupe_existing(conn)
     if conn.execute("SELECT 1 FROM radar_items WHERE loc_done IS NULL LIMIT 1").fetchone():
         _locate_existing(conn)
+    _tidy_existing(conn)
 
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_radar_url_key ON radar_items(url_key)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_radar_title_key ON radar_items(pillar, title_key)")
@@ -198,6 +199,14 @@ def _locate_existing(conn):
         loc = locations.detect(_location_text(dict(r)), r['source'])
         conn.execute("UPDATE radar_items SET city = ?, region = ?, lat = ?, lon = ?, mode = ?, loc_done = 1 WHERE id = ?",
                      (loc['city'], loc['region'], loc['lat'], loc['lon'], loc['mode'], r['id']))
+
+
+def _tidy_existing(conn):
+    """Strip emojis and bullet separators from rows stored before tidy() existed."""
+    for r in conn.execute("SELECT id, title, extra_info FROM radar_items").fetchall():
+        title, extra = tidy(r['title']), tidy(r['extra_info'])
+        if (title, extra) != (r['title'], r['extra_info'] or ''):
+            conn.execute("UPDATE radar_items SET title = ?, extra_info = ? WHERE id = ?", (title, extra, r['id']))
 
 
 def _dedupe_existing(conn):
@@ -258,7 +267,7 @@ def _store(conn, it):
 def scan(pillars=('jobs', 'events', 'news')):
     """Scan every website of the given pillars, sequentially."""
     if not _scan_lock.acquire(blocking=False):
-        print("📡 [Radar] Scan already running, skipped.")
+        print("[Radar] Scan already running, skipped.")
         return {}
     try:
         init_radar_db()
@@ -273,7 +282,7 @@ def scan(pillars=('jobs', 'events', 'news')):
                 items = [it for it in fetcher() if it['title'] and it['url'].startswith('http')]
             except Exception as e:
                 failed.append(name)
-                print(f"⚠️ [Radar] {name} failed: {e}")
+                print(f"[Radar] {name} failed: {e}")
                 continue
 
             if pillar == 'jobs':
@@ -298,7 +307,7 @@ def scan(pillars=('jobs', 'events', 'news')):
         conn.commit()
         conn.close()
         counts = {p: sum(1 for it in new_items if it['pillar'] == p) for p in pillars}
-        print(f"📡 [Radar] Scan complete: {counts}. Failed sources: {failed or 'none'}")
+        print(f"[Radar] Scan complete: {counts}. Failed sources: {failed or 'none'}")
         _notify_new(new_items)
         return counts
     finally:
@@ -316,13 +325,13 @@ def _notify_new(new_items):
         events = len(opps) - jobs
         lines = [f"• {it['title'][:60]} ({it['source']})" for it in opps[:4]]
         notify(
-            title=f"📡 {jobs} new roles, {events} new events",
+            title=f"{jobs} new roles, {events} new events",
             message="\n".join(lines),
             priority="default",
             tags=["satellite"]
         )
     except Exception as ex:
-        print(f"⚠️ Radar notify error: {ex}")
+        print(f"Radar notify error: {ex}")
 
 
 def scan_all_radar():
@@ -335,7 +344,7 @@ def scan_high_priority():
 
 
 def scan_jobs_only():
-    """Jobs & internships only — they change fastest."""
+    """Jobs & internships only: they change fastest."""
     return scan(('jobs',))
 
 
@@ -358,7 +367,7 @@ def is_scanning():
 
 
 def _pick_score(row, keywords):
-    """How many interest keywords appear in the item — used for 'Top picks'."""
+    """How many interest keywords appear in the item: used for 'Top picks'."""
     text = ' '.join(filter(None, (row['title'], row['organization'], row['extra_info']))).lower()
     return sum(1 for k in keywords if _has_word(text, [k]))
 

@@ -1,5 +1,5 @@
 """
-Radar sources — every website the radar reads, in one registry.
+Radar sources: every website the radar reads, in one registry.
 
 Each adapter fetches one site and returns a list of plain dicts:
     pillar        'jobs' | 'events' | 'news'
@@ -87,6 +87,17 @@ def strip_html(text):
     return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', text or '')).strip()
 
 
+EMOJI = re.compile('[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\uFE0F\u200D]')
+
+
+def tidy(text):
+    """Drop emojis and join parts with commas: 'Hackathon • Pune' -> 'Hackathon, Pune'."""
+    text = EMOJI.sub('', text or '')
+    text = re.sub(r'\s*[•·|]\s*|\s+[—–]\s+|—', ', ', text)
+    text = re.sub(r'\s+', ' ', text)
+    return re.sub(r'(,\s*)+', ', ', text).strip(' ,')
+
+
 def item(pillar, source, title, url, organization='', deadline=None, starts_at=None,
          posted_at=None, extra_info='', date_text=''):
     if not date_text:
@@ -95,10 +106,10 @@ def item(pillar, source, title, url, organization='', deadline=None, starts_at=N
         elif deadline:
             date_text = f"Apply by {nice(deadline)}"
     return {
-        'pillar': pillar, 'source': source, 'title': strip_html(title)[:200],
+        'pillar': pillar, 'source': source, 'title': tidy(strip_html(title))[:200],
         'organization': strip_html(organization)[:120], 'url': (url or '').strip(),
         'deadline': deadline, 'starts_at': starts_at, 'posted_at': posted_at,
-        'extra_info': extra_info, 'date_text': date_text,
+        'extra_info': tidy(extra_info), 'date_text': date_text,
     }
 
 
@@ -132,7 +143,7 @@ def rss(url, source, pillar='news', tag='', limit=3):
 
 
 def greenhouse(slug, company):
-    """Company careers on Greenhouse — India roles only."""
+    """Company careers on Greenhouse: India roles only."""
     def fetcher():
         data = fetch_json(f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs")
         out = []
@@ -142,13 +153,13 @@ def greenhouse(slug, company):
                 continue
             out.append(item('jobs', f"{company} Careers", j.get('title'), j.get('absolute_url'),
                             organization=company, posted_at=to_date(j.get('first_published') or j.get('updated_at')),
-                            extra_info=f"🏢 {loc}"))
+                            extra_info=f"{loc}"))
         return out
     return fetcher
 
 
 def lever(slug, company):
-    """Company careers on Lever — India roles only."""
+    """Company careers on Lever: India roles only."""
     def fetcher():
         out = []
         for j in fetch_json(f"https://api.lever.co/v0/postings/{slug}?mode=json"):
@@ -158,13 +169,13 @@ def lever(slug, company):
                 continue
             out.append(item('jobs', f"{company} Careers", j.get('text'), j.get('hostedUrl'),
                             organization=company, posted_at=to_date(j.get('createdAt')),
-                            extra_info=f"🏢 {loc}"))
+                            extra_info=f"{loc}"))
         return out
     return fetcher
 
 
 def ashby(slug, company):
-    """Company careers on Ashby — India roles only."""
+    """Company careers on Ashby: India roles only."""
     def fetcher():
         out = []
         for j in fetch_json(f"https://api.ashbyhq.com/posting-api/job-board/{slug}").get('jobs', []):
@@ -173,13 +184,13 @@ def ashby(slug, company):
                 continue
             out.append(item('jobs', f"{company} Careers", j.get('title'), j.get('jobUrl'),
                             organization=company, posted_at=to_date(j.get('publishedAt')),
-                            extra_info=f"🏢 {loc or 'Remote'}"))
+                            extra_info=f"{loc or 'Remote'}"))
         return out
     return fetcher
 
 
 # =====================================================================
-# 🚀 HACKATHONS, COMPETITIONS, EVENTS, CODING CONTESTS
+# HACKATHONS, COMPETITIONS, EVENTS, CODING CONTESTS
 # =====================================================================
 
 def unstop(kind, pillar, label):
@@ -194,10 +205,10 @@ def unstop(kind, pillar, label):
             org = (d.get('organisation') or {}).get('name', '')
             region = (d.get('region') or '').title()
             city = ((d.get('address_with_country_logo') or {}).get('city') or '') if region != 'Online' else ''
-            where = ' • '.join(p for p in (region, city) if p)
+            where = ', '.join(p for p in (region, city) if p)
             out.append(item(pillar, 'Unstop', d.get('title'), d.get('seo_url'), organization=org,
                             deadline=deadline, posted_at=to_date(d.get('approved_date') or d.get('updated_at')),
-                            extra_info=f"{label}{' • ' + where if where else ''}",
+                            extra_info=f"{label}{', ' + where if where else ''}",
                             date_text=f"Apply by {nice(deadline)}" if deadline else ''))
         return out
     return fetcher
@@ -212,7 +223,7 @@ def devpost():
         where = (h.get('displayed_location') or {}).get('location', '')
         out.append(item('events', 'Devpost', h.get('title'), h.get('url'),
                         organization=h.get('organization_name') or 'Devpost',
-                        deadline=parse_range_end(dates), extra_info=f"💰 {prize} • {where}",
+                        deadline=parse_range_end(dates), extra_info=f"Prize {prize} • {where}",
                         date_text=dates))
     return out
 
@@ -243,7 +254,7 @@ def devfolio():
         out.append(item('events', 'Devfolio', h.get('name'), f"https://{h.get('slug')}.devfolio.co/",
                         organization=h.get('tagline') or 'Devfolio',
                         deadline=to_date(setting.get('reg_ends_at') or h.get('starts_at')),
-                        starts_at=to_date(h.get('starts_at')), extra_info=f"🚀 Hackathon • {where}"))
+                        starts_at=to_date(h.get('starts_at')), extra_info=f"Hackathon • {where}"))
     return out
 
 
@@ -252,7 +263,7 @@ def hackerearth():
     for h in fetch_json("https://www.hackerearth.com/chrome-extension/events/").get('response', []):
         out.append(item('events', 'HackerEarth', h.get('title'), h.get('url'), organization='HackerEarth',
                         deadline=to_date(h.get('end_tz')), starts_at=to_date(h.get('start_tz')),
-                        extra_info=f"🚀 {h.get('challenge_type') or 'Challenge'}"))
+                        extra_info=f"{h.get('challenge_type') or 'Challenge'}"))
     return out
 
 
@@ -271,7 +282,7 @@ def mlh():
         starts = to_date(start.group(1))
         where = ', '.join(x.group(1) for x in (city, country) if x and x.group(1)) or 'Online'
         out.append(item('events', 'MLH', name.group(1), url.group(1), organization='Major League Hacking',
-                        deadline=starts, starts_at=starts, extra_info=f"🚀 MLH Hackathon • {where}"))
+                        deadline=starts, starts_at=starts, extra_info=f"MLH Hackathon • {where}"))
     return out
 
 
@@ -285,7 +296,7 @@ def dev_events():
         where = re.search(r'\d{4}, ([^.]+)\.', desc)
         out.append(item('events', 'dev.events', e.findtext('title'), e.findtext('link'),
                         organization='Developer conference', deadline=starts, starts_at=starts,
-                        extra_info=f"🎤 Conference • {where.group(1) if where else ''}"))
+                        extra_info=f"Conference • {where.group(1) if where else ''}"))
     return out
 
 
@@ -296,7 +307,7 @@ def gdg():
         starts = to_date(e.get('start_date'))
         out.append(item('events', 'GDG', e.get('title'), e.get('url'),
                         organization=(e.get('chapter') or {}).get('title', 'Google Developer Groups'),
-                        deadline=starts, starts_at=starts, extra_info=f"👥 GDG Event • {e.get('city') or ''}"))
+                        deadline=starts, starts_at=starts, extra_info=f"GDG Event • {e.get('city') or ''}"))
     return out
 
 
@@ -306,9 +317,9 @@ def codeforces():
         if c.get('phase') != 'BEFORE':
             continue
         starts = to_date(c.get('startTimeSeconds'))
-        out.append(item('events', 'Codeforces', f"{c['name']} — {nice(starts)}",
+        out.append(item('events', 'Codeforces', f"{c['name']}: {nice(starts)}",
                         f"https://codeforces.com/contests/{c['id']}", organization='Codeforces',
-                        deadline=starts, starts_at=starts, extra_info="🏁 Coding contest"))
+                        deadline=starts, starts_at=starts, extra_info="Coding contest"))
     return out
 
 
@@ -317,10 +328,10 @@ def codechef():
     out = []
     for c in data.get('future_contests', []) + data.get('present_contests', []):
         starts = to_date(c.get('contest_start_date_iso'))
-        out.append(item('events', 'CodeChef', f"{c['contest_name']} — {nice(starts)}",
+        out.append(item('events', 'CodeChef', f"{c['contest_name']}: {nice(starts)}",
                         f"https://www.codechef.com/{c['contest_code']}", organization='CodeChef',
                         deadline=to_date(c.get('contest_end_date_iso')), starts_at=starts,
-                        extra_info="🏁 Coding contest"))
+                        extra_info="Coding contest"))
     return out
 
 
@@ -330,9 +341,9 @@ def leetcode():
     out = []
     for c in data['data']['upcomingContests']:
         starts = to_date(c.get('startTime'))
-        out.append(item('events', 'LeetCode', f"{c['title']} — {nice(starts)}",
+        out.append(item('events', 'LeetCode', f"{c['title']}: {nice(starts)}",
                         f"https://leetcode.com/contest/{c['titleSlug']}/", organization='LeetCode',
-                        deadline=starts, starts_at=starts, extra_info="🏁 Coding contest"))
+                        deadline=starts, starts_at=starts, extra_info="Coding contest"))
     return out
 
 
@@ -343,12 +354,12 @@ def hackerrank():
             continue
         out.append(item('events', 'HackerRank', c.get('name'), f"https://www.hackerrank.com/contests/{c['slug']}",
                         organization='HackerRank', deadline=to_date(c.get('epoch_endtime')),
-                        starts_at=to_date(c.get('epoch_starttime')), extra_info="🏁 Coding contest"))
+                        starts_at=to_date(c.get('epoch_starttime')), extra_info="Coding contest"))
     return out
 
 
 # =====================================================================
-# 💼 JOB & INTERNSHIP BOARDS
+# JOB & INTERNSHIP BOARDS
 # =====================================================================
 
 def remotive(category):
@@ -361,7 +372,7 @@ def remotive(category):
                 continue
             out.append(item('jobs', 'Remotive', j.get('title'), j.get('url'), organization=j.get('company_name'),
                             posted_at=to_date(j.get('publication_date')),
-                            extra_info=f"🌍 Remote • {loc}{' • ' + j['salary'] if j.get('salary') else ''}"))
+                            extra_info=f"Remote • {loc}{', ' + j['salary'] if j.get('salary') else ''}"))
         return out
     return fetcher
 
@@ -372,7 +383,7 @@ def jobicy():
         if not location_ok(j.get('jobGeo')):
             continue
         out.append(item('jobs', 'Jobicy', j.get('jobTitle'), j.get('url'), organization=j.get('companyName'),
-                        posted_at=to_date(j.get('pubDate')), extra_info=f"🌍 Remote • {j.get('jobGeo', '')}"))
+                        posted_at=to_date(j.get('pubDate')), extra_info=f"Remote • {j.get('jobGeo', '')}"))
     return out
 
 
@@ -386,7 +397,7 @@ def weworkremotely(category):
                 continue
             company, _, title = (e.findtext('title') or '').partition(': ')
             out.append(item('jobs', 'We Work Remotely', title or company, e.findtext('link'), organization=company,
-                            posted_at=to_date(e.findtext('pubDate')), extra_info=f"🌍 Remote • {region}"))
+                            posted_at=to_date(e.findtext('pubDate')), extra_info=f"Remote • {region}"))
         return out
     return fetcher
 
@@ -397,7 +408,7 @@ def remoteok():
         if not location_ok(j.get('location')):
             continue
         out.append(item('jobs', 'RemoteOK', j.get('position'), j.get('url'), organization=j.get('company'),
-                        posted_at=to_date(j.get('date')), extra_info="🌍 Remote"))
+                        posted_at=to_date(j.get('date')), extra_info="Remote"))
     return out
 
 
@@ -410,7 +421,7 @@ def himalayas():
         out.append(item('jobs', 'Himalayas', j.get('title'), j.get('guid') or j.get('applicationLink'),
                         organization=j.get('companyName'), posted_at=to_date(j.get('pubDate')),
                         deadline=to_date(j.get('expiryDate')),
-                        extra_info=f"🌍 Remote • {places or 'Worldwide'}"))
+                        extra_info=f"Remote • {places or 'Worldwide'}"))
     return out
 
 
@@ -420,7 +431,7 @@ def working_nomads():
         if j.get('category_name') != 'Development' or not location_ok(j.get('location')):
             continue
         out.append(item('jobs', 'Working Nomads', j.get('title'), j.get('url'), organization=j.get('company_name'),
-                        posted_at=to_date(j.get('pub_date')), extra_info=f"🌍 Remote • {j.get('location', '')}"))
+                        posted_at=to_date(j.get('pub_date')), extra_info=f"Remote • {j.get('location', '')}"))
     return out
 
 
@@ -429,20 +440,20 @@ def hn_jobs():
     out = []
     for e in root.findall('.//item'):
         out.append(item('jobs', 'Hacker News Jobs', e.findtext('title'), e.findtext('link'),
-                        organization='YC startup', posted_at=to_date(e.findtext('pubDate')), extra_info="🚀 Startup"))
+                        organization='YC startup', posted_at=to_date(e.findtext('pubDate')), extra_info="Startup"))
     return out
 
 
 # =====================================================================
-# REGISTRY — (name, pillar, fetcher)
+# REGISTRY: (name, pillar, fetcher)
 # =====================================================================
 
 SOURCES = [
     # ---- Hackathons, competitions, events, contests (14) ----
-    ('Unstop Hackathons', 'events', unstop('hackathons', 'events', '🚀 Hackathon')),
-    ('Unstop Competitions', 'events', unstop('competitions', 'events', '🏆 Competition')),
-    ('Unstop Scholarships', 'events', unstop('scholarships', 'events', '🎓 Scholarship')),
-    ('Unstop Workshops', 'events', unstop('workshops', 'events', '🛠️ Workshop')),
+    ('Unstop Hackathons', 'events', unstop('hackathons', 'events', 'Hackathon')),
+    ('Unstop Competitions', 'events', unstop('competitions', 'events', 'Competition')),
+    ('Unstop Scholarships', 'events', unstop('scholarships', 'events', 'Scholarship')),
+    ('Unstop Workshops', 'events', unstop('workshops', 'events', 'Workshop')),
     ('Devpost', 'events', devpost),
     ('Devfolio', 'events', devfolio),
     ('HackerEarth', 'events', hackerearth),
@@ -455,8 +466,8 @@ SOURCES = [
     ('HackerRank', 'events', hackerrank),
 
     # ---- Job & internship boards (12) ----
-    ('Unstop Internships', 'jobs', unstop('internships', 'jobs', '🎓 Internship')),
-    ('Unstop Jobs', 'jobs', unstop('jobs', 'jobs', '💼 Job')),
+    ('Unstop Internships', 'jobs', unstop('internships', 'jobs', 'Internship')),
+    ('Unstop Jobs', 'jobs', unstop('jobs', 'jobs', 'Job')),
     ('Remotive Software', 'jobs', remotive('software-dev')),
     ('Remotive Data', 'jobs', remotive('data')),
     ('Jobicy', 'jobs', jobicy),
@@ -494,26 +505,26 @@ SOURCES = [
     ('Atlan', 'jobs', ashby('atlan', 'Atlan')),
 
     # ---- Tech news (22) ----
-    ('Google AI Blog', 'news', rss("https://blog.google/technology/ai/rss/", 'Google AI Blog', tag='🤖 AI')),
-    ('Google Developers', 'news', rss("https://developers.googleblog.com/feeds/posts/default?alt=rss", 'Google Developers', tag='🛠️ Dev')),
-    ('Hugging Face', 'news', rss("https://huggingface.co/blog/feed.xml", 'Hugging Face', tag='🤗 Open-Source AI')),
-    ('OpenAI', 'news', rss("https://openai.com/news/rss.xml", 'OpenAI', tag='🤖 AI')),
-    ('TechCrunch', 'news', rss("https://techcrunch.com/category/artificial-intelligence/feed/", 'TechCrunch', tag='⚡ Big Tech & AI')),
-    ('The Verge', 'news', rss("https://www.theverge.com/rss/index.xml", 'The Verge', tag='📱 Tech')),
-    ('Ars Technica', 'news', rss("https://feeds.arstechnica.com/arstechnica/technology-lab", 'Ars Technica', tag='📱 Tech')),
-    ('MIT Technology Review', 'news', rss("https://www.technologyreview.com/feed/", 'MIT Technology Review', tag='🔬 Research')),
-    ('Hacker News', 'news', rss("https://hnrss.org/frontpage?points=300", 'Hacker News', tag='🔥 Trending')),
-    ('GitHub Blog', 'news', rss("https://github.blog/feed/", 'GitHub Blog', tag='🛠️ Dev')),
-    ('Stack Overflow Blog', 'news', rss("https://stackoverflow.blog/feed/", 'Stack Overflow Blog', tag='🛠️ Dev')),
-    ('DEV Community', 'news', rss("https://dev.to/feed", 'DEV Community', tag='🛠️ Dev')),
-    ('JetBrains Blog', 'news', rss("https://blog.jetbrains.com/feed/", 'JetBrains Blog', tag='🛠️ Dev')),
-    ('Cloudflare Blog', 'news', rss("https://blog.cloudflare.com/rss/", 'Cloudflare Blog', tag='☁️ Cloud')),
-    ('AWS News', 'news', rss("https://aws.amazon.com/blogs/aws/feed/", 'AWS News', tag='☁️ Cloud')),
-    ('Product Hunt', 'news', rss("https://www.producthunt.com/feed", 'Product Hunt', tag='🚀 Launches')),
-    ('YourStory', 'news', rss("https://yourstory.com/feed", 'YourStory', tag='🇮🇳 Indian Startups')),
-    ('Inc42', 'news', rss("https://inc42.com/feed/", 'Inc42', tag='🇮🇳 Indian Tech & Funding')),
-    ('Analytics India Magazine', 'news', rss("https://analyticsindiamag.com/feed/", 'Analytics India Magazine', tag='🇮🇳 AI in India')),
-    ('ET Tech', 'news', rss("https://economictimes.indiatimes.com/tech/rssfeeds/13357270.cms", 'ET Tech', tag='🇮🇳 Indian Tech')),
-    ('Mint Tech', 'news', rss("https://www.livemint.com/rss/technology", 'Mint Tech', tag='🇮🇳 Indian Tech')),
-    ('MediaNama', 'news', rss("https://www.medianama.com/feed/", 'MediaNama', tag='🇮🇳 Tech Policy')),
+    ('Google AI Blog', 'news', rss("https://blog.google/technology/ai/rss/", 'Google AI Blog', tag='AI')),
+    ('Google Developers', 'news', rss("https://developers.googleblog.com/feeds/posts/default?alt=rss", 'Google Developers', tag='Dev')),
+    ('Hugging Face', 'news', rss("https://huggingface.co/blog/feed.xml", 'Hugging Face', tag='Open-Source AI')),
+    ('OpenAI', 'news', rss("https://openai.com/news/rss.xml", 'OpenAI', tag='AI')),
+    ('TechCrunch', 'news', rss("https://techcrunch.com/category/artificial-intelligence/feed/", 'TechCrunch', tag='Big Tech & AI')),
+    ('The Verge', 'news', rss("https://www.theverge.com/rss/index.xml", 'The Verge', tag='Tech')),
+    ('Ars Technica', 'news', rss("https://feeds.arstechnica.com/arstechnica/technology-lab", 'Ars Technica', tag='Tech')),
+    ('MIT Technology Review', 'news', rss("https://www.technologyreview.com/feed/", 'MIT Technology Review', tag='Research')),
+    ('Hacker News', 'news', rss("https://hnrss.org/frontpage?points=300", 'Hacker News', tag='Trending')),
+    ('GitHub Blog', 'news', rss("https://github.blog/feed/", 'GitHub Blog', tag='Dev')),
+    ('Stack Overflow Blog', 'news', rss("https://stackoverflow.blog/feed/", 'Stack Overflow Blog', tag='Dev')),
+    ('DEV Community', 'news', rss("https://dev.to/feed", 'DEV Community', tag='Dev')),
+    ('JetBrains Blog', 'news', rss("https://blog.jetbrains.com/feed/", 'JetBrains Blog', tag='Dev')),
+    ('Cloudflare Blog', 'news', rss("https://blog.cloudflare.com/rss/", 'Cloudflare Blog', tag='Cloud')),
+    ('AWS News', 'news', rss("https://aws.amazon.com/blogs/aws/feed/", 'AWS News', tag='Cloud')),
+    ('Product Hunt', 'news', rss("https://www.producthunt.com/feed", 'Product Hunt', tag='Launches')),
+    ('YourStory', 'news', rss("https://yourstory.com/feed", 'YourStory', tag='Indian Startups')),
+    ('Inc42', 'news', rss("https://inc42.com/feed/", 'Inc42', tag='Indian Tech & Funding')),
+    ('Analytics India Magazine', 'news', rss("https://analyticsindiamag.com/feed/", 'Analytics India Magazine', tag='AI in India')),
+    ('ET Tech', 'news', rss("https://economictimes.indiatimes.com/tech/rssfeeds/13357270.cms", 'ET Tech', tag='Indian Tech')),
+    ('Mint Tech', 'news', rss("https://www.livemint.com/rss/technology", 'Mint Tech', tag='Indian Tech')),
+    ('MediaNama', 'news', rss("https://www.medianama.com/feed/", 'MediaNama', tag='Tech Policy')),
 ]

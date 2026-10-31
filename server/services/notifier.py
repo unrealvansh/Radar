@@ -57,7 +57,7 @@ def send_push(title: str, message: str, priority: str = "default", tags: list = 
         )
         return response.status_code == 200
     except Exception as e:
-        print(f"⚠️ Failed to send notification: {e}")
+        print(f"Failed to send notification: {e}")
         return False
 
 
@@ -68,7 +68,7 @@ notify = send_push
 if __name__ == "__main__":
     print(f"Testing push notification to ntfy topic: {get_topic()}")
     success = send_push(
-        title="📡 Radar Online",
+        title="Radar Online",
         message="Push notifications are working!",
         priority="high",
         tags=["rocket"]

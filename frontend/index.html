@@ -5,97 +5,85 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Radar</title>
     <meta name="description" content="Student opportunity radar: internships, jobs, hackathons and deadlines.">
-    <meta name="theme-color" content="#12100E">
+    <meta name="theme-color" content="#1D1915">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="/manifest.json">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=B612:ital,wght@0,400;0,700;1,400&family=B612+Mono&display=swap" rel="stylesheet">
 
     <style>
         /* ================================================================
-           DESIGN TOKENS — pale lavender + shiny silver on espresso.
-           Flat colours only: "shine" comes from highlights and halos.
+           DESIGN TOKENS
+           A radar console: B612 (the typeface drawn for Airbus cockpit
+           displays) on warm umber, polished-silver edges, lavender only
+           for the live signal (active, focus, blips). Flat fills, no
+           blur, no glows, no drop shadows.
            ================================================================ */
         :root {
-            --font-head: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
-            --font-body: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
-            --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
-            --radius: 14px;
-            --radius-sm: 10px;
-            --sidebar-w: 248px;
+            --font: 'B612', 'Segoe UI', system-ui, sans-serif;
+            --font-mono: 'B612 Mono', ui-monospace, Consolas, monospace;
+            --r: 3px;
+            --sidebar-w: 232px;
             --ease: cubic-bezier(.2, .8, .2, 1);
         }
 
         [data-theme="dark"] {
             color-scheme: dark;
-            --bg: #12100E;
-            --dots: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='1.5' cy='1.5' r='1' fill='%23C9CAD3' fill-opacity='0.07'/%3E%3C/svg%3E");
-            --surface: #1A1714;
-            --surface-2: #221E1A;
-            --surface-3: #2B2622;
-            --glass: rgba(24, 21, 18, 0.74);
-            --line: #36333A;
-            --line-strong: #55535D;
-            --text: #E4E4EA;
-            --text-2: #B4B4BE;
-            --text-3: #8E8E98;
-            --lav: #C8C2EC;
-            --lav-ink: #1B1730;
-            --lav-soft: rgba(200, 194, 236, 0.12);
-            --lav-line: rgba(200, 194, 236, 0.55);
-            --silver: #C9CAD3;
-            --silver-soft: rgba(201, 202, 211, 0.09);
-            --silver-line: rgba(201, 202, 211, 0.28);
-            --bronze: #C29B76;
-            --bronze-soft: rgba(194, 155, 118, 0.14);
-            --danger: #E69A9A;
-            --danger-soft: rgba(230, 154, 154, 0.13);
-            --ok: #9ED0B2;
-            --ok-soft: rgba(158, 208, 178, 0.12);
-            --shine: inset 0 1px 0 rgba(255, 255, 255, 0.07);
-            --metal: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.35);
-            --halo: 0 0 0 1px var(--silver-line), 0 0 20px rgba(222, 224, 236, 0.10);
-            --halo-lav: 0 0 0 1px var(--lav-line), 0 0 24px rgba(200, 194, 236, 0.20);
-            --shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 30px rgba(0, 0, 0, 0.35);
-            --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
-            --glow-text: 0 0 14px rgba(226, 228, 240, 0.18);
+            --bg: #1D1915;
+            --surface: #25201B;
+            --surface-2: #2C2620;
+            --surface-3: #352E27;
+            --line: #443C34;
+            --line-strong: #5E554B;
+            --text: #E6E4E8;
+            --text-2: #B7B3B6;
+            --text-3: #928C8C;
+            --lav: #BCB6DE;
+            --lav-ink: #1D1915;
+            --lav-soft: rgba(188, 182, 222, 0.11);
+            --lav-line: rgba(188, 182, 222, 0.6);
+            --silver: #CDCDD4;
+            --silver-soft: rgba(205, 205, 212, 0.07);
+            --silver-line: rgba(205, 205, 212, 0.3);
+            --bronze: #CFA47C;
+            --bronze-soft: rgba(207, 164, 124, 0.13);
+            --danger: #DE8A80;
+            --danger-soft: rgba(222, 138, 128, 0.12);
+            --ok: #A3BFA8;
+            --ok-soft: rgba(163, 191, 168, 0.12);
+            /* polished-metal edge: a 1px highlight on top, a dark lip below */
+            --metal: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+            --scrim: rgba(18, 15, 12, 0.72);
         }
 
         [data-theme="light"] {
             color-scheme: light;
-            --bg: #F6F4F1;
-            --dots: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='1.5' cy='1.5' r='1' fill='%231E1B18' fill-opacity='0.08'/%3E%3C/svg%3E");
-            --surface: #FFFFFF;
-            --surface-2: #F2EFEB;
-            --surface-3: #E9E5E0;
-            --glass: rgba(255, 255, 255, 0.78);
-            --line: #DEDAE2;
-            --line-strong: #BDB9C6;
-            --text: #1E1B18;
-            --text-2: #4A4652;
-            --text-3: #66626E;
-            --lav: #5E54A8;
-            --lav-ink: #FFFFFF;
-            --lav-soft: rgba(94, 84, 168, 0.09);
-            --lav-line: rgba(94, 84, 168, 0.45);
-            --silver: #7D7E89;
-            --silver-soft: rgba(125, 126, 137, 0.10);
-            --silver-line: rgba(125, 126, 137, 0.35);
-            --bronze: #7A5A3E;
-            --bronze-soft: rgba(122, 90, 62, 0.11);
-            --danger: #B23B3B;
-            --danger-soft: rgba(178, 59, 59, 0.09);
-            --ok: #2F7A52;
-            --ok-soft: rgba(47, 122, 82, 0.10);
-            --shine: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-            --metal: inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 0 rgba(0, 0, 0, 0.06);
-            --halo: 0 0 0 1px var(--silver-line), 0 6px 18px rgba(30, 27, 24, 0.08);
-            --halo-lav: 0 0 0 1px var(--lav-line), 0 6px 22px rgba(94, 84, 168, 0.14);
-            --shadow: 0 1px 2px rgba(30, 27, 24, 0.06), 0 8px 24px rgba(30, 27, 24, 0.07);
-            --shadow-lg: 0 24px 60px rgba(30, 27, 24, 0.18);
-            --glow-text: none;
+            --bg: #E6E4E9;
+            --surface: #F0EFF3;
+            --surface-2: #E1DFE5;
+            --surface-3: #D6D3DB;
+            --line: #C4C0CA;
+            --line-strong: #A29DA8;
+            --text: #221D18;
+            --text-2: #4B4550;
+            --text-3: #645E68;
+            --lav: #524A95;
+            --lav-ink: #F0EFF3;
+            --lav-soft: rgba(82, 74, 149, 0.09);
+            --lav-line: rgba(82, 74, 149, 0.55);
+            --silver: #6E6C78;
+            --silver-soft: rgba(110, 108, 120, 0.08);
+            --silver-line: rgba(110, 108, 120, 0.4);
+            --bronze: #74532F;
+            --bronze-soft: rgba(116, 83, 47, 0.1);
+            --danger: #A83A30;
+            --danger-soft: rgba(168, 58, 48, 0.08);
+            --ok: #3A6B4A;
+            --ok-soft: rgba(58, 107, 74, 0.09);
+            --metal: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 -1px 0 rgba(0, 0, 0, 0.07);
+            --scrim: rgba(34, 29, 24, 0.4);
         }
 
         /* ================================================================
@@ -105,10 +93,9 @@
         html { -webkit-text-size-adjust: 100%; }
         body {
             min-height: 100vh;
-            background: var(--bg) var(--dots);
-            background-attachment: fixed;
+            background: var(--bg);
             color: var(--text);
-            font: 14px/1.55 var(--font-body);
+            font: 13.5px/1.55 var(--font);
             -webkit-font-smoothing: antialiased;
             -webkit-tap-highlight-color: transparent;
             overflow-x: hidden;
@@ -116,127 +103,113 @@
         [hidden] { display: none !important; }
         a { color: inherit; }
         button, input, select, textarea { font: inherit; color: inherit; }
-        h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.02em; line-height: 1.2; }
+        h1, h2, h3 { font-weight: 700; line-height: 1.25; }
         .mono { font-family: var(--font-mono); font-feature-settings: "tnum"; }
         .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
         :focus { outline: none; }
-        :focus-visible {
-            outline: 2px solid var(--lav);
-            outline-offset: 2px;
-            border-radius: 8px;
-        }
+        :focus-visible { outline: 2px solid var(--lav); outline-offset: 2px; }
 
-        .ic { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-        .ic-sm { width: 15px; height: 15px; }
+        .ic { width: 17px; height: 17px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: square; stroke-linejoin: miter; }
+        .ic-sm { width: 14px; height: 14px; }
 
         .skip-link {
             position: absolute; left: 12px; top: -60px; z-index: 300;
-            background: var(--lav); color: var(--lav-ink); padding: 10px 14px; border-radius: 10px; font-weight: 600;
+            background: var(--lav); color: var(--lav-ink); padding: 10px 14px; border-radius: var(--r); font-weight: 700;
         }
         .skip-link:focus { top: 12px; }
 
         /* ================================================================
-           BUTTONS, INPUTS, TAGS — the "polished metal" edge
+           BUTTONS, INPUTS, TAGS
            ================================================================ */
         .btn {
             display: inline-flex; align-items: center; justify-content: center; gap: 8px;
             min-height: 40px; padding: 0 16px;
-            border-radius: var(--radius-sm);
+            border-radius: var(--r);
             border: 1px solid var(--silver-line);
             background: var(--surface-2);
             box-shadow: var(--metal);
             color: var(--text);
-            font-weight: 600; font-size: 13.5px;
+            font-weight: 700; font-size: 13px;
             cursor: pointer; text-decoration: none; white-space: nowrap;
-            transition: transform .15s var(--ease), box-shadow .2s var(--ease), border-color .2s, background .2s;
         }
-        .btn:hover { border-color: var(--silver); box-shadow: var(--metal), var(--halo); }
-        .btn:active { transform: scale(0.98); }
+        .btn:hover { border-color: var(--silver); }
+        .btn:active { background: var(--surface-3); }
         .btn-primary { background: var(--lav); color: var(--lav-ink); border-color: var(--lav); }
-        .btn-primary:hover { border-color: var(--lav); box-shadow: var(--metal), var(--halo-lav); }
+        .btn-primary:hover { border-color: var(--text); }
+        .btn-primary:active { background: var(--lav); border-color: var(--text-2); }
         .btn-ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--text-2); }
-        .btn-ghost:hover { background: var(--silver-soft); border-color: var(--line); box-shadow: none; color: var(--text); }
+        .btn-ghost:hover { border-color: var(--line); color: var(--text); }
         .btn-sm { min-height: 34px; padding: 0 12px; font-size: 12.5px; }
-        .btn.is-on { border-color: var(--lav-line); color: var(--lav); background: var(--lav-soft); }
+        .btn.is-on { border-color: var(--lav-line); color: var(--lav); background: var(--lav-soft); box-shadow: none; }
 
         .icon-btn {
             display: inline-grid; place-items: center;
             width: 40px; height: 40px; flex-shrink: 0;
-            border-radius: var(--radius-sm);
+            border-radius: var(--r);
             border: 1px solid var(--silver-line);
             background: var(--surface-2);
             box-shadow: var(--metal);
             color: var(--text-2);
             cursor: pointer;
-            transition: transform .15s var(--ease), box-shadow .2s, color .2s, border-color .2s;
         }
-        .icon-btn:hover { color: var(--text); border-color: var(--silver); box-shadow: var(--metal), var(--halo); }
-        .icon-btn:active { transform: scale(0.95); }
+        .icon-btn:hover { color: var(--text); border-color: var(--silver); }
+        .icon-btn:active { background: var(--surface-3); }
         .icon-btn.is-on { color: var(--lav); border-color: var(--lav-line); background: var(--lav-soft); }
         .icon-btn-sm { width: 34px; height: 34px; }
 
         .input, select.input, textarea.input {
-            width: 100%; min-height: 42px; padding: 9px 13px;
-            background: var(--surface-2);
+            width: 100%; min-height: 42px; padding: 9px 12px;
+            background: var(--surface);
             border: 1px solid var(--line);
-            border-radius: var(--radius-sm);
-            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
-            transition: border-color .2s, box-shadow .2s;
+            border-radius: var(--r);
         }
         .input::placeholder { color: var(--text-3); }
-        .input:focus { border-color: var(--lav-line); box-shadow: 0 0 0 3px var(--lav-soft); outline: none; }
-        .field-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-2); margin-bottom: 6px; letter-spacing: .02em; }
+        .input:focus { border-color: var(--lav); outline: none; }
+        .field-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-2); margin-bottom: 6px; }
 
         .tag {
             display: inline-flex; align-items: center; gap: 5px;
-            height: 24px; padding: 0 9px;
-            border-radius: 999px;
-            font-size: 11.5px; font-weight: 600; white-space: nowrap;
-            background: var(--silver-soft); color: var(--text-2);
+            height: 22px; padding: 0 7px;
+            border-radius: 2px;
+            font-size: 11.5px; white-space: nowrap;
+            color: var(--text-2);
             border: 1px solid var(--line);
         }
-        .tag-lav { background: var(--lav-soft); color: var(--lav); border-color: var(--lav-line); }
-        .tag-bronze { background: var(--bronze-soft); color: var(--bronze); border-color: transparent; }
-        .tag-danger { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
-        .tag-ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+        .tag-lav { color: var(--lav); border-color: var(--lav-line); }
+        .tag-bronze { color: var(--bronze); border-color: var(--bronze); }
+        .tag-danger { color: var(--danger); border-color: var(--danger); }
+        .tag-ok { color: var(--ok); border-color: var(--ok); }
 
         .seg {
-            display: inline-flex; padding: 3px; gap: 2px;
-            background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px;
-            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+            display: inline-flex; padding: 2px; gap: 2px;
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
         }
         .seg button {
-            min-height: 32px; padding: 0 12px; border: 0; border-radius: 9px;
-            background: transparent; color: var(--text-2); font-weight: 600; font-size: 12.5px; cursor: pointer;
+            min-height: 32px; padding: 0 12px; border: 1px solid transparent; border-radius: 2px;
+            background: transparent; color: var(--text-2); font-weight: 700; font-size: 12.5px; cursor: pointer;
             display: inline-flex; align-items: center; gap: 6px;
-            transition: background .2s, color .2s, box-shadow .2s;
         }
+        .seg button:hover { color: var(--text); }
         .seg button[aria-pressed="true"], .seg button[aria-selected="true"] {
-            background: var(--surface-3); color: var(--text); box-shadow: var(--metal), 0 0 0 1px var(--silver-line);
+            background: var(--surface-3); color: var(--text); border-color: var(--silver-line); box-shadow: var(--metal);
         }
 
         kbd {
             font-family: var(--font-mono); font-size: 11px;
             min-width: 20px; height: 20px; padding: 0 5px;
             display: inline-grid; place-items: center;
-            border-radius: 6px; border: 1px solid var(--silver-line);
+            border-radius: 2px; border: 1px solid var(--silver-line);
             background: var(--surface-3); color: var(--text-2); box-shadow: var(--metal);
         }
 
         /* ================================================================
            SURFACES
            ================================================================ */
-        .glass {
-            background: var(--glass);
-            backdrop-filter: blur(18px) saturate(140%);
-            -webkit-backdrop-filter: blur(18px) saturate(140%);
-        }
         .panel {
             background: var(--surface);
             border: 1px solid var(--line);
-            border-radius: var(--radius);
-            box-shadow: var(--shine), var(--shadow);
+            border-radius: var(--r);
         }
 
         /* ================================================================
@@ -248,196 +221,200 @@
             position: fixed; inset: 0 auto 0 0; z-index: 50;
             width: var(--sidebar-w);
             display: flex; flex-direction: column; gap: 6px;
-            padding: 18px 14px;
+            padding: 18px 12px;
+            background: var(--bg);
             border-right: 1px solid var(--line);
         }
-        .brand { display: flex; align-items: center; gap: 11px; padding: 4px 8px 18px; }
-        .brand-name { font-family: var(--font-head); font-weight: 700; font-size: 19px; letter-spacing: -.02em; text-shadow: var(--glow-text); }
-        .brand-sub { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
+        .brand { display: flex; align-items: center; gap: 10px; padding: 2px 8px 20px; }
+        .brand-name { font-weight: 700; font-size: 17px; letter-spacing: .01em; }
+        .brand-sub { font-size: 11.5px; color: var(--text-3); }
 
         .nav-item {
             display: flex; align-items: center; gap: 12px;
-            width: 100%; min-height: 44px; padding: 0 12px;
-            border: 1px solid transparent; border-radius: 11px;
+            width: 100%; min-height: 42px; padding: 0 10px;
+            border: 1px solid transparent; border-radius: var(--r);
             background: transparent; color: var(--text-2);
-            font-weight: 500; font-size: 14px; text-align: left; cursor: pointer;
-            transition: background .2s, color .2s, border-color .2s, box-shadow .2s;
+            font-size: 13.5px; text-align: left; cursor: pointer;
         }
-        .nav-item:hover { background: var(--silver-soft); color: var(--text); }
+        .nav-item:hover { color: var(--text); border-color: var(--line); }
         .nav-item[aria-current="page"] {
-            background: var(--lav-soft); color: var(--text);
-            border-color: var(--lav-line); box-shadow: var(--shine), 0 0 18px rgba(200, 194, 236, 0.10);
+            background: var(--surface-2); color: var(--text); font-weight: 700;
+            border-color: var(--silver-line); box-shadow: var(--metal);
         }
         .nav-item[aria-current="page"] .ic { color: var(--lav); }
         .nav-item .nav-label { flex: 1; }
-        .nav-item kbd { opacity: .7; }
-        .nav-count { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); }
+        .nav-count { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); font-weight: 400; }
 
-        .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
-        .scan-card { padding: 14px; }
+        .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+        .scan-card { padding: 12px; }
         .scan-row { display: flex; align-items: center; gap: 12px; }
-        .scan-title { font-weight: 600; font-size: 13px; }
-        .scan-meta { font-size: 11.5px; color: var(--text-3); font-family: var(--font-mono); }
+        .scan-title { font-weight: 700; font-size: 12.5px; }
+        .scan-meta { font-size: 11.5px; color: var(--text-3); }
+        .legal-links { display: flex; gap: 12px; padding: 6px 4px 0; font-size: 11.5px; color: var(--text-3); }
+        .legal-links a { text-decoration: none; }
+        .legal-links a:hover { color: var(--text); text-decoration: underline; }
 
         .main-col { flex: 1; min-width: 0; margin-left: var(--sidebar-w); display: flex; flex-direction: column; }
 
         .topbar {
             position: sticky; top: 0; z-index: 40;
-            display: flex; align-items: center; gap: 12px;
-            height: 68px; padding: 0 28px;
+            display: flex; align-items: center; gap: 10px;
+            height: 62px; padding: 0 28px;
+            background: var(--bg);
             border-bottom: 1px solid var(--line);
         }
-        .topbar-title { font-family: var(--font-head); font-size: 20px; font-weight: 600; flex: 1; min-width: 0; }
-        .topbar-brand { display: none; align-items: center; gap: 9px; flex: 1; font-family: var(--font-head); font-weight: 700; font-size: 18px; }
+        .topbar-title { font-size: 17px; flex: 1; min-width: 0; }
+        .topbar-brand { display: none; align-items: center; gap: 9px; flex: 1; font-weight: 700; font-size: 16px; }
 
         .search-trigger {
             display: flex; align-items: center; gap: 10px;
-            width: min(380px, 40vw); min-height: 40px; padding: 0 10px 0 13px;
-            border: 1px solid var(--line); border-radius: var(--radius-sm);
-            background: var(--surface-2); color: var(--text-3);
-            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+            width: min(360px, 40vw); min-height: 40px; padding: 0 8px 0 12px;
+            border: 1px solid var(--line); border-radius: var(--r);
+            background: var(--surface); color: var(--text-3);
             cursor: pointer; text-align: left;
-            transition: border-color .2s, box-shadow .2s;
         }
-        .search-trigger:hover { border-color: var(--silver-line); }
-        .search-trigger span { flex: 1; font-size: 13.5px; }
+        .search-trigger:hover { border-color: var(--silver-line); color: var(--text-2); }
+        .search-trigger span { flex: 1; font-size: 13px; }
 
-        main { flex: 1; padding: 26px 28px 60px; width: 100%; max-width: 1320px; }
+        main { flex: 1; padding: 26px 28px 60px; width: 100%; max-width: 1280px; }
         .view { display: none; }
-        .view.active { display: block; animation: viewIn .35s var(--ease); }
-        @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .view.active { display: block; }
 
-        .section { margin-top: 28px; }
-        .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-        .section-title { font-family: var(--font-head); font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 9px; }
-        .section-title .ic { color: var(--lav); }
-        .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-3); }
+        .section { margin-top: 34px; }
+        .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+        .section-title { font-size: 15px; display: flex; align-items: baseline; gap: 10px; }
+        .section-title small { font-weight: 400; font-size: 12px; color: var(--text-3); }
+        .label { font-size: 12px; color: var(--text-3); }
 
         /* Mobile tab bar */
         .tabbar {
             display: none;
             position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
-            height: calc(66px + env(safe-area-inset-bottom));
-            padding: 6px 6px env(safe-area-inset-bottom);
+            height: calc(62px + env(safe-area-inset-bottom));
+            padding: 0 4px env(safe-area-inset-bottom);
+            background: var(--bg);
             border-top: 1px solid var(--line);
             justify-content: space-around;
         }
         .tab {
-            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-            border: 0; background: transparent; color: var(--text-3);
-            font-size: 10.5px; font-weight: 600; cursor: pointer; border-radius: 12px;
-            transition: color .2s;
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+            border: 0; border-top: 2px solid transparent; background: transparent; color: var(--text-3);
+            font-size: 10.5px; cursor: pointer;
         }
-        .tab .tab-ic {
-            display: grid; place-items: center; width: 46px; height: 28px; border-radius: 999px;
-            transition: background .2s, box-shadow .2s;
-        }
-        .tab[aria-current="page"] { color: var(--text); }
-        .tab[aria-current="page"] .tab-ic { background: var(--lav-soft); color: var(--lav); box-shadow: 0 0 0 1px var(--lav-line); }
+        .tab .tab-ic { display: grid; place-items: center; height: 22px; }
+        .tab[aria-current="page"] { color: var(--text); border-top-color: var(--lav); font-weight: 700; }
+        .tab[aria-current="page"] .tab-ic { color: var(--lav); }
 
         /* ================================================================
-           RADAR LOGO (rotating sweep line — no gradients)
+           RADAR LOGO. The sweep only turns while a scan is running.
            ================================================================ */
         /* Selectors target the symbol's own elements (ancestor selectors don't reach into <use>);
-           the scan speed-up travels in through the inherited --sweep-dur variable. */
-        .radar-logo { width: 36px; height: 36px; flex-shrink: 0; }
-        .r-ring { fill: none; stroke: var(--silver); stroke-opacity: .55; stroke-width: 1.2; }
-        .r-ring-outer { stroke-opacity: .95; stroke-width: 1.6; }
-        .r-sweep { stroke: var(--lav); stroke-width: 2; stroke-linecap: round; transform-origin: 20px 20px; animation: sweep var(--sweep-dur, 4s) linear infinite; }
-        .r-blip { fill: var(--lav); animation: blip 4s ease-in-out infinite; }
-        .r-blip-2 { animation-delay: 1.6s; }
-        .scanning { --sweep-dur: 1.1s; }
-        @keyframes sweep { to { transform: rotate(360deg); } }
-        @keyframes blip { 0%, 100% { opacity: .15; } 40% { opacity: 1; } }
+           the scan state travels in through the inherited --sweep-play variable. */
+        .radar-logo { width: 32px; height: 32px; flex-shrink: 0; }
+        .r-ring { fill: none; stroke: var(--silver); stroke-opacity: .5; stroke-width: 1.2; }
+        .r-ring-outer { stroke-opacity: .9; stroke-width: 1.5; }
+        .r-sweep { stroke: var(--lav); stroke-width: 2; stroke-linecap: square; transform-origin: 20px 20px; transform: rotate(40deg);
+                   animation: sweep 1.2s linear infinite; animation-play-state: var(--sweep-play, paused); }
+        .r-blip { fill: var(--lav); }
+        .scanning { --sweep-play: running; }
+        @keyframes sweep { from { transform: rotate(40deg); } to { transform: rotate(400deg); } }
 
         /* ================================================================
-           DASHBOARD
+           DASHBOARD: scope + readout
            ================================================================ */
-        .hero { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: end; }
-        .hero h1 { font-size: 30px; font-weight: 600; text-shadow: var(--glow-text); }
-        .hero p { color: var(--text-2); margin-top: 6px; }
+        .console { display: grid; grid-template-columns: minmax(0, 1fr) 300px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+        .console-main { padding: 22px 24px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+        .console-head h1 { font-size: 24px; }
+        .console-head p { color: var(--text-2); margin-top: 4px; }
+        .console-date { font-size: 12.5px; color: var(--text-3); margin-bottom: 6px; }
 
-        .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
-        .stat {
-            position: relative; padding: 16px 18px; text-align: left; cursor: pointer;
-            border: 1px solid var(--silver-line);
-            transition: transform .2s var(--ease), box-shadow .25s var(--ease), border-color .2s;
+        .readout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); margin-top: auto; }
+        .readout button {
+            text-align: left; padding: 14px 14px 4px 0; background: none; border: 0; cursor: pointer; color: var(--text-2);
+            font-size: 12px; border-right: 1px solid var(--line); padding-left: 14px;
         }
-        .stat:hover { transform: translateY(-2px); box-shadow: var(--shine), var(--halo); border-color: var(--silver); }
-        .stat-top { display: flex; align-items: center; justify-content: space-between; color: var(--text-2); font-size: 12.5px; font-weight: 500; }
-        .stat-top .ic { color: var(--silver); }
-        .stat-value { font-family: var(--font-mono); font-size: 32px; font-weight: 500; margin-top: 8px; letter-spacing: -.02em; text-shadow: var(--glow-text); }
-        .stat-foot { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
-        .stat.accent .stat-value { color: var(--lav); }
+        .readout button:first-child { padding-left: 0; }
+        .readout button:last-child { border-right: 0; }
+        .readout button:hover b { color: var(--lav); }
+        .readout b { display: block; font-family: var(--font-mono); font-size: 30px; font-weight: 400; line-height: 1.1; color: var(--text); margin-bottom: 4px; font-feature-settings: "tnum"; }
+        .readout .is-signal b { color: var(--lav); }
+
+        .scope-wrap { border-left: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+        .scope { width: 100%; aspect-ratio: 1; display: block; }
+        .scope .ring { fill: none; stroke: var(--line-strong); stroke-width: 1; }
+        .scope .ring-edge { stroke: var(--silver); stroke-opacity: .7; }
+        .scope .axis { stroke: var(--line); stroke-width: 1; }
+        .scope .ring-label { fill: var(--text-3); font: 9px var(--font-mono); }
+        .scope .sector-label { fill: var(--text-3); font: 9.5px var(--font); }
+        .scope .sweep { stroke: var(--lav); stroke-width: 1.5; stroke-opacity: .8; transform-origin: 120px 120px; animation: sweep-scope 6s linear infinite; }
+        @keyframes sweep-scope { to { transform: rotate(360deg); } }
+        .scope .blip { cursor: pointer; }
+        .scope .blip rect:not(.hit) { fill: var(--lav); }
+        .scope .blip.jobs rect:not(.hit) { fill: var(--silver); }
+        .scope .blip.urgent rect:not(.hit) { fill: var(--bronze); }
+        .scope .blip .hit { fill: transparent; }
+        .scope .blip:hover rect:not(.hit), .scope .blip:focus-visible rect:not(.hit) { stroke: var(--text); stroke-width: 1.5; }
+        .scope .blip:focus-visible { outline: none; }
+        .scope-caption { font-size: 11.5px; color: var(--text-3); line-height: 1.45; }
+        .scope-key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--text-2); }
+        .scope-key span { display: inline-flex; align-items: center; gap: 6px; }
+        .scope-key i { width: 7px; height: 7px; background: var(--lav); }
+        .scope-key i.jobs { background: var(--silver); }
+        .scope-key i.urgent { background: var(--bronze); }
 
         .rail {
-            display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 300px); gap: 14px;
-            overflow-x: auto; padding: 4px 2px 12px; scroll-snap-type: x mandatory;
+            display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 300px); gap: 12px;
+            overflow-x: auto; padding: 2px 2px 12px; scroll-snap-type: x mandatory;
             scrollbar-width: thin; scrollbar-color: var(--line) transparent;
         }
         .rail > * { scroll-snap-align: start; }
         .rail:has(> .empty) { display: block; }  /* empty message spans the full width */
 
-        .dash-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 22px; }
-        .coverage { padding: 18px; }
-        .bar-row { display: grid; grid-template-columns: 76px 1fr 38px; align-items: center; gap: 10px; margin-top: 12px; font-size: 12.5px; color: var(--text-2); }
-        .bar { height: 8px; border-radius: 99px; background: var(--surface-3); overflow: hidden; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .25); }
-        .bar > span { display: block; height: 100%; border-radius: 99px; background: var(--silver); box-shadow: var(--metal); transition: width .8s var(--ease); }
-        .bar.lav > span { background: var(--lav); }
-        .bar.bronze > span { background: var(--bronze); }
+        .coverage-line { margin-top: 14px; font-size: 12.5px; color: var(--text-3); }
+        .coverage-line b { font-family: var(--font-mono); font-weight: 400; color: var(--text-2); }
 
-        .list { display: flex; flex-direction: column; gap: 8px; }
+        .list { display: flex; flex-direction: column; }
         .row-item {
             display: flex; align-items: center; gap: 12px;
-            padding: 11px 14px; cursor: pointer;
-            border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
-            box-shadow: var(--shine);
-            transition: border-color .2s, box-shadow .2s, transform .15s;
+            padding: 11px 4px; cursor: pointer;
+            border-bottom: 1px solid var(--line);
         }
-        .row-item:hover { border-color: var(--silver-line); box-shadow: var(--shine), var(--halo); }
+        .row-item:hover .row-title { color: var(--lav); }
         .row-main { flex: 1; min-width: 0; }
-        .row-title { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .row-title { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .row-sub { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .type-dot {
-            width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px;
+            width: 30px; height: 30px; flex-shrink: 0; border-radius: 2px;
             display: grid; place-items: center;
-            background: var(--silver-soft); color: var(--silver);
-            border: 1px solid var(--line); box-shadow: var(--metal);
+            color: var(--silver); border: 1px solid var(--line);
         }
-        .type-dot.events { color: var(--lav); background: var(--lav-soft); border-color: var(--lav-line); }
-        .type-dot.jobs { color: var(--silver); }
-        .type-dot.news { color: var(--bronze); background: var(--bronze-soft); }
+        .type-dot.events { color: var(--lav); border-color: var(--lav-line); }
+        .type-dot.news { color: var(--bronze); }
 
         /* ================================================================
            OPPORTUNITY CARDS
            ================================================================ */
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
-        .grid.as-list { grid-template-columns: 1fr; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+        .grid.as-list { grid-template-columns: 1fr; gap: 0; border-top: 1px solid var(--line); }
 
         .card {
             position: relative; display: flex; flex-direction: column; gap: 10px;
-            padding: 16px; cursor: pointer;
+            padding: 15px; cursor: pointer;
             background: var(--surface);
-            border: 1px solid var(--line); border-radius: var(--radius);
-            box-shadow: var(--shine);
-            transition: transform .2s var(--ease), box-shadow .25s var(--ease), border-color .2s;
-            animation: rise .4s var(--ease) backwards;
+            border: 1px solid var(--line); border-radius: var(--r);
         }
-        .card:hover { transform: translateY(-2px); border-color: var(--silver-line); box-shadow: var(--shine), var(--halo); }
-        .card.is-selected, .card:focus-visible {
-            outline: none; border-color: var(--lav-line); box-shadow: var(--shine), var(--halo-lav);
-        }
-        @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+        .card:hover { border-color: var(--silver-line); }
+        .card.is-selected, .card:focus-visible { outline: none; border-color: var(--lav); }
 
         .card-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-        .card-title { font-family: var(--font-head); font-size: 15.5px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
-        .card-org { font-size: 13px; color: var(--text-2); margin-top: -4px; }
-        .card-meta { font-size: 12px; color: var(--text-3); display: flex; flex-wrap: wrap; gap: 4px 12px; }
-        .card-meta span { display: inline-flex; align-items: center; gap: 5px; }
+        .card-title { font-size: 14.5px; line-height: 1.38; overflow-wrap: anywhere; }
+        .card-org { font-size: 12.5px; color: var(--text-2); margin-top: -4px; }
+        .card-meta { font-size: 12px; color: var(--text-3); display: flex; flex-wrap: wrap; gap: 2px 14px; }
         .card-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 4px; }
         .card-actions .btn { flex: 1; }
-        .grid.as-list .card { flex-direction: row; align-items: center; flex-wrap: wrap; }
+        .grid.as-list .card { flex-direction: row; align-items: center; flex-wrap: wrap; border-width: 0 0 1px; border-radius: 0; background: transparent; padding: 14px 4px; }
+        .grid.as-list .card.is-selected, .grid.as-list .card:focus-visible { box-shadow: inset 0 0 0 1px var(--lav); }
         .grid.as-list .card-body { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 6px; }
         .grid.as-list .card-actions { margin-top: 0; padding-top: 0; }
         .grid.as-list .card-actions .btn { flex: none; }
@@ -445,38 +422,49 @@
 
         .rail .card { height: 100%; }
 
-        .skeleton { height: 164px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); animation: pulse 1.4s ease-in-out infinite; }
+        /* Skeletons mirror the shape of what loads into them */
+        .skeleton {
+            display: flex; flex-direction: column; gap: 10px; padding: 15px; min-height: 164px;
+            border: 1px solid var(--line); border-radius: var(--r); background: var(--surface);
+        }
+        .skeleton i { display: block; height: 10px; border-radius: 2px; background: var(--surface-3); animation: pulse 1.4s ease-in-out infinite; }
+        .skeleton i:nth-child(1) { width: 34%; }
+        .skeleton i:nth-child(2) { width: 88%; height: 14px; }
+        .skeleton i:nth-child(3) { width: 62%; height: 14px; }
+        .skeleton i:nth-child(4) { width: 46%; margin-top: auto; height: 30px; }
+        .skeleton.row { min-height: 0; flex-direction: row; align-items: center; padding: 13px 4px; border-width: 0 0 1px; border-radius: 0; background: transparent; }
+        .skeleton.row i:nth-child(1) { width: 30px; height: 30px; flex-shrink: 0; }
+        .skeleton.row i:nth-child(2) { flex: 1; width: auto; height: 12px; }
+        .skeleton.row i:nth-child(3) { width: 44px; height: 20px; }
+        .skeleton.row i:nth-child(4) { display: none; }
         @keyframes pulse { 50% { opacity: .45; } }
 
         .empty {
-            padding: 40px 20px; text-align: center; color: var(--text-2);
-            border: 1px dashed var(--line-strong); border-radius: var(--radius);
+            padding: 32px 20px; text-align: center; color: var(--text-2);
+            border: 1px dashed var(--line-strong); border-radius: var(--r);
         }
-        .empty .ic { width: 28px; height: 28px; color: var(--silver); margin-bottom: 10px; }
-        .empty strong { display: block; color: var(--text); font-family: var(--font-head); font-size: 15px; margin-bottom: 4px; }
+        .empty strong { display: block; color: var(--text); font-size: 14px; margin-bottom: 4px; }
 
         /* ================================================================
            FEED TOOLBAR
            ================================================================ */
-        .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+        .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
         .toolbar .search { position: relative; flex: 1 1 260px; }
         .toolbar .search .ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-3); pointer-events: none; }
         .toolbar .search .input { padding-left: 38px; }
         .toolbar select.input { width: auto; min-width: 160px; }
-        .chips { display: flex; gap: 8px; margin: 14px 0 18px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+        .chips { display: flex; gap: 0; margin: 16px 0 18px; overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: none; }
         .chips::-webkit-scrollbar { display: none; }
         .chip {
             flex-shrink: 0; display: inline-flex; align-items: center; gap: 8px;
-            min-height: 36px; padding: 0 14px;
-            border-radius: 999px; border: 1px solid var(--line);
-            background: var(--surface); color: var(--text-2);
-            font-weight: 600; font-size: 13px; cursor: pointer;
-            box-shadow: var(--shine);
-            transition: border-color .2s, color .2s, box-shadow .2s, background .2s;
+            min-height: 40px; padding: 0 14px;
+            border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+            background: transparent; color: var(--text-2);
+            font-size: 13px; cursor: pointer;
         }
-        .chip:hover { border-color: var(--silver-line); color: var(--text); }
-        .chip[aria-pressed="true"] { background: var(--lav-soft); color: var(--text); border-color: var(--lav-line); box-shadow: var(--shine), 0 0 16px rgba(200, 194, 236, .12); }
-        .chip .count { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-3); }
+        .chip:hover { color: var(--text); }
+        .chip[aria-pressed="true"] { color: var(--text); border-bottom-color: var(--lav); font-weight: 700; }
+        .chip .count { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-3); font-weight: 400; }
         .chip[aria-pressed="true"] .count { color: var(--lav); }
         .sentinel { height: 1px; }
         .feed-status { text-align: center; color: var(--text-3); font-size: 12.5px; padding: 18px 0 6px; }
@@ -486,62 +474,62 @@
            ================================================================ */
         .scrim {
             position: fixed; inset: 0; z-index: 80;
-            background: rgba(8, 7, 6, 0.5);
-            opacity: 0; pointer-events: none; transition: opacity .25s;
+            background: var(--scrim);
+            opacity: 0; pointer-events: none; transition: opacity .2s;
         }
         .scrim.open { opacity: 1; pointer-events: auto; }
         .detail {
-            position: fixed; z-index: 90; top: 12px; right: 12px; bottom: 12px;
-            width: min(440px, calc(100vw - 24px));
+            position: fixed; z-index: 90; top: 0; right: 0; bottom: 0;
+            width: min(440px, 100vw);
             display: flex; flex-direction: column;
-            border: 1px solid var(--silver-line); border-radius: 18px;
-            box-shadow: var(--shine), var(--shadow-lg);
-            transform: translateX(calc(100% + 24px));
-            transition: transform .35s var(--ease);
+            background: var(--surface);
+            border-left: 1px solid var(--silver-line);
+            transform: translateX(100%);
+            transition: transform .28s var(--ease);
             visibility: hidden;
         }
         .detail.open { transform: none; visibility: visible; }
         .detail-handle { display: none; }
-        .detail-head { display: flex; align-items: center; gap: 8px; padding: 14px 14px 0 18px; }
+        .detail-head { display: flex; align-items: center; gap: 8px; padding: 14px 14px 0 20px; }
         .detail-head .tags { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; }
-        .detail-body { flex: 1; overflow-y: auto; padding: 16px 18px 18px; }
-        .detail-title { font-size: 22px; font-weight: 600; text-shadow: var(--glow-text); overflow-wrap: anywhere; }
-        .detail-org { color: var(--text-2); margin-top: 6px; font-size: 14px; }
+        .detail-body { flex: 1; overflow-y: auto; padding: 16px 20px 20px; }
+        .detail-title { font-size: 20px; overflow-wrap: anywhere; }
+        .detail-org { color: var(--text-2); margin-top: 6px; font-size: 13.5px; }
         .timeline { display: grid; grid-template-columns: repeat(3, 1fr); margin: 22px 0 6px; position: relative; }
-        .timeline::before { content: ""; position: absolute; left: 8%; right: 8%; top: 7px; height: 1px; background: var(--line-strong); }
+        .timeline::before { content: ""; position: absolute; left: 8%; right: 8%; top: 6px; height: 1px; background: var(--line-strong); }
         .tl-step { position: relative; text-align: center; font-size: 11.5px; color: var(--text-3); }
         .tl-step i {
-            display: block; width: 15px; height: 15px; margin: 0 auto 8px; border-radius: 50%;
-            background: var(--surface-3); border: 2px solid var(--line-strong);
+            display: block; width: 13px; height: 13px; margin: 0 auto 8px;
+            background: var(--surface); border: 1px solid var(--line-strong);
         }
-        .tl-step.done i { background: var(--silver); border-color: var(--silver); box-shadow: 0 0 10px rgba(222, 224, 236, .35); }
-        .tl-step.next i { background: var(--lav); border-color: var(--lav); box-shadow: 0 0 12px rgba(200, 194, 236, .55); }
-        .tl-step b { display: block; color: var(--text); font-family: var(--font-mono); font-weight: 500; font-size: 12.5px; }
-        .detail-info { margin-top: 18px; display: grid; gap: 10px; }
+        .tl-step.done i { background: var(--silver); border-color: var(--silver); }
+        .tl-step.next i { background: var(--lav); border-color: var(--lav); }
+        .tl-step b { display: block; color: var(--text); font-family: var(--font-mono); font-weight: 400; font-size: 12.5px; }
+        .detail-info { margin-top: 18px; display: grid; }
         .info-row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
         .info-row span:first-child { color: var(--text-3); }
         .info-row span:last-child { text-align: right; overflow-wrap: anywhere; }
         .track-box { margin-top: 18px; padding: 14px; }
         .track-box .row { display: flex; gap: 8px; margin-top: 8px; }
-        .detail-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 14px 18px 18px; border-top: 1px solid var(--line); }
+        .detail-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 14px 20px 18px; border-top: 1px solid var(--line); }
         .detail-foot .wide { grid-column: 1 / -1; }
 
         /* ================================================================
            BOARD (KANBAN)
            ================================================================ */
-        .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
-        .column { padding: 12px; min-height: 260px; transition: border-color .2s, box-shadow .2s; }
-        .column.drop-over { border-color: var(--lav-line); box-shadow: var(--shine), var(--halo-lav); }
-        .column-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 12px; }
-        .column-head h2 { font-size: 14px; display: flex; align-items: center; gap: 8px; }
-        .column-head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--silver); box-shadow: 0 0 8px rgba(222, 224, 236, .4); }
-        .column[data-status="applied"] .dot { background: var(--lav); box-shadow: 0 0 8px rgba(200, 194, 236, .5); }
-        .column[data-status="done"] .dot { background: var(--ok); box-shadow: none; }
-        .column-list { display: flex; flex-direction: column; gap: 10px; min-height: 60px; }
+        .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+        .column { padding: 12px; min-height: 260px; background: var(--bg); }
+        .column.drop-over { border-color: var(--lav); border-style: dashed; }
+        .column-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 12px; }
+        .column-head h2 { font-size: 13.5px; display: flex; align-items: center; gap: 8px; }
+        .column-head .dot { width: 8px; height: 8px; background: var(--silver); }
+        .column[data-status="applied"] .dot { background: var(--lav); }
+        .column[data-status="done"] .dot { background: var(--ok); }
+        .column-list { display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
         .kcard { padding: 13px; gap: 8px; }
         .kcard[draggable="true"] { cursor: grab; }
         .kcard.dragging { opacity: .45; }
-        .kcard .card-title { font-size: 14px; }
+        .kcard .card-title { font-size: 13.5px; }
         .kcard-foot { display: flex; align-items: center; gap: 6px; }
         .kcard-foot .spacer { flex: 1; }
         .board-tabs { display: none; margin-bottom: 14px; }
@@ -549,52 +537,52 @@
         /* ================================================================
            CALENDAR
            ================================================================ */
-        .cal-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+        .cal-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 16px; align-items: start; }
         .cal { padding: 16px; }
         .cal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-        .cal-head h2 { flex: 1; font-size: 18px; }
-        .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
-        .cal-dow { text-align: center; font-family: var(--font-mono); font-size: 11px; color: var(--text-3); padding-bottom: 4px; text-transform: uppercase; letter-spacing: .08em; }
+        .cal-head h2 { flex: 1; font-size: 17px; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+        .cal-dow { text-align: left; font-size: 11.5px; color: var(--text-3); padding: 6px 8px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
         .cal-day {
-            min-height: 84px; min-width: 0; padding: 7px 8px; text-align: left;
+            min-height: 84px; min-width: 0; padding: 6px 8px; text-align: left;
             display: flex; flex-direction: column; gap: 5px;
-            border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2);
-            cursor: pointer; transition: border-color .2s, box-shadow .2s, background .2s;
+            border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: transparent;
+            cursor: pointer;
         }
-        .cal-day:hover { border-color: var(--silver-line); }
-        .cal-day.out { opacity: .35; }
+        .cal-day:hover { background: var(--silver-soft); }
+        .cal-day.out { opacity: .4; }
         .cal-day.today .cal-num { color: var(--lav-ink); background: var(--lav); }
-        .cal-day[aria-pressed="true"] { border-color: var(--lav-line); box-shadow: var(--halo-lav); background: var(--surface); }
-        .cal-num { font-family: var(--font-mono); font-size: 12px; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; color: var(--text-2); }
-        .cal-dots { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-        .cal-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--silver); }
-        .cal-dots i.tracked { background: var(--lav); box-shadow: 0 0 6px rgba(200, 194, 236, .6); }
+        .cal-day[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--lav); background: var(--lav-soft); }
+        .cal-num { align-self: flex-start; font-family: var(--font-mono); font-size: 12px; min-width: 22px; height: 22px; padding: 0 3px; display: grid; place-items: center; border-radius: 2px; color: var(--text-2); }
+        /* Day markers: one short bar per item, lavender for your tracked deadlines */
+        .cal-dots { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+        .cal-dots i { width: 10px; height: 3px; background: var(--silver); }
+        .cal-dots i.tracked { background: var(--lav); }
         .cal-dots small { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); }
         .cal-label { font-size: 11px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .cal-side { padding: 16px; position: sticky; top: 90px; }
+        .cal-side { padding: 16px; position: sticky; top: 80px; }
         .legend { display: flex; gap: 14px; font-size: 12px; color: var(--text-2); margin-top: 12px; }
         .legend span { display: inline-flex; align-items: center; gap: 6px; }
-        .legend i { width: 8px; height: 8px; border-radius: 50%; background: var(--silver); }
+        .legend i { width: 10px; height: 3px; background: var(--silver); }
         .legend i.tracked { background: var(--lav); }
 
         /* ================================================================
            SETTINGS
            ================================================================ */
-        .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+        .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
         .settings-card { padding: 20px; }
-        .settings-card h2 { font-size: 16px; display: flex; align-items: center; gap: 9px; margin-bottom: 4px; }
-        .settings-card h2 .ic { color: var(--lav); }
+        .settings-card h2 { font-size: 15px; margin-bottom: 4px; }
         .settings-card p.hint { color: var(--text-3); font-size: 12.5px; margin-bottom: 14px; }
-        .kw-box { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; min-height: 48px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
-        .kw-box:focus-within { border-color: var(--lav-line); box-shadow: 0 0 0 3px var(--lav-soft); }
+        .kw-box { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; min-height: 48px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+        .kw-box:focus-within { border-color: var(--lav); }
         .kw-box input { flex: 1; min-width: 120px; border: 0; background: transparent; padding: 4px 6px; outline: none; }
-        .kw { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 4px 0 10px; border-radius: 999px; background: var(--lav-soft); border: 1px solid var(--lav-line); color: var(--text); font-size: 12.5px; }
-        .kw button { width: 22px; height: 22px; border: 0; border-radius: 50%; background: transparent; color: var(--text-2); cursor: pointer; display: grid; place-items: center; }
+        .kw { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 2px 0 8px; border-radius: 2px; border: 1px solid var(--lav-line); color: var(--text); font-size: 12.5px; }
+        .kw button { width: 22px; height: 22px; border: 0; border-radius: 2px; background: transparent; color: var(--text-2); cursor: pointer; display: grid; place-items: center; }
         .kw button:hover { background: var(--lav-soft); color: var(--text); }
-        .code-box { font-family: var(--font-mono); font-size: 13px; padding: 11px 13px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--line); overflow-wrap: anywhere; margin-bottom: 10px; }
+        .code-box { font-family: var(--font-mono); font-size: 12.5px; padding: 10px 12px; border-radius: var(--r); background: var(--bg); border: 1px solid var(--line); overflow-wrap: anywhere; margin-bottom: 10px; }
         .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 0; }
-        .switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; border-radius: 999px; border: 1px solid var(--silver-line); background: var(--surface-3); cursor: pointer; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .3); transition: background .2s, border-color .2s; }
-        .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--silver); box-shadow: var(--metal), 0 1px 3px rgba(0, 0, 0, .4); transition: transform .2s var(--ease), background .2s; }
+        .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; border-radius: var(--r); border: 1px solid var(--silver-line); background: var(--surface-3); cursor: pointer; transition: background .15s, border-color .15s; }
+        .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 2px; background: var(--silver); box-shadow: var(--metal); transition: transform .15s var(--ease), background .15s; }
         .switch[aria-checked="true"] { background: var(--lav-soft); border-color: var(--lav-line); }
         .switch[aria-checked="true"]::after { transform: translateX(20px); background: var(--lav); }
         .stack { display: flex; flex-direction: column; gap: 12px; }
@@ -607,79 +595,75 @@
             position: fixed; inset: 0; z-index: 120;
             display: none; align-items: flex-start; justify-content: center;
             padding: 12vh 16px 16px;
-            background: rgba(8, 7, 6, 0.55);
-            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            background: var(--scrim);
         }
-        .overlay.open { display: flex; animation: fade .18s ease; }
-        @keyframes fade { from { opacity: 0; } }
+        .overlay.open { display: flex; }
         .dialog {
             width: min(640px, 100%);
-            border: 1px solid var(--silver-line); border-radius: 18px;
-            box-shadow: var(--shine), var(--shadow-lg), 0 0 0 1px rgba(0, 0, 0, .2);
-            animation: pop .22s var(--ease);
+            background: var(--surface);
+            border: 1px solid var(--silver-line); border-radius: var(--r);
             overflow: hidden;
         }
-        @keyframes pop { from { opacity: 0; transform: translateY(-8px) scale(.98); } }
-        .palette-input { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+        .palette-input { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
         .palette-input .ic { color: var(--lav); }
-        .palette-input input { flex: 1; border: 0; background: transparent; font-size: 16px; outline: none; }
-        .palette-list { max-height: 52vh; overflow-y: auto; padding: 8px; }
-        .palette-group { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-3); padding: 10px 10px 6px; }
+        .palette-input input { flex: 1; border: 0; background: transparent; font-size: 15px; outline: none; }
+        .palette-list { max-height: 52vh; overflow-y: auto; padding: 6px; }
+        .palette-group { font-size: 11.5px; color: var(--text-3); padding: 10px 10px 6px; }
         .palette-item {
             display: flex; align-items: center; gap: 12px; width: 100%;
-            padding: 10px; border: 1px solid transparent; border-radius: 11px;
+            padding: 9px 10px; border: 1px solid transparent; border-radius: 2px;
             background: transparent; text-align: left; cursor: pointer;
         }
         .palette-item[aria-selected="true"] { background: var(--lav-soft); border-color: var(--lav-line); }
         .palette-item .row-main { min-width: 0; }
-        .palette-foot { display: flex; gap: 16px; padding: 10px 18px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--text-3); }
+        .palette-foot { display: flex; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--text-3); }
         .palette-foot span { display: inline-flex; align-items: center; gap: 6px; }
 
         .shortcuts { padding: 20px 22px; }
-        .shortcuts h2 { font-size: 18px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
-        .sc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 26px; }
+        .shortcuts h2 { font-size: 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+        .sc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 26px; }
         .sc-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--text-2); }
         .sc-row span:last-child { display: inline-flex; gap: 4px; }
 
         .login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
-        .login-card { width: min(400px, 100%); padding: 32px 28px; text-align: center; border-color: var(--silver-line); }
-        .login-card .radar-logo { width: 64px; height: 64px; margin: 0 auto 14px; }
-        .login-card h1 { font-size: 26px; text-shadow: var(--glow-text); }
+        .login-card { width: min(400px, 100%); padding: 30px 28px; border-color: var(--silver-line); }
+        .login-card .radar-logo { width: 48px; height: 48px; margin-bottom: 16px; }
+        .login-card h1 { font-size: 22px; }
         .login-card p { color: var(--text-2); font-size: 13px; margin: 8px 0 20px; }
-        .login-card .stack { text-align: left; }
+        .login-card .legal-links { padding: 18px 0 0; }
 
         /* Toasts */
         .toasts { position: fixed; z-index: 200; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
         .toast {
             display: flex; align-items: center; gap: 10px;
-            padding: 11px 16px; max-width: min(380px, calc(100vw - 32px));
-            border-radius: 12px; border: 1px solid var(--silver-line);
-            box-shadow: var(--shine), var(--shadow-lg);
-            font-size: 13px; font-weight: 500;
-            animation: toastIn .3s var(--ease);
+            padding: 11px 14px; max-width: min(380px, calc(100vw - 32px));
+            background: var(--surface-3); color: var(--text);
+            border-radius: var(--r); border: 1px solid var(--silver-line);
+            font-size: 13px;
+            animation: toastIn .2s var(--ease);
         }
         .toast .ic { color: var(--lav); }
-        .toast.out { opacity: 0; transform: translateY(8px); transition: opacity .25s, transform .25s; }
-        @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } }
+        .toast.out { opacity: 0; transition: opacity .2s; }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } }
 
         /* ================================================================
            RESPONSIVE
            ================================================================ */
         @media (max-width: 1180px) {
-            .dash-grid { grid-template-columns: 1fr; }
             .cal-layout { grid-template-columns: 1fr; }
             .cal-side { position: static; }
         }
         @media (max-width: 1023px) {
-            :root { --sidebar-w: 76px; }
-            .sidebar { padding: 18px 12px; align-items: center; }
-            .brand { padding: 4px 0 18px; }
-            .brand-text, .nav-item .nav-label, .nav-item kbd, .nav-count, .scan-card .scan-text, .sidebar-foot .btn span { display: none; }
+            :root { --sidebar-w: 72px; }
+            .sidebar { padding: 18px 10px; align-items: center; }
+            .brand { padding: 2px 0 18px; }
+            .brand-text, .nav-item .nav-label, .nav-count, .scan-card .scan-text, .sidebar-foot .btn span, .sidebar .legal-links { display: none; }
             .nav-item { justify-content: center; padding: 0; width: 48px; }
             .scan-card { padding: 10px; }
             .scan-row { justify-content: center; }
             .sidebar-foot .btn { width: 48px; padding: 0; }
-            .stats { grid-template-columns: repeat(2, 1fr); }
+            .console { grid-template-columns: 1fr; }
+            .scope-wrap { border-left: 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: center; }
             .settings-grid { grid-template-columns: 1fr; }
             .board { grid-template-columns: 1fr; }
             .board-tabs { display: inline-flex; }
@@ -690,45 +674,52 @@
             .sidebar { display: none; }
             .main-col { margin-left: 0; }
             .tabbar { display: flex; }
-            .topbar { height: 58px; padding: 0 14px; }
+            .topbar { height: 56px; padding: 0 16px; }
             .topbar-title { display: none; }
             .topbar-brand { display: flex; }
             .search-trigger { width: 40px; padding: 0; justify-content: center; }
             .search-trigger span, .search-trigger kbd { display: none; }
-            main { padding: 18px 14px calc(96px + env(safe-area-inset-bottom)); }
-            .hero { grid-template-columns: 1fr; }
-            .hero h1 { font-size: 24px; }
-            .stats { gap: 10px; }
-            .stat { padding: 13px 14px; }
-            .stat-value { font-size: 26px; }
+            main { padding: 18px 16px calc(92px + env(safe-area-inset-bottom)); }
+            .console-main { padding: 18px 16px; }
+            .console-head h1 { font-size: 20px; }
+            .readout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .readout button { padding: 12px 0 8px 12px; border-bottom: 1px solid var(--line); }
+            .readout button:nth-child(odd) { padding-left: 0; }
+            .readout button:nth-child(even) { border-right: 0; }
+            .readout button:nth-child(n+3) { border-bottom: 0; }
+            .readout b { font-size: 26px; }
+            .scope-wrap { grid-template-columns: 1fr; padding: 14px 16px; }
+            .scope { max-width: 250px; margin: 0 auto; }
             .grid { grid-template-columns: 1fr; }
-            .rail { grid-auto-columns: 82%; }
+            .rail { grid-auto-columns: 84%; }
             .toolbar .seg { flex: 1 1 100%; }
             .toolbar .seg button { flex: 1; justify-content: center; }
             .toolbar select.input { flex: 1 1 100%; min-width: 0; }
             .view-toggle { display: none; }
-            .cal-day { min-height: 46px; padding: 5px; align-items: center; }
+            .cal-day { min-height: 48px; padding: 4px; align-items: center; }
+            .cal-num { align-self: center; }
+            .cal-dow { text-align: center; padding: 6px 0; }
             .cal-label { display: none; }
-            .cal-grid { gap: 4px; }
             .cal-dots { justify-content: center; }
+            .cal-dots i { width: 6px; }
             .sc-grid { grid-template-columns: 1fr; }
-            .toasts { left: 16px; right: 16px; bottom: calc(80px + env(safe-area-inset-bottom)); align-items: center; }
+            .toasts { left: 16px; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); align-items: center; }
 
             /* Detail becomes a bottom sheet */
             .detail {
                 top: auto; left: 0; right: 0; bottom: 0; width: 100%;
-                max-height: 88vh; border-radius: 22px 22px 0 0;
-                border-bottom: 0;
+                max-height: 88vh; border-radius: 6px 6px 0 0;
+                border-left: 0; border-top: 1px solid var(--silver-line);
                 transform: translateY(105%);
             }
             .detail.open { transform: translateY(var(--drag, 0px)); }
             .detail.dragging { transition: none; }
-            .detail-handle { display: block; width: 44px; height: 5px; border-radius: 99px; background: var(--line-strong); margin: 10px auto 0; flex-shrink: 0; }
+            .detail-handle { display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--line-strong); margin: 10px auto 0; flex-shrink: 0; }
             .detail-foot { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
             .overlay { padding-top: 8vh; }
         }
 
-        /* Reduced motion — system setting or the toggle in Settings */
+        /* Reduced motion: system setting or the toggle in Settings */
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
         }
@@ -759,7 +750,7 @@
         <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
         <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
         <symbol id="i-job" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/></symbol>
-        <symbol id="i-event" viewBox="0 0 24 24"><path d="M12 2l2.8 6.1 6.7.7-5 4.5 1.4 6.6L12 16.6 6.1 19.9l1.4-6.6-5-4.5 6.7-.7z"/></symbol>
+        <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2.5 4L17 12H5"/></symbol>
         <symbol id="i-news" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2M8 9h5M8 13h5"/></symbol>
         <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
         <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
@@ -768,14 +759,9 @@
         <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></symbol>
         <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></symbol>
         <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
-        <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></symbol>
-        <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-4-3-6.5-4-10-2 2-3 4-3 6-1-1-2-2-2.5-3.5C7.5 9.5 5 12 5 15a7 7 0 0 0 7 7z"/></symbol>
-        <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
-        <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
         <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
         <symbol id="i-locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
         <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
-        <symbol id="i-palette" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18"/></symbol>
     </svg>
 
     <svg width="0" height="0" style="position: absolute" aria-hidden="true">
@@ -797,20 +783,21 @@
         <form class="panel login-card" onsubmit="doLogin(event)">
             <svg class="radar-logo" aria-hidden="true"><use href="#radar"/></svg>
             <h1>Radar</h1>
-            <p>Opportunities from 70+ sites, in one place. Enter the access token printed in the server log (also in <span class="mono">data/access_token.txt</span>).</p>
+            <p>Internships, jobs and hackathons from 70+ sites. Enter the access token printed when the server starts. It is also saved in <span class="mono">data/access_token.txt</span>.</p>
             <div class="stack">
                 <div>
                     <label class="field-label" for="login-token">Access token</label>
                     <input class="input mono" type="password" id="login-token" autocomplete="current-password" required>
                 </div>
-                <button class="btn btn-primary" type="submit"><svg class="ic"><use href="#i-lock"/></svg>Unlock</button>
+                <button class="btn btn-primary" type="submit">Unlock</button>
             </div>
+            <div class="legal-links"><a href="/terms.html">Terms</a><a href="/privacy.html">Privacy</a></div>
         </form>
     </div>
 
     <!-- ==================== APP ==================== -->
     <div class="app" id="app" hidden>
-        <aside class="sidebar glass" aria-label="Main navigation">
+        <aside class="sidebar" aria-label="Main navigation">
             <div class="brand">
                 <svg class="radar-logo" aria-hidden="true"><use href="#radar"/></svg>
                 <div class="brand-text">
@@ -831,17 +818,18 @@
                         <svg class="radar-logo" aria-hidden="true"><use href="#radar"/></svg>
                         <div class="scan-text">
                             <div class="scan-title" id="scan-title">Radar idle</div>
-                            <div class="scan-meta" id="scan-meta">—</div>
+                            <div class="scan-meta" id="scan-meta"></div>
                         </div>
                     </div>
                 </div>
                 <button class="btn" onclick="startScan()" aria-label="Scan all sources now"><svg class="ic"><use href="#i-scan"/></svg><span>Scan now</span></button>
                 <button class="btn btn-ghost" onclick="openShortcuts()" aria-label="Keyboard shortcuts"><svg class="ic"><use href="#i-keyboard"/></svg><span>Shortcuts</span></button>
+                <div class="legal-links"><a href="/terms.html">Terms</a><a href="/privacy.html">Privacy</a></div>
             </div>
         </aside>
 
         <div class="main-col">
-            <header class="topbar glass">
+            <header class="topbar">
                 <div class="topbar-brand"><svg class="radar-logo" style="width: 30px; height: 30px;" aria-hidden="true"><use href="#radar"/></svg>Radar</div>
                 <h1 class="topbar-title" id="page-title">Dashboard</h1>
                 <button class="search-trigger" onclick="openPalette()" aria-label="Search and commands (Ctrl K)">
@@ -854,71 +842,60 @@
             <main id="main" tabindex="-1">
                 <!-- ============ DASHBOARD ============ -->
                 <section class="view" id="view-dashboard" aria-labelledby="page-title">
-                    <div class="hero">
-                        <div>
-                            <div class="eyebrow" id="today-label"></div>
-                            <h1 id="greeting">Welcome back</h1>
-                            <p id="hero-sub">Here's what your radar picked up.</p>
+                    <div class="console">
+                        <div class="console-main">
+                            <div class="console-head">
+                                <div class="console-date" id="today-label"></div>
+                                <h1 id="greeting">Welcome back</h1>
+                                <p id="hero-sub">Loading what Radar found.</p>
+                            </div>
+                            <div class="readout">
+                                <button class="is-signal" onclick="goFeed('opps', 'latest')"><b data-count="new_today">0</b>new today</button>
+                                <button onclick="showView('board')"><b data-count="closing_week">0</b>saved, due this week</button>
+                                <button onclick="showView('calendar')"><b data-count="tracked">0</b>tracked with reminders</button>
+                                <button onclick="showView('board')"><b data-count="applied">0</b>applied</button>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="stats">
-                        <button class="panel stat accent" onclick="goFeed('opps', 'latest')">
-                            <div class="stat-top">New today <svg class="ic ic-sm"><use href="#i-spark"/></svg></div>
-                            <div class="stat-value" data-count="new_today">0</div>
-                            <div class="stat-foot">jobs &amp; events found today</div>
-                        </button>
-                        <button class="panel stat" onclick="showView('board')">
-                            <div class="stat-top">Closing this week <svg class="ic ic-sm"><use href="#i-flame"/></svg></div>
-                            <div class="stat-value" data-count="closing_week">0</div>
-                            <div class="stat-foot">saved items due in 7 days</div>
-                        </button>
-                        <button class="panel stat" onclick="showView('calendar')">
-                            <div class="stat-top">Tracked <svg class="ic ic-sm"><use href="#i-track"/></svg></div>
-                            <div class="stat-value" data-count="tracked">0</div>
-                            <div class="stat-foot">with deadline reminders</div>
-                        </button>
-                        <button class="panel stat" onclick="showView('board')">
-                            <div class="stat-top">Applied <svg class="ic ic-sm"><use href="#i-check"/></svg></div>
-                            <div class="stat-value" data-count="applied">0</div>
-                            <div class="stat-foot">moved to Applied</div>
-                        </button>
+                        <div class="scope-wrap">
+                            <svg class="scope" id="scope" viewBox="0 0 240 240" role="group" aria-label="Deadlines in the next 30 days"></svg>
+                            <div>
+                                <p class="scope-caption">Each blip is an opportunity with a deadline. The closer to the centre, the sooner it closes. Rings mark 3, 7, 14 and 30 days. Select a blip to open it.</p>
+                                <div class="scope-key" style="margin-top: 8px;"><span><i></i>Event</span><span><i class="jobs"></i>Job</span><span><i class="urgent"></i>3 days or less</span></div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="section">
                         <div class="section-head">
-                            <h2 class="section-title"><svg class="ic"><use href="#i-flame"/></svg>Closing soon</h2>
-                            <button class="btn btn-ghost btn-sm" onclick="goFeed('opps', 'closing')">View all <svg class="ic ic-sm"><use href="#i-right"/></svg></button>
+                            <h2 class="section-title">Closing soon</h2>
+                            <button class="btn btn-ghost btn-sm" onclick="goFeed('opps', 'closing')">View all</button>
                         </div>
                         <div class="rail" id="dash-closing"></div>
                     </div>
 
                     <div class="section">
                         <div class="section-head">
-                            <h2 class="section-title"><svg class="ic"><use href="#i-pin"/></svg><span id="near-title">Near you</span></h2>
-                            <button class="btn btn-ghost btn-sm" id="near-all" onclick="goNear()">View all <svg class="ic ic-sm"><use href="#i-right"/></svg></button>
+                            <h2 class="section-title"><span id="near-title">Near you</span></h2>
+                            <button class="btn btn-ghost btn-sm" id="near-all" onclick="goNear()">View all</button>
                         </div>
                         <div class="rail" id="dash-near"></div>
                     </div>
 
-                    <div class="section dash-grid">
-                        <div>
-                            <div class="section-head">
-                                <h2 class="section-title"><svg class="ic"><use href="#i-target"/></svg>Top picks for you</h2>
-                                <button class="btn btn-ghost btn-sm" onclick="goFeed('opps', 'picks')">View all <svg class="ic ic-sm"><use href="#i-right"/></svg></button>
-                            </div>
-                            <div class="grid" id="dash-picks"></div>
+                    <div class="section">
+                        <div class="section-head">
+                            <h2 class="section-title">Top picks for you <small>ranked by your interests</small></h2>
+                            <button class="btn btn-ghost btn-sm" onclick="goFeed('opps', 'picks')">View all</button>
                         </div>
-                        <div>
-                            <div class="section-head">
-                                <h2 class="section-title"><svg class="ic"><use href="#i-spark"/></svg>Just in</h2>
-                            </div>
-                            <div class="list" id="dash-latest"></div>
-                            <div class="panel coverage" style="margin-top: 16px;">
-                                <div class="section-title" style="font-size: 14px;"><svg class="ic"><use href="#i-feed"/></svg>Radar coverage</div>
-                                <div id="coverage"></div>
-                            </div>
+                        <div class="grid" id="dash-picks"></div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-head">
+                            <h2 class="section-title">Just in</h2>
+                            <button class="btn btn-ghost btn-sm" onclick="goFeed('opps', 'latest')">View all</button>
                         </div>
+                        <div class="list" id="dash-latest"></div>
+                        <p class="coverage-line" id="coverage"></p>
                     </div>
                 </section>
 
@@ -946,9 +923,9 @@
                     </div>
                     <div class="chips" role="group" aria-label="Type">
                         <button class="chip" data-pillar="opps" aria-pressed="true" onclick="setPillar('opps')">All opportunities <span class="count" id="count-opps"></span></button>
-                        <button class="chip" data-pillar="jobs" aria-pressed="false" onclick="setPillar('jobs')"><svg class="ic ic-sm"><use href="#i-job"/></svg>Jobs &amp; internships <span class="count" id="count-jobs"></span></button>
-                        <button class="chip" data-pillar="events" aria-pressed="false" onclick="setPillar('events')"><svg class="ic ic-sm"><use href="#i-event"/></svg>Hackathons &amp; events <span class="count" id="count-events"></span></button>
-                        <button class="chip" data-pillar="news" aria-pressed="false" onclick="setPillar('news')"><svg class="ic ic-sm"><use href="#i-news"/></svg>Tech news <span class="count" id="count-news"></span></button>
+                        <button class="chip" data-pillar="jobs" aria-pressed="false" onclick="setPillar('jobs')">Jobs &amp; internships <span class="count" id="count-jobs"></span></button>
+                        <button class="chip" data-pillar="events" aria-pressed="false" onclick="setPillar('events')">Hackathons &amp; events <span class="count" id="count-events"></span></button>
+                        <button class="chip" data-pillar="news" aria-pressed="false" onclick="setPillar('news')">Tech news <span class="count" id="count-news"></span></button>
                     </div>
                     <div class="grid" id="feed-list" aria-live="polite"></div>
                     <div class="sentinel" id="feed-sentinel"></div>
@@ -960,7 +937,7 @@
                     <div class="cal-layout">
                         <div class="panel cal">
                             <div class="cal-head">
-                                <h2 id="cal-title">—</h2>
+                                <h2 id="cal-title">Calendar</h2>
                                 <button class="btn btn-sm" onclick="calToday()">Today</button>
                                 <button class="icon-btn icon-btn-sm" onclick="calMove(-1)" aria-label="Previous month"><svg class="ic"><use href="#i-left"/></svg></button>
                                 <button class="icon-btn icon-btn-sm" onclick="calMove(1)" aria-label="Next month"><svg class="ic"><use href="#i-right"/></svg></button>
@@ -969,7 +946,7 @@
                             <div class="legend"><span><i class="tracked"></i>Your tracked deadlines</span><span><i></i>Upcoming events</span></div>
                         </div>
                         <div class="panel cal-side">
-                            <div class="eyebrow" id="cal-day-label">Selected day</div>
+                            <h2 class="section-title" id="cal-day-label">Pick a day</h2>
                             <div class="list" id="cal-day-list" style="margin-top: 12px;"></div>
                         </div>
                     </div>
@@ -1002,7 +979,7 @@
                 <section class="view" id="view-settings" aria-labelledby="page-title">
                     <div class="settings-grid">
                         <div class="panel settings-card">
-                            <h2><svg class="ic"><use href="#i-user"/></svg>Profile</h2>
+                            <h2>Profile</h2>
                             <p class="hint">Used for the dashboard greeting.</p>
                             <label class="field-label" for="set-name">Display name</label>
                             <div class="row-btns">
@@ -1012,7 +989,7 @@
                         </div>
 
                         <div class="panel settings-card">
-                            <h2><svg class="ic"><use href="#i-pin"/></svg>Location</h2>
+                            <h2>Location</h2>
                             <p class="hint" id="loc-status">Set your location to see opportunities near you, nearest first.</p>
                             <div class="stack">
                                 <button class="btn" onclick="useMyLocation()"><svg class="ic"><use href="#i-locate"/></svg>Use my current location</button>
@@ -1037,7 +1014,7 @@
                         </div>
 
                         <div class="panel settings-card">
-                            <h2><svg class="ic"><use href="#i-target"/></svg>Interests</h2>
+                            <h2>Interests</h2>
                             <p class="hint">Jobs must match one of these to show up. Top picks rank by how many match. Applies from the next scan.</p>
                             <div class="kw-box" id="kw-box" onclick="document.getElementById('kw-input').focus()">
                                 <input id="kw-input" placeholder="Add keyword, press Enter" aria-label="Add interest keyword" onkeydown="kwKey(event)">
@@ -1048,17 +1025,17 @@
                         </div>
 
                         <div class="panel settings-card">
-                            <h2><svg class="ic"><use href="#i-bell"/></svg>Notifications</h2>
+                            <h2>Notifications</h2>
                             <p class="hint">Install the ntfy app and subscribe to this private topic for deadline reminders and the morning digest.</p>
-                            <div class="code-box" id="set-topic">—</div>
+                            <div class="code-box" id="set-topic">Loading</div>
                             <div class="row-btns">
-                                <button class="btn" onclick="copyText(document.getElementById('set-topic').textContent, 'Topic copied')"><svg class="ic"><use href="#i-copy"/></svg>Copy topic</button>
-                                <button class="btn" onclick="testPush()"><svg class="ic"><use href="#i-bell"/></svg>Send test</button>
+                                <button class="btn" onclick="copyText(document.getElementById('set-topic').textContent, 'Topic copied')">Copy topic</button>
+                                <button class="btn" onclick="testPush()">Send a test notification</button>
                             </div>
                         </div>
 
                         <div class="panel settings-card">
-                            <h2><svg class="ic"><use href="#i-palette"/></svg>Appearance &amp; access</h2>
+                            <h2>Appearance and access</h2>
                             <p class="hint">Theme, motion and this device.</p>
                             <div class="switch-row">
                                 <span>Theme</span>
@@ -1076,6 +1053,7 @@
                                 <button class="btn" onclick="openShortcuts()"><svg class="ic"><use href="#i-keyboard"/></svg>Keyboard shortcuts</button>
                                 <button class="btn" onclick="logout()"><svg class="ic"><use href="#i-lock"/></svg>Lock this device</button>
                             </div>
+                            <p class="hint" style="margin: 14px 0 0;">Read the <a href="/terms.html">terms of use</a> and the <a href="/privacy.html">privacy policy</a>.</p>
                         </div>
                     </div>
                 </section>
@@ -1083,7 +1061,7 @@
         </div>
 
         <!-- Mobile tab bar -->
-        <nav class="tabbar glass" aria-label="Main navigation">
+        <nav class="tabbar" aria-label="Main navigation">
             <button class="tab" data-view="dashboard"><span class="tab-ic"><svg class="ic"><use href="#i-home"/></svg></span>Home</button>
             <button class="tab" data-view="feed"><span class="tab-ic"><svg class="ic"><use href="#i-feed"/></svg></span>Feed</button>
             <button class="tab" data-view="calendar"><span class="tab-ic"><svg class="ic"><use href="#i-calendar"/></svg></span>Calendar</button>
@@ -1094,7 +1072,7 @@
 
     <!-- ==================== DETAIL PANEL / SHEET ==================== -->
     <div class="scrim" id="scrim" onclick="closeDetail()"></div>
-    <aside class="detail glass" id="detail" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <aside class="detail" id="detail" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="detail-title">
         <div class="detail-handle" id="detail-handle"></div>
         <div class="detail-head">
             <div class="tags" id="detail-tags"></div>
@@ -1106,7 +1084,7 @@
 
     <!-- ==================== COMMAND PALETTE ==================== -->
     <div class="overlay" id="palette" onclick="if (event.target === this) closePalette()">
-        <div class="dialog glass" role="dialog" aria-modal="true" aria-label="Search and commands">
+        <div class="dialog" role="dialog" aria-modal="true" aria-label="Search and commands">
             <div class="palette-input">
                 <svg class="ic"><use href="#i-search"/></svg>
                 <input id="palette-input" placeholder="Search opportunities or type a command…" aria-label="Search" autocomplete="off"
@@ -1124,7 +1102,7 @@
 
     <!-- ==================== SHORTCUTS ==================== -->
     <div class="overlay" id="shortcuts" onclick="if (event.target === this) closeShortcuts()">
-        <div class="dialog glass shortcuts" role="dialog" aria-modal="true" aria-labelledby="sc-title">
+        <div class="dialog shortcuts" role="dialog" aria-modal="true" aria-labelledby="sc-title">
             <h2 id="sc-title">Keyboard shortcuts <button class="icon-btn icon-btn-sm" onclick="closeShortcuts()" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></h2>
             <div class="sc-grid">
                 <div class="sc-row"><span>Search &amp; commands</span><span><kbd>Ctrl</kbd><kbd>K</kbd> or <kbd>/</kbd></span></div>
@@ -1155,7 +1133,7 @@
         const VIEW_TITLES = { dashboard: 'Dashboard', feed: 'Feed', calendar: 'Calendar', board: 'Board', settings: 'Settings' };
         const TYPE = {
             jobs: { label: 'Job', icon: 'i-job' },
-            events: { label: 'Event', icon: 'i-event' },
+            events: { label: 'Event', icon: 'i-flag' },
             news: { label: 'News', icon: 'i-news' },
         };
         const STATUS_ORDER = ['saved', 'applied', 'done'];
@@ -1166,7 +1144,7 @@
             items: new Map(),        // item id -> item (everything rendered so far)
             savedByItem: new Map(),  // item id -> saved row
             feed: { pillar: 'opps', sort: 'latest', source: '', q: '', loc: '', offset: 0, done: false, loading: false, layout: 'grid' },
-            home: null,              // { city, lat, lon, radius } — the user's location
+            home: null,              // { city, lat, lon, radius }: the user's location
             radius: 50,              // radius picked in Settings before saving
             cal: { year: 0, month: 0, entries: [], selected: null },
             boardCol: 'saved',
@@ -1227,7 +1205,7 @@
             return Math.round((new Date(iso.slice(0, 10) + 'T00:00:00') - today) / 86400000);
         }
         function fmtDate(iso, opts = { day: 'numeric', month: 'short' }) {
-            if (!iso) return '—';
+            if (!iso) return '';
             return new Date(iso.slice(0, 10) + 'T00:00:00').toLocaleDateString('en-IN', opts);
         }
         function timeAgo(isoDateTime) {
@@ -1246,7 +1224,7 @@
             const d = daysUntil(iso);
             if (d === null) return '';
             if (d < 0) return `<span class="tag">Closed</span>`;
-            if (d === 0) return `<span class="tag tag-danger">${icon('i-flame', 'ic-sm')}Today</span>`;
+            if (d === 0) return `<span class="tag tag-danger">Closes today</span>`;
             if (d <= 3) return `<span class="tag tag-danger">${d}d left</span>`;
             if (d <= 7) return `<span class="tag tag-bronze">${d}d left</span>`;
             return `<span class="tag">${d}d left</span>`;
@@ -1266,8 +1244,8 @@
         // ================================================================
         function toast(msg, iconId = 'i-check') {
             const el = document.createElement('div');
-            el.className = 'toast glass';
-            el.innerHTML = `${icon(iconId)}<span>${esc(msg)}</span>`;
+            el.className = 'toast';
+            el.textContent = msg;
             $('#toasts').appendChild(el);
             setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 2600);
         }
@@ -1344,7 +1322,7 @@
                 else b.removeAttribute('aria-current');
             });
             $('#page-title').textContent = VIEW_TITLES[name];
-            document.title = `${VIEW_TITLES[name]} · Radar`;
+            document.title = `${VIEW_TITLES[name]} | Radar`;
             state.selectedCardId = null;
             if (!opts.keepScroll) window.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' });
             store('radar_view', name);
@@ -1389,21 +1367,20 @@
         // CARD RENDERING
         // ================================================================
 
-        // "Noida · 18 km", "Online", "Remote"… — empty when nothing is known
+        // "Noida, 18 km", "Online", "Remote", or empty when nothing is known
         function locationText(it) {
             if (it.mode === 'online') return 'Online';
             if (it.mode === 'remote' && !it.city) return 'Remote';
             if (!it.city) return '';
             const where = it.mode === 'hybrid' ? `${it.city} + online` : it.city;
             // Distance only helps when it's travellable; far away just shows the city
-            return it.distance_km !== null && it.distance_km !== undefined && it.distance_km <= 500 ? `${where} · ${it.distance_km} km` : where;
+            return it.distance_km !== null && it.distance_km !== undefined && it.distance_km <= 500 ? `${where}, ${it.distance_km} km` : where;
         }
         function locationTag(it) {
             const text = locationText(it);
             if (!text) return '';
             const near = state.home && it.distance_km !== null && it.distance_km !== undefined && it.distance_km <= state.home.radius && it.mode !== 'online';
-            const iconId = it.mode === 'online' || it.mode === 'remote' ? 'i-globe' : 'i-pin';
-            return `<span class="tag ${near ? 'tag-lav' : ''}">${icon(iconId, 'ic-sm')}${esc(text)}</span>`;
+                        return `<span class="tag ${near ? 'tag-lav' : ''}">${esc(text)}</span>`;
         }
 
         function cardHTML(it, i = 0) {
@@ -1412,15 +1389,15 @@
             const type = TYPE[it.pillar] || TYPE.events;
             const meta = [
                 it.extra_info && it.extra_info !== it.organization ? esc(it.extra_info) : '',
-                it.deadline_or_date ? `<span>${icon('i-calendar', 'ic-sm')}${esc(it.deadline_or_date)}</span>` : '',
-                postedText(it) ? `<span>${icon('i-clock', 'ic-sm')}${postedText(it)}</span>` : '',
+                it.deadline_or_date ? `<span>${esc(it.deadline_or_date)}</span>` : '',
+                postedText(it) ? `<span>${postedText(it)}</span>` : '',
             ].filter(Boolean).map(m => m.startsWith('<span') ? m : `<span>${m}</span>`).join('');
             return `
-                <article class="card" data-id="${it.id}" tabindex="0" style="animation-delay: ${Math.min(i, 12) * 35}ms"
+                <article class="card" data-id="${it.id}" tabindex="0"
                          aria-label="${esc(it.title)}${it.organization ? ', ' + esc(it.organization) : ''}">
                     <div class="card-body">
                         <div class="card-top">
-                            <span class="tag ${it.pillar === 'events' ? 'tag-lav' : ''}">${icon(type.icon, 'ic-sm')}${type.label}</span>
+                            <span class="tag ${it.pillar === 'events' ? 'tag-lav' : ''}">${type.label}</span>
                             <span class="tag">${esc(it.source)}</span>
                             ${isNew(it) ? '<span class="tag tag-ok">New</span>' : ''}
                             ${it.deadline ? deadlineTag(it.deadline) : ''}
@@ -1432,8 +1409,8 @@
                     </div>
                     <div class="card-actions">
                         <button class="btn btn-sm ${saved ? 'is-on' : ''}" data-act="save" aria-pressed="${!!saved}">
-                            ${icon('i-bookmark', 'ic-sm')}${saved ? 'Saved' : 'Save'}</button>
-                        ${canTrack ? `<button class="btn btn-sm ${saved && saved.deadline ? 'is-on' : ''}" data-act="track">${icon('i-track', 'ic-sm')}${saved && saved.deadline ? 'Tracked' : 'Track'}</button>` : ''}
+                            ${saved ? 'Saved' : 'Save'}</button>
+                        ${canTrack ? `<button class="btn btn-sm ${saved && saved.deadline ? 'is-on' : ''}" data-act="track">${saved && saved.deadline ? 'Tracked' : 'Track'}</button>` : ''}
                         <a class="icon-btn icon-btn-sm" data-act="open" href="${safeUrl(it.url)}" target="_blank" rel="noopener" aria-label="Open ${esc(it.title)} in a new tab">${icon('i-external', 'ic-sm')}</a>
                     </div>
                 </article>`;
@@ -1446,17 +1423,17 @@
                     <span class="type-dot ${it.pillar}">${icon(type.icon, 'ic-sm')}</span>
                     <div class="row-main">
                         <div class="row-title">${esc(it.title)}</div>
-                        <div class="row-sub">${esc([it.organization, it.source].filter(Boolean).join(' · '))}</div>
+                        <div class="row-sub">${esc([...new Set([it.organization, it.source].filter(Boolean))].join(', '))}</div>
                     </div>
                     ${right}
                 </div>`;
         }
 
         function emptyHTML(title, text, iconId = 'i-feed') {
-            return `<div class="empty">${icon(iconId)}<strong>${esc(title)}</strong>${esc(text)}</div>`;
+            return `<div class="empty"><strong>${esc(title)}</strong>${esc(text)}</div>`;
         }
-        function skeletons(n) {
-            return Array.from({ length: n }, () => '<div class="skeleton"></div>').join('');
+        function skeletons(n, kind = '') {
+            return Array.from({ length: n }, () => `<div class="skeleton ${kind}" aria-hidden="true"><i></i><i></i><i></i><i></i></div>`).join('');
         }
 
         // One click handler for every card / row anywhere in the app
@@ -1506,7 +1483,7 @@
         async function trackItem(id, deadline) {
             try {
                 const res = await api('/api/saved', { method: 'POST', body: JSON.stringify({ item_id: id, track: true, deadline: deadline || undefined }) });
-                toast(`Tracking · reminders before ${fmtDate(res.deadline)}`, 'i-track');
+                toast(`Tracked. Reminders start 2 days before ${fmtDate(res.deadline)}.`, 'i-track');
                 await afterChange();
             } catch (e) {
                 if (e.message !== 'unauthorized') toast('Could not track', 'i-x');
@@ -1535,8 +1512,7 @@
                     const tmp = document.createElement('div');
                     tmp.innerHTML = cardHTML(it);
                     const fresh = tmp.firstElementChild;
-                    fresh.style.animation = 'none';
-                    if (card.classList.contains('is-selected')) fresh.classList.add('is-selected');
+                                        if (card.classList.contains('is-selected')) fresh.classList.add('is-selected');
                     card.replaceWith(fresh);
                 }
             });
@@ -1552,7 +1528,7 @@
         async function loadStats() {
             const s = await api('/api/stats');
             state.stats = s;
-            $$('[data-count]').forEach(el => countUp(el, s[el.dataset.count] || 0));
+            $$('[data-count]').forEach(el => (el.textContent = s[el.dataset.count] || 0));
             renderScanStatus(s);
             renderCoverage(s);
             const p = s.pillars || {};
@@ -1564,26 +1540,41 @@
             return s;
         }
 
-        function countUp(el, target) {
-            const from = Number(el.textContent) || 0;
-            if (reduceMotion() || from === target) { el.textContent = target; return; }
-            const start = performance.now();
-            const step = now => {
-                const t = Math.min(1, (now - start) / 700);
-                el.textContent = Math.round(from + (target - from) * (1 - Math.pow(1 - t, 3)));
-                if (t < 1) requestAnimationFrame(step);
-            };
-            requestAnimationFrame(step);
-        }
-
         function renderCoverage(s) {
             const p = s.pillars || {};
-            const max = Math.max(1, p.jobs || 0, p.events || 0, p.news || 0);
-            const bar = (label, n, cls) => `
-                <div class="bar-row"><span>${label}</span><div class="bar ${cls}"><span style="width: ${(n / max) * 100}%"></span></div><span class="mono">${n}</span></div>`;
-            $('#coverage').innerHTML =
-                bar('Events', p.events || 0, 'lav') + bar('Jobs', p.jobs || 0, '') + bar('News', p.news || 0, 'bronze') +
-                `<div class="bar-row"><span>Sources</span><div class="bar"><span style="width: ${(s.sources_active / Math.max(1, s.sources_total)) * 100}%"></span></div><span class="mono">${s.sources_active}/${s.sources_total}</span></div>`;
+            $('#coverage').innerHTML = `Watching <b>${s.sources_active}</b> of <b>${s.sources_total}</b> sources right now:
+                <b>${p.events || 0}</b> events, <b>${p.jobs || 0}</b> jobs and <b>${p.news || 0}</b> news stories. Last scan ${esc(timeAgo(s.last_scan_at))}.`;
+        }
+
+        // The scope: deadlines in the next 30 days. Distance from the centre = days left
+        // (each day is a band, so same-day items spread out), angle is spread by id.
+        function renderScope(items) {
+            const C = 120, R0 = 10, R = 104;
+            const rOf = d => R0 + Math.sqrt(Math.min(Math.max(d, 0), 30) / 30) * (R - R0);
+            let svg = '<line class="axis" x1="120" y1="12" x2="120" y2="228"/><line class="axis" x1="12" y1="120" x2="228" y2="120"/>';
+            [3, 7, 14, 30].forEach(d => {
+                const r = rOf(d);
+                svg += `<circle class="ring ${d === 30 ? 'ring-edge' : ''}" cx="${C}" cy="${C}" r="${r.toFixed(1)}"/>
+                        <text class="ring-label" x="${C + 3}" y="${(C - r - 3).toFixed(1)}">${d}d</text>`;
+            });
+            svg += '<line class="sweep" x1="120" y1="120" x2="120" y2="16"/>';
+            const soon = items.filter(it => it.deadline && daysUntil(it.deadline) >= 0 && daysUntil(it.deadline) <= 30);
+            soon.forEach(it => {
+                const d = daysUntil(it.deadline);
+                const deg = (it.id * 137.508) % 360;              // golden angle: even spread
+                const band = ((it.id * 61) % 100) / 100 * 0.9;    // position inside the day's band
+                const rad = (deg - 90) * Math.PI / 180;
+                const r = rOf(d + band);
+                const x = C + r * Math.cos(rad), y = C + r * Math.sin(rad);
+                const label = `${it.title}, closes ${d === 0 ? 'today' : 'in ' + d + ' day' + (d === 1 ? '' : 's')}`;
+                svg += `<g class="blip ${it.pillar} ${d <= 3 ? 'urgent' : ''}" data-id="${it.id}" tabindex="0" role="button" aria-label="${esc(label)}">
+                            <title>${esc(label)}</title>
+                            <rect class="hit" x="${(x - 8).toFixed(1)}" y="${(y - 8).toFixed(1)}" width="16" height="16"/>
+                            <rect x="${(x - 3).toFixed(1)}" y="${(y - 3).toFixed(1)}" width="6" height="6"/>
+                        </g>`;
+            });
+            if (!soon.length) svg += '<text class="sector-label" x="120" y="124" text-anchor="middle">No deadlines in 30 days</text>';
+            $('#scope').innerHTML = svg;
         }
 
         async function loadDashboard() {
@@ -1594,14 +1585,15 @@
             $('#today-label').textContent = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
             $('#dash-closing').innerHTML = skeletons(3);
-            $('#dash-picks').innerHTML = skeletons(4);
+            $('#dash-picks').innerHTML = skeletons(3);
+            $('#dash-latest').innerHTML = skeletons(5, 'row');
             $('#dash-near').innerHTML = skeletons(3);
             const near = locQuery();
             try {
                 const [stats, closing, picks, latest, nearby] = await Promise.all([
                     loadStats(),
-                    api('/api/radar?pillar=opps&sort=closing&limit=10' + near),
-                    api('/api/radar?pillar=opps&sort=picks&limit=4' + near),
+                    api('/api/radar?pillar=opps&sort=closing&limit=40' + near),
+                    api('/api/radar?pillar=opps&sort=picks&limit=6' + near),
                     api('/api/radar?pillar=opps&sort=latest&limit=6' + near),
                     state.home ? api('/api/radar?pillar=opps&sort=latest&limit=10&loc=near' + near) : Promise.resolve({ items: [] }),
                 ]);
@@ -1609,14 +1601,15 @@
                 remember([...closing.items, ...picks.items, ...latest.items, ...nearby.items]);
                 renderNear(nearby.items);
                 $('#hero-sub').textContent = stats.new_today
-                    ? `${stats.new_today} new opportunities today across ${stats.sources_active} sources.`
+                    ? `${stats.new_today} new ${stats.new_today === 1 ? 'opportunity' : 'opportunities'} since this morning.`
                     : `Watching ${stats.sources_total} sources. Last scan ${timeAgo(stats.last_scan_at)}.`;
+                renderScope(closing.items);
                 $('#dash-closing').innerHTML = closing.items.length
-                    ? closing.items.map(cardHTML).join('')
-                    : emptyHTML('Nothing closing soon', 'Items with a known deadline will appear here.', 'i-flame');
+                    ? closing.items.slice(0, 10).map(cardHTML).join('')
+                    : emptyHTML('Nothing closing soon', 'Items with a known deadline will appear here.', 'i-clock');
                 $('#dash-picks').innerHTML = picks.items.length
                     ? picks.items.map(cardHTML).join('')
-                    : emptyHTML('No picks yet', 'Add interests in Settings to get ranked picks.', 'i-target');
+                    : emptyHTML('No picks yet', 'Add interests in Settings to get ranked picks.', 'i-feed');
                 $('#dash-latest').innerHTML = latest.items.length
                     ? latest.items.map(it => rowHTML(it, it.deadline ? deadlineTag(it.deadline) : `<span class="tag">${esc(it.source)}</span>`)).join('')
                     : emptyHTML('Radar is empty', 'Run a scan to fetch opportunities.', 'i-scan');
@@ -1647,15 +1640,15 @@
             $('#near-all').hidden = !h;
             if (!h) {
                 $('#dash-near').innerHTML = `
-                    <div class="empty">${icon('i-pin')}<strong>See what's happening near you</strong>
+                    <div class="empty"><strong>Set your city to see what's nearby</strong>
                         Set your city once and Radar shows nearby hackathons, events and jobs, nearest first.
-                        <div style="margin-top: 14px;"><button class="btn btn-primary btn-sm" onclick="useMyLocation()">${icon('i-locate', 'ic-sm')}Use my location</button>
+                        <div style="margin-top: 14px;"><button class="btn btn-primary btn-sm" onclick="useMyLocation()">Use my location</button>
                         <button class="btn btn-sm" onclick="showView('settings')">Pick a city</button></div></div>`;
                 return;
             }
             $('#dash-near').innerHTML = items.length
                 ? items.map(cardHTML).join('')
-                : `<div class="empty">${icon('i-pin')}<strong>Nothing within ${h.radius} km of ${esc(h.city)} yet</strong>
+                : `<div class="empty"><strong>Nothing within ${h.radius} km of ${esc(h.city)} yet</strong>
                     Try a bigger radius in Settings, or check online events.</div>`;
         }
 
@@ -1673,7 +1666,7 @@
                 opts.push(['near', `Near ${h.city} (${h.radius} km)`]);
                 opts.push(['near_online', `Near ${h.city} + online`]);
             } else {
-                opts.push(['setup', 'Near me… (set location)']);
+                opts.push(['setup', 'Near me (set your location)']);
             }
             opts.push(['online', 'Online & remote only']);
             sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join('');
@@ -1700,7 +1693,7 @@
         // GPS → nearest known city. Browsers only allow this on HTTPS or localhost.
         function useMyLocation() {
             if (!window.isSecureContext || !navigator.geolocation) {
-                toast('GPS needs the HTTPS link · pick your city in Settings instead', 'i-pin');
+                toast('GPS only works on the HTTPS link. Pick your city in Settings instead.', 'i-pin');
                 return showView('settings');
             }
             toast('Finding your location…', 'i-locate');
@@ -1710,13 +1703,13 @@
                     const res = await api(`/api/cities?lat=${lat}&lon=${lon}`);
                     const city = res.nearest.km <= 60 ? res.nearest.name : 'your location';
                     await saveHome(city, Number(lat.toFixed(4)), Number(lon.toFixed(4)), state.home ? state.home.radius : 50);
-                    toast(`Location set · near ${city}`, 'i-pin');
+                    toast(`Location set to ${city}`, 'i-pin');
                     showView(state.view, { keepScroll: true });
                 } catch (e) {
                     if (e.message !== 'unauthorized') toast('Could not save location', 'i-x');
                 }
             }, err => {
-                toast(err.code === 1 ? 'Location permission denied · pick your city instead' : 'Could not get location · pick your city instead', 'i-x');
+                toast(err.code === 1 ? 'Location permission was denied. Pick your city instead.' : 'Could not get your location. Pick your city instead.', 'i-x');
                 showView('settings');
             }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
         }
@@ -1726,7 +1719,7 @@
             state.cities = cities;
             const byName = [...cities].sort((a, b) => a.name.localeCompare(b.name));
             $('#set-city').innerHTML = '<option value="">Choose a city…</option>' + byName.map(c =>
-                `<option value="${esc(c.name)}">${esc(c.name)}${c.region !== c.name ? ' — ' + esc(c.region) : ''}${c.count ? ` (${c.count} open)` : ''}</option>`).join('');
+                `<option value="${esc(c.name)}">${esc(c.name)}${c.region !== c.name ? ', ' + esc(c.region) : ''}${c.count ? ` (${c.count} open)` : ''}</option>`).join('');
             renderLocationSettings();
         }
 
@@ -1751,7 +1744,7 @@
             const c = (state.cities || []).find(x => x.name === name);
             if (!c) return toast('Pick a city first', 'i-pin');
             await saveHome(c.name, c.lat, c.lon, state.radius);
-            toast(`Location set · ${c.name}`, 'i-pin');
+            toast(`Location set to ${c.name}`, 'i-pin');
         }
 
         async function clearLocation() {
@@ -1777,7 +1770,7 @@
         async function startScan() {
             try {
                 await api('/api/radar/scan', { method: 'POST' });
-                toast('Scanning 70+ sources · this takes 1–3 minutes', 'i-scan');
+                toast('Scanning 70+ sources. This takes 1 to 3 minutes.', 'i-scan');
                 renderScanStatus({ scanning: true, sources_total: state.stats ? state.stats.sources_total : 71 });
                 pollScan();
             } catch (e) {
@@ -1793,7 +1786,7 @@
                     renderScanStatus(s);
                     if (!s.scanning) {
                         clearInterval(state.scanPoll);
-                        toast('Scan complete · feed updated', 'i-check');
+                        toast('Scan finished. The feed is up to date.', 'i-check');
                         showView(state.view, { keepScroll: true });
                     }
                 } catch (e) { clearInterval(state.scanPoll); }
@@ -1862,7 +1855,7 @@
                 list.insertAdjacentHTML('beforeend', items.map((it, i) => cardHTML(it, i)).join(''));
                 f.offset += items.length;
                 f.done = items.length < PAGE_SIZE;
-                $('#feed-status').textContent = f.done && f.offset ? `That's everything · ${f.offset} items` : '';
+                $('#feed-status').textContent = f.done && f.offset ? `That's all ${f.offset} items` : '';
             } catch (e) {
                 if (e.message !== 'unauthorized') list.innerHTML = emptyHTML('Could not load the feed', 'Check that the server is running.', 'i-x');
             } finally {
@@ -1912,7 +1905,7 @@
             const deadline = (saved && saved.deadline) || it.deadline;
 
             $('#detail-tags').innerHTML = `
-                <span class="tag ${it.pillar === 'events' ? 'tag-lav' : ''}">${icon(type.icon, 'ic-sm')}${type.label}</span>
+                <span class="tag ${it.pillar === 'events' ? 'tag-lav' : ''}">${type.label}</span>
                 <span class="tag">${esc(it.source)}</span>
                 ${saved ? `<span class="tag tag-lav">${STATUS_LABEL[saved.status] || 'Saved'}</span>` : ''}`;
 
@@ -1924,7 +1917,7 @@
             const nextIdx = steps.findIndex(([, d]) => d && d.slice(0, 10) >= today);
             const timeline = steps.map(([label, d], i) => `
                 <div class="tl-step ${d && d.slice(0, 10) < today ? 'done' : ''} ${i === nextIdx ? 'next' : ''}">
-                    <i></i><b>${d ? fmtDate(d) : '—'}</b>${label}${label === 'Deadline' && d ? ` · ${daysUntil(d) >= 0 ? daysUntil(d) + 'd' : 'closed'}` : ''}
+                    <i></i><b>${d ? fmtDate(d) : 'Not set'}</b>${label}${label === 'Deadline' && d ? `, ${daysUntil(d) > 0 ? daysUntil(d) + 'd left' : daysUntil(d) === 0 ? 'closes today' : 'closed'}` : ''}
                 </div>`).join('');
 
             $('#detail-body').innerHTML = `
@@ -1940,7 +1933,7 @@
                 </div>
                 ${it.pillar !== 'news' ? `
                 <div class="panel track-box">
-                    <label class="field-label" for="detail-deadline">${icon('i-track', 'ic-sm')} Deadline &amp; reminders</label>
+                    <label class="field-label" for="detail-deadline">Deadline and reminders</label>
                     <div class="row">
                         <input class="input mono" type="date" id="detail-deadline" value="${deadline ? deadline.slice(0, 10) : ''}">
                         <button class="btn btn-primary" onclick="saveDetailDeadline(${id})">${saved && saved.deadline ? 'Update' : 'Track'}</button>
@@ -1955,7 +1948,7 @@
                 </div>` : '';
 
             $('#detail-foot').innerHTML = `
-                <a class="btn btn-primary wide" href="${safeUrl(it.url)}" target="_blank" rel="noopener">${icon('i-external')}Open ${it.pillar === 'jobs' ? 'and apply' : it.pillar === 'news' ? 'article' : 'event page'}</a>
+                <a class="btn btn-primary wide" href="${safeUrl(it.url)}" target="_blank" rel="noopener">Open ${it.pillar === 'jobs' ? 'and apply' : it.pillar === 'news' ? 'article' : 'event page'}</a>
                 ${statusSeg}
                 <button class="btn" onclick="toggleSave(${id})">${icon(saved ? 'i-trash' : 'i-bookmark')}${saved ? 'Remove' : 'Save'}</button>
                 <button class="btn" onclick="shareItem(${id})">${icon(navigator.share ? 'i-share' : 'i-copy')}${navigator.share ? 'Share' : 'Copy link'}</button>`;
@@ -1982,7 +1975,7 @@
                 await navigator.clipboard.writeText(text);
                 toast(msg, 'i-copy');
             } catch (e) {
-                toast('Copy failed — select and copy manually', 'i-x');
+                toast('Copy failed. Select the text and copy it yourself.', 'i-x');
             }
         }
 
@@ -2157,7 +2150,7 @@
             }));
 
             const dayList = byDay[selected] || [];
-            $('#cal-day-label').textContent = selected ? fmtDate(selected, { weekday: 'long', day: 'numeric', month: 'long' }) : 'Selected day';
+            $('#cal-day-label').textContent = selected ? fmtDate(selected, { weekday: 'long', day: 'numeric', month: 'long' }) : 'Pick a day';
             $('#cal-day-list').innerHTML = dayList.length
                 ? dayList.map(e => rowHTML(e, e.kind === 'tracked'
                     ? `<span class="tag tag-lav">${STATUS_LABEL[e.status] || 'Tracked'}</span>`
@@ -2211,14 +2204,14 @@
 
         async function saveKeywords() {
             await api('/api/settings', { method: 'POST', body: JSON.stringify({ keywords: state.keywords.join(', ') }) });
-            toast('Interests saved · applies from the next scan', 'i-target');
+            toast('Interests saved. They apply from the next scan.', 'i-feed');
         }
 
         async function saveName() {
             const name = $('#set-name').value.trim();
             await api('/api/settings', { method: 'POST', body: JSON.stringify({ display_name: name }) });
             store('radar_name', name || null);
-            toast('Profile saved', 'i-user');
+            toast('Profile saved', 'i-check');
         }
 
         async function testPush() {
@@ -2235,13 +2228,13 @@
             { label: 'Go to Calendar', hint: 'G C', icon: 'i-calendar', run: () => showView('calendar') },
             { label: 'Go to Board', hint: 'G B', icon: 'i-board', run: () => showView('board') },
             { label: 'Go to Settings', hint: 'G S', icon: 'i-settings', run: () => showView('settings') },
-            { label: 'Closing soon', hint: '', icon: 'i-flame', run: () => goFeed('opps', 'closing') },
-            { label: 'Top picks for me', hint: '', icon: 'i-target', run: () => goFeed('opps', 'picks') },
+            { label: 'Closing soon', hint: '', icon: 'i-clock', run: () => goFeed('opps', 'closing') },
+            { label: 'Top picks for me', hint: '', icon: 'i-feed', run: () => goFeed('opps', 'picks') },
             { label: 'Near me', hint: '', icon: 'i-pin', run: () => state.home ? goNear() : useMyLocation() },
             { label: 'Online & remote only', hint: '', icon: 'i-globe', run: () => goFeed('opps', 'latest', 'online') },
             { label: 'Use my current location', hint: '', icon: 'i-locate', run: () => useMyLocation() },
             { label: 'Jobs & internships', hint: '', icon: 'i-job', run: () => goFeed('jobs', 'latest') },
-            { label: 'Hackathons & events', hint: '', icon: 'i-event', run: () => goFeed('events', 'latest') },
+            { label: 'Hackathons & events', hint: '', icon: 'i-flag', run: () => goFeed('events', 'latest') },
             { label: 'Scan all sources now', hint: 'R', icon: 'i-scan', run: () => startScan() },
             { label: 'Toggle theme', hint: '', icon: 'i-moon', run: () => cycleTheme() },
             { label: 'Keyboard shortcuts', hint: '?', icon: 'i-keyboard', run: () => openShortcuts() },
@@ -2307,7 +2300,7 @@
                     return `
                     <button class="palette-item" role="option" id="pi-${i}" data-i="${i}" aria-selected="${i === paletteIndex}">
                         <span class="type-dot ${it.pillar}">${icon((TYPE[it.pillar] || TYPE.events).icon, 'ic-sm')}</span>
-                        <span class="row-main"><span class="row-title" style="display: block;">${esc(it.title)}</span><span class="row-sub" style="display: block;">${esc([it.organization, it.source].filter(Boolean).join(' · '))}</span></span>
+                        <span class="row-main"><span class="row-title" style="display: block;">${esc(it.title)}</span><span class="row-sub" style="display: block;">${esc([...new Set([it.organization, it.source].filter(Boolean))].join(', '))}</span></span>
                         ${it.deadline ? deadlineTag(it.deadline) : ''}
                     </button>`;
                 }).join('');

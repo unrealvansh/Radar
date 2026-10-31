@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy policy | Radar</title>
+    <meta name="theme-color" content="#1D1915">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/legal.css">
+</head>
+<body>
+<main>
+    <a class="back" href="/">Back to Radar</a>
+    <h1>Privacy policy</h1>
+    <p class="updated">Last updated 1 November 2026</p>
+
+    <p>Radar is a small, self-hosted app. It runs on one server (currently a phone) controlled by the person who set it up. There are no ads, no analytics and no tracking, and nothing is sold or shared for marketing.</p>
+
+    <h2>What Radar stores on its server</h2>
+    <ul>
+        <li><strong>Settings you enter:</strong> display name, interest keywords, your chosen city or location, and search radius.</li>
+        <li><strong>Your activity:</strong> the opportunities you save, track or move on the board, and the deadlines you set.</li>
+        <li><strong>Opportunity listings:</strong> titles, links and dates collected from public websites. These are not about you.</li>
+        <li><strong>An access token and a notification topic:</strong> random values created when the server first starts.</li>
+    </ul>
+    <p>All of this lives in a single SQLite database file on the server. It never leaves that server, except as described below.</p>
+
+    <h2>What stays in your browser</h2>
+    <p>Your browser keeps the access token so you stay signed in, plus small preferences such as theme, layout and your city. This uses local storage on your device. Locking the device from Settings removes the token.</p>
+
+    <h2>Location</h2>
+    <p>If you tap "Use my current location", your browser asks for permission first. Radar converts your position to the nearest city and saves only that city and its coordinates. Your exact GPS position is not stored. You can pick a city by hand instead, or clear the location at any time in Settings.</p>
+
+    <h2>Services Radar talks to</h2>
+    <ul>
+        <li><strong>ntfy.sh</strong> delivers push notifications. Reminder text (opportunity titles and deadlines) is sent to your private ntfy topic. Anyone who knows the topic name can read those messages, so keep it private.</li>
+        <li><strong>Google Fonts</strong> serves the typeface. Your browser requests the font files from Google, which sees your IP address.</li>
+        <li><strong>Job, hackathon and news websites</strong> are fetched by the server to collect listings. Your personal data is not sent to them. Opening a listing takes you to that website, and its own privacy policy applies there.</li>
+    </ul>
+
+    <h2>Deleting your data</h2>
+    <p>Remove saved items from the board, clear your location and keywords in Settings, or ask the person running the server to delete the database file. Deleting <strong>data/pocketbrain.db</strong> removes everything.</p>
+
+    <h2>Changes</h2>
+    <p>If this policy changes, the date at the top changes with it.</p>
+</main>
+</body>
+</html>

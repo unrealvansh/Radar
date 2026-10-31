@@ -1,5 +1,5 @@
 """
-Radar — Student Opportunity Radar
+Radar: Student Opportunity Radar
 Main Flask application with all API routes.
 """
 
@@ -60,7 +60,7 @@ def init_db():
     """Create tables if they don't exist.
 
     Old PocketBrain tables (expenses, habits, ...) are left untouched,
-    so no data is lost — they are simply no longer used.
+    so no data is lost: they are simply no longer used.
     """
     init_radar_db()
     conn = get_db()
@@ -95,7 +95,7 @@ def init_db():
 
     conn.commit()
     conn.close()
-    print("✅ Database initialized!")
+    print("Database initialized!")
 
 
 # ============ AUTH ============
@@ -317,7 +317,7 @@ def save_item():
         )
     conn.commit()
     conn.close()
-    return jsonify({'status': 'ok', 'message': 'Tracked! 📅' if deadline else 'Saved! 🔖', 'deadline': deadline})
+    return jsonify({'status': 'ok', 'message': 'Tracked' if deadline else 'Saved', 'deadline': deadline})
 
 
 @app.route('/api/saved/<int:id>', methods=['PUT'])
@@ -410,7 +410,7 @@ def get_cities():
 
 @app.route('/api/notify/test', methods=['POST'])
 def test_notification():
-    ok = send_push("📡 Radar test", "Notifications are working!", tags=["white_check_mark"])
+    ok = send_push("Radar test", "Notifications are working!", tags=["white_check_mark"])
     return jsonify({'status': 'ok' if ok else 'error'})
 
 
@@ -447,16 +447,16 @@ def scheduled_morning_digest():
 
         sections = []
         if closing:
-            sections.append("⏰ CLOSING THIS WEEK:\n" + "\n".join(f"• {c['title']} ({c['deadline']})" for c in closing))
+            sections.append("CLOSING THIS WEEK:\n" + "\n".join(f"- {c['title']} ({c['deadline']})" for c in closing))
         if new_jobs:
-            sections.append("💼 NEW ROLES:\n" + "\n".join(f"• {j['title']} — {j['organization']}" for j in new_jobs))
+            sections.append("NEW ROLES:\n" + "\n".join(f"- {j['title']}, {j['organization']}" for j in new_jobs))
         if new_events:
-            sections.append("🚀 NEW HACKATHONS:\n" + "\n".join(f"• {e['title']}" for e in new_events))
+            sections.append("NEW HACKATHONS:\n" + "\n".join(f"- {e['title']}" for e in new_events))
         if not sections:
             return  # Nothing worth a notification
 
         send_push(
-            title="📡 Radar Morning Digest",
+            title="Radar Morning Digest",
             message="\n\n".join(sections),
             priority="high",
             tags=["satellite"]
@@ -479,11 +479,11 @@ def check_tracked_deadlines():
             if days is None or days < 0:
                 continue
             if days == 0 and not r['reminded_0d']:
-                send_push(f"🔥 Closes today: {r['title'][:50]}", "Last day to apply. Tap to open.",
+                send_push(f"Closes today: {r['title'][:50]}", "Last day to apply. Tap to open.",
                           priority="urgent", tags=["fire"], click_url=r['url'])
                 conn.execute('UPDATE saved_items SET reminded_0d = 1, reminded_2d = 1 WHERE id = ?', (r['id'],))
             elif days <= 2 and not r['reminded_2d']:
-                send_push(f"⏰ {days} day(s) left: {r['title'][:50]}", f"Deadline {r['deadline']}. Tap to open.",
+                send_push(f"{days} day(s) left: {r['title'][:50]}", f"Deadline {r['deadline']}. Tap to open.",
                           priority="high", tags=["alarm_clock"], click_url=r['url'])
                 conn.execute('UPDATE saved_items SET reminded_2d = 1 WHERE id = ?', (r['id'],))
         conn.commit()
@@ -534,11 +534,11 @@ if __name__ == '__main__':
     scheduler.start()
 
     print("=" * 50)
-    print("📡 Radar Server Starting...")
-    print(f"📱 Dashboard:     http://0.0.0.0:5000")
-    print(f"📂 Database:      {DB_PATH}")
-    print(f"🔑 Access token:  {get_access_token()}")
-    print(f"🔔 ntfy topic:    {get_topic()}  (subscribe to this in the ntfy app)")
+    print("Radar Server Starting...")
+    print(f"Dashboard:     http://0.0.0.0:5000")
+    print(f"Database:      {DB_PATH}")
+    print(f"Access token:  {get_access_token()}")
+    print(f"ntfy topic:    {get_topic()}  (subscribe to this in the ntfy app)")
     print("=" * 50)
 
     app.run(host='0.0.0.0', port=5000, debug=False)
