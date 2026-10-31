@@ -20,7 +20,9 @@ SERVER_DIR = os.path.dirname(os.path.abspath(__file__))
 if SERVER_DIR not in sys.path:
     sys.path.insert(0, SERVER_DIR)
 
-from services.unified_radar import init_radar_db, get_radar_items, get_counts, is_scanning, DEFAULT_KEYWORDS
+from services.unified_radar import (init_radar_db, get_radar_items, get_counts, get_city_counts,
+                                    is_scanning, DEFAULT_KEYWORDS)
+from services import locations
 from services.sources import SOURCES
 from services.notifier import send_push, get_topic
 
@@ -156,14 +158,21 @@ def auth_check():
 @app.route('/api/radar', methods=['GET'])
 def get_radar():
     """Feed items. Query params: pillar (opps/jobs/events/news), q, source,
-    sort (latest/closing/picks), limit, offset."""
+    sort (latest/closing/picks), limit, offset,
+    near=lat,lon + radius (km) + loc (near/near_online/online) for location filtering."""
     pillar = request.args.get('pillar') or None
     q = (request.args.get('q') or '').strip() or None
     limit = min(int(request.args.get('limit', 30)), 100)
     offset = int(request.args.get('offset', 0))
+    try:
+        near = tuple(float(v) for v in request.args['near'].split(','))[:2] if request.args.get('near') else None
+    except ValueError:
+        near = None
     items = get_radar_items(pillar=pillar, limit=limit, q=q, offset=offset,
                             sort=request.args.get('sort', 'latest'),
-                            source=request.args.get('source') or None)
+                            source=request.args.get('source') or None,
+                            near=near, radius=float(request.args.get('radius', 50)),
+                            loc=request.args.get('loc') or None)
 
     conn = get_db()
     saved = {r['item_id']: r['id'] for r in conn.execute('SELECT id, item_id FROM saved_items')}
@@ -343,31 +352,60 @@ def delete_saved(id):
 
 @app.route('/api/settings', methods=['GET'])
 def get_settings():
-    """Interest keywords, display name + the private ntfy topic to subscribe to."""
+    """Interest keywords, display name, home location + the private ntfy topic."""
     conn = get_db()
     values = {r['key']: r['value'] for r in conn.execute(
-        "SELECT key, value FROM settings WHERE key IN ('keywords', 'display_name')")}
+        "SELECT key, value FROM settings WHERE key IN ({})".format(','.join('?' * len(SETTING_KEYS))),
+        SETTING_KEYS)}
     conn.close()
+    home = None
+    if values.get('home_lat') and values.get('home_lon'):
+        home = {'city': values.get('home_city', ''), 'lat': float(values['home_lat']),
+                'lon': float(values['home_lon']), 'radius': float(values.get('radius_km') or 50)}
     return jsonify({
         'keywords': values.get('keywords', ', '.join(DEFAULT_KEYWORDS)),
         'display_name': values.get('display_name', ''),
+        'home': home,
         'ntfy_topic': get_topic(),
     })
 
 
+# Keys the settings API may store
+SETTING_KEYS = ('keywords', 'display_name', 'home_city', 'home_lat', 'home_lon', 'radius_km')
+
+
 @app.route('/api/settings', methods=['POST'])
 def set_settings():
-    """Save settings. JSON: {"keywords": "python, c++, intern", "display_name": "Vansh"}"""
+    """Save settings. JSON: any of keywords, display_name, home_city, home_lat, home_lon, radius_km.
+    A null value removes the key (e.g. clearing the home location)."""
     data = request.get_json() or {}
-    fields = {k: str(data[k]).strip() for k in ('keywords', 'display_name') if k in data}
-    if not fields:
-        return jsonify({'status': 'error', 'message': 'keywords or display_name is required'}), 400
+    fields = {k: str(data[k]).strip() for k in SETTING_KEYS if k in data and data[k] is not None}
+    cleared = [k for k in SETTING_KEYS if k in data and data[k] is None]
+    if not fields and not cleared:
+        return jsonify({'status': 'error', 'message': 'nothing to save'}), 400
     conn = get_db()
+    for key in cleared:
+        conn.execute("DELETE FROM settings WHERE key = ?", (key,))
     for key, value in fields.items():
         conn.execute("REPLACE INTO settings (key, value) VALUES (?, ?)", (key, value))
     conn.commit()
     conn.close()
     return jsonify({'status': 'ok', 'message': 'Settings saved!'})
+
+
+@app.route('/api/cities', methods=['GET'])
+def get_cities():
+    """Known cities with how many open opportunities each has (location picker).
+    With ?lat=..&lon=.. also returns the nearest known city to that position."""
+    counts = get_city_counts()
+    cities = [{'name': name, 'region': region or name, 'lat': lat, 'lon': lon, 'count': counts.get(name, 0)}
+              for name, (lat, lon, region, _) in locations.CITIES.items()]
+    cities.sort(key=lambda c: (-c['count'], c['name']))
+    result = {'cities': cities}
+    if request.args.get('lat') and request.args.get('lon'):
+        name, km = locations.nearest_city(float(request.args['lat']), float(request.args['lon']))
+        result['nearest'] = {'name': name, 'km': round(km)}
+    return jsonify(result)
 
 
 @app.route('/api/notify/test', methods=['POST'])

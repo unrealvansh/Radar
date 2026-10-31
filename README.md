@@ -27,6 +27,9 @@ Desktop gets a sidebar and a slide-in detail panel; phones get a bottom tab bar 
 - **Calendar** — month view of tracked deadlines and upcoming events
 - **Board** — Saved → Applied → Done (drag and drop on desktop, arrows everywhere)
 - **Command palette** — `Ctrl K` or `/` to search everything and run commands
+- **Near me** — set your city (or use GPS on the HTTPS link) and a radius; the feed can show opportunities
+  near you (nearest first), near you + online, or online/remote only. Cities are detected from each
+  listing using a built-in list of ~75 Indian cities (`server/services/locations.py`), no geocoding API.
 
 | Keys | Action |
 |---|---|

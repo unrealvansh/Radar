@@ -193,9 +193,11 @@ def unstop(kind, pillar, label):
             deadline = to_date(regn.get('end_regn_dt') or d.get('end_date'))
             org = (d.get('organisation') or {}).get('name', '')
             region = (d.get('region') or '').title()
+            city = ((d.get('address_with_country_logo') or {}).get('city') or '') if region != 'Online' else ''
+            where = ' • '.join(p for p in (region, city) if p)
             out.append(item(pillar, 'Unstop', d.get('title'), d.get('seo_url'), organization=org,
                             deadline=deadline, posted_at=to_date(d.get('approved_date') or d.get('updated_at')),
-                            extra_info=f"{label}{' • ' + region if region else ''}",
+                            extra_info=f"{label}{' • ' + where if where else ''}",
                             date_text=f"Apply by {nice(deadline)}" if deadline else ''))
         return out
     return fetcher

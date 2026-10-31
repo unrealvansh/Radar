@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
 from services.sources import SOURCES, IST
+from services import locations
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DB_PATH = os.path.join(BASE_DIR, 'data', 'pocketbrain.db')
@@ -168,17 +169,35 @@ def init_radar_db():
         )
     ''')
     cols = [r['name'] for r in conn.execute("PRAGMA table_info(radar_items)")]
-    for col in ('deadline', 'starts_at', 'posted_at', 'url_key', 'title_key'):
+    for col, kind in (('deadline', 'TEXT'), ('starts_at', 'TEXT'), ('posted_at', 'TEXT'),
+                      ('url_key', 'TEXT'), ('title_key', 'TEXT'),
+                      ('city', 'TEXT'), ('region', 'TEXT'), ('lat', 'REAL'), ('lon', 'REAL'),
+                      ('mode', 'TEXT'), ('loc_done', 'INTEGER')):
         if col not in cols:
-            conn.execute(f"ALTER TABLE radar_items ADD COLUMN {col} TEXT")
+            conn.execute(f"ALTER TABLE radar_items ADD COLUMN {col} {kind}")
 
     if conn.execute("SELECT 1 FROM radar_items WHERE url_key IS NULL LIMIT 1").fetchone():
         _dedupe_existing(conn)
+    if conn.execute("SELECT 1 FROM radar_items WHERE loc_done IS NULL LIMIT 1").fetchone():
+        _locate_existing(conn)
 
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_radar_url_key ON radar_items(url_key)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_radar_title_key ON radar_items(pillar, title_key)")
     conn.commit()
     conn.close()
+
+
+def _location_text(it):
+    return ' '.join(filter(None, (it.get('extra_info'), it.get('organization'), it.get('title'))))
+
+
+def _locate_existing(conn):
+    """One-time: detect city / mode for rows stored before location support."""
+    rows = conn.execute("SELECT id, source, title, organization, extra_info FROM radar_items WHERE loc_done IS NULL").fetchall()
+    for r in rows:
+        loc = locations.detect(_location_text(dict(r)), r['source'])
+        conn.execute("UPDATE radar_items SET city = ?, region = ?, lat = ?, lon = ?, mode = ?, loc_done = 1 WHERE id = ?",
+                     (loc['city'], loc['region'], loc['lat'], loc['lon'], loc['mode'], r['id']))
 
 
 def _dedupe_existing(conn):
@@ -221,13 +240,16 @@ def _store(conn, it):
         if not dup['deadline'] and it['deadline']:  # Another site knows the deadline: keep it
             conn.execute("UPDATE radar_items SET deadline = ? WHERE id = ?", (it['deadline'], dup['id']))
         return False
+    loc = locations.detect(_location_text(it), it['source'])
     try:
         conn.execute('''
             INSERT INTO radar_items (pillar, source, title, organization, url, deadline_or_date, extra_info,
-                                     deadline, starts_at, posted_at, url_key, title_key)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                     deadline, starts_at, posted_at, url_key, title_key,
+                                     city, region, lat, lon, mode, loc_done)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
         ''', (it['pillar'], it['source'], it['title'], it['organization'], it['url'], it['date_text'],
-              it['extra_info'], it['deadline'], it['starts_at'], it['posted_at'], ukey, tkey))
+              it['extra_info'], it['deadline'], it['starts_at'], it['posted_at'], ukey, tkey,
+              loc['city'], loc['region'], loc['lat'], loc['lon'], loc['mode']))
         return True
     except sqlite3.IntegrityError:
         return False
@@ -341,12 +363,38 @@ def _pick_score(row, keywords):
     return sum(1 for k in keywords if _has_word(text, [k]))
 
 
-def get_radar_items(pillar=None, limit=5, q=None, offset=0, sort='latest', source=None):
+ONLINE_MODES = ('online', 'remote', 'hybrid')
+
+
+def _with_distance(items, near):
+    """Add distance_km (from the user's location) to items that have a known city."""
+    for it in items:
+        it['distance_km'] = (round(locations.distance_km(near[0], near[1], it['lat'], it['lon']))
+                             if near and it.get('lat') is not None else None)
+    return items
+
+
+def get_radar_items(pillar=None, limit=5, q=None, offset=0, sort='latest', source=None,
+                    near=None, radius=50, loc=None):
     """Visible (upcoming / fresh) items.
 
     sort: 'latest' (newest first), 'closing' (nearest deadline first),
           'picks' (best match with interest keywords, then newest).
+    near: (lat, lon) of the user; adds distance_km to every item.
+    loc:  None (anywhere), 'near' (within radius km, nearest first),
+          'near_online' (near + anything online/remote), 'online' (online/remote only).
     """
+    if loc in ('near', 'near_online') and near:
+        rows = get_radar_items(pillar=pillar, limit=600, q=q, sort=sort, source=source)
+        _with_distance(rows, near)
+        # "Near" means you can go there: online / remote items only come with 'near_online'
+        close = [r for r in rows if r['distance_km'] is not None and r['distance_km'] <= radius
+                 and r.get('mode') not in ('online', 'remote')]
+        close.sort(key=lambda r: r['distance_km'])  # stable: keeps the chosen sort for ties
+        if loc == 'near_online':
+            close += [r for r in rows if r not in close and r.get('mode') in ONLINE_MODES]
+        return close[offset:offset + limit]
+
     init_radar_db()
     conn = get_db()
     sql = f"SELECT * FROM radar_items WHERE {VISIBLE_SQL}"
@@ -359,6 +407,8 @@ def get_radar_items(pillar=None, limit=5, q=None, offset=0, sort='latest', sourc
     if source:
         sql += " AND source = ?"
         args.append(source)
+    if loc == 'online':
+        sql += " AND mode IN ('online', 'remote', 'hybrid')"
     if q:
         sql += " AND (title LIKE ? OR organization LIKE ? OR extra_info LIKE ? OR source LIKE ?)"
         args += [f"%{q}%"] * 4
@@ -371,7 +421,7 @@ def get_radar_items(pillar=None, limit=5, q=None, offset=0, sort='latest', sourc
         scored = [(_pick_score(r, keywords), i, r) for i, r in enumerate(rows)]
         scored = [s for s in scored if s[0] > 0]
         scored.sort(key=lambda s: (-s[0], s[1]))  # best score, then newest
-        return [dict(r, score=sc) for sc, _, r in scored[offset:offset + limit]]
+        return _with_distance([dict(r, score=sc) for sc, _, r in scored[offset:offset + limit]], near)
 
     if sort == 'closing':
         sql += " AND deadline IS NOT NULL ORDER BY deadline ASC, id DESC"
@@ -381,7 +431,18 @@ def get_radar_items(pillar=None, limit=5, q=None, offset=0, sort='latest', sourc
     args += [limit, offset]
     rows = conn.execute(sql, args).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return _with_distance([dict(r) for r in rows], near)
+
+
+def get_city_counts():
+    """Visible opportunities per detected city (for the location picker)."""
+    init_radar_db()
+    conn = get_db()
+    counts = {r[0]: r[1] for r in conn.execute(
+        f"SELECT city, COUNT(*) FROM radar_items WHERE {VISIBLE_SQL} AND pillar IN ('jobs', 'events') "
+        "AND city IS NOT NULL GROUP BY city")}
+    conn.close()
+    return counts
 
 
 def get_counts():
