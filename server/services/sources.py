@@ -99,7 +99,7 @@ def tidy(text):
 
 
 def item(pillar, source, title, url, organization='', deadline=None, starts_at=None,
-         posted_at=None, extra_info='', date_text=''):
+         posted_at=None, extra_info='', date_text='', image='', logo=''):
     if not date_text:
         if starts_at:
             date_text = f"Starts {nice(starts_at)}"
@@ -110,7 +110,16 @@ def item(pillar, source, title, url, organization='', deadline=None, starts_at=N
         'organization': strip_html(organization)[:120], 'url': (url or '').strip(),
         'deadline': deadline, 'starts_at': starts_at, 'posted_at': posted_at,
         'extra_info': tidy(extra_info), 'date_text': date_text,
+        'image': img_url(image), 'logo': img_url(logo),
     }
+
+
+def img_url(url):
+    """'//cdn/x.png' -> 'https://cdn/x.png'; anything that isn't an http(s) URL -> ''."""
+    url = (url or '').strip()
+    if url.startswith('//'):
+        url = 'https:' + url
+    return url if url.startswith(('https://', 'http://')) else ''
 
 
 def location_ok(text, words=REMOTE_OK_WORDS):
@@ -209,7 +218,8 @@ def unstop(kind, pillar, label):
             out.append(item(pillar, 'Unstop', d.get('title'), d.get('seo_url'), organization=org,
                             deadline=deadline, posted_at=to_date(d.get('approved_date') or d.get('updated_at')),
                             extra_info=f"{label}{', ' + where if where else ''}",
-                            date_text=f"Apply by {nice(deadline)}" if deadline else ''))
+                            date_text=f"Apply by {nice(deadline)}" if deadline else '',
+                            image=d.get('logoUrl2'), logo=(d.get('organisation') or {}).get('logoUrl')))
         return out
     return fetcher
 
@@ -224,7 +234,7 @@ def devpost():
         out.append(item('events', 'Devpost', h.get('title'), h.get('url'),
                         organization=h.get('organization_name') or 'Devpost',
                         deadline=parse_range_end(dates), extra_info=f"Prize {prize} • {where}",
-                        date_text=dates))
+                        date_text=dates, image=h.get('thumbnail_url')))
     return out
 
 
@@ -254,7 +264,8 @@ def devfolio():
         out.append(item('events', 'Devfolio', h.get('name'), f"https://{h.get('slug')}.devfolio.co/",
                         organization=h.get('tagline') or 'Devfolio',
                         deadline=to_date(setting.get('reg_ends_at') or h.get('starts_at')),
-                        starts_at=to_date(h.get('starts_at')), extra_info=f"Hackathon • {where}"))
+                        starts_at=to_date(h.get('starts_at')), extra_info=f"Hackathon • {where}",
+                        image=h.get('cover_img'), logo=setting.get('logo')))
     return out
 
 

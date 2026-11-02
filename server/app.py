@@ -422,6 +422,13 @@ def serve_dashboard():
     return send_from_directory(app.static_folder, 'index.html')
 
 
+@app.route('/explore')
+@app.route('/explore/')
+def serve_explore():
+    """Explore views (Simple / Aura / Map), built from web/ into frontend/explore."""
+    return send_from_directory(os.path.join(app.static_folder, 'explore'), 'index.html')
+
+
 # ============ BACKGROUND SCHEDULER & NOTIFICATIONS ============
 
 from apscheduler.schedulers.background import BackgroundScheduler

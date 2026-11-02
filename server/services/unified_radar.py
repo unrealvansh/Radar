@@ -172,7 +172,7 @@ def init_radar_db():
     for col, kind in (('deadline', 'TEXT'), ('starts_at', 'TEXT'), ('posted_at', 'TEXT'),
                       ('url_key', 'TEXT'), ('title_key', 'TEXT'),
                       ('city', 'TEXT'), ('region', 'TEXT'), ('lat', 'REAL'), ('lon', 'REAL'),
-                      ('mode', 'TEXT'), ('loc_done', 'INTEGER')):
+                      ('mode', 'TEXT'), ('loc_done', 'INTEGER'), ('image', 'TEXT'), ('logo', 'TEXT')):
         if col not in cols:
             conn.execute(f"ALTER TABLE radar_items ADD COLUMN {col} {kind}")
 
@@ -242,23 +242,26 @@ def _store(conn, it):
     ukey = url_key(it['url'])
     tkey = title_key(it['pillar'], it['title'], it['organization'])
     dup = conn.execute(
-        "SELECT id, deadline FROM radar_items WHERE url_key = ? OR (pillar = ? AND title_key = ?) LIMIT 1",
+        "SELECT id, deadline, image, logo FROM radar_items WHERE url_key = ? OR (pillar = ? AND title_key = ?) LIMIT 1",
         (ukey, it['pillar'], tkey)
     ).fetchone()
     if dup:
         if not dup['deadline'] and it['deadline']:  # Another site knows the deadline: keep it
             conn.execute("UPDATE radar_items SET deadline = ? WHERE id = ?", (it['deadline'], dup['id']))
+        if (not dup['image'] and it.get('image')) or (not dup['logo'] and it.get('logo')):  # Same for pictures
+            conn.execute("UPDATE radar_items SET image = COALESCE(NULLIF(image, ''), ?), logo = COALESCE(NULLIF(logo, ''), ?) WHERE id = ?",
+                         (it.get('image') or '', it.get('logo') or '', dup['id']))
         return False
     loc = locations.detect(_location_text(it), it['source'])
     try:
         conn.execute('''
             INSERT INTO radar_items (pillar, source, title, organization, url, deadline_or_date, extra_info,
                                      deadline, starts_at, posted_at, url_key, title_key,
-                                     city, region, lat, lon, mode, loc_done)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                                     city, region, lat, lon, mode, loc_done, image, logo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
         ''', (it['pillar'], it['source'], it['title'], it['organization'], it['url'], it['date_text'],
               it['extra_info'], it['deadline'], it['starts_at'], it['posted_at'], ukey, tkey,
-              loc['city'], loc['region'], loc['lat'], loc['lon'], loc['mode']))
+              loc['city'], loc['region'], loc['lat'], loc['lon'], loc['mode'], it.get('image') or '', it.get('logo') or ''))
         return True
     except sqlite3.IntegrityError:
         return False

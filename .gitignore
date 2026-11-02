@@ -24,3 +24,6 @@ Thumbs.db
 
 # Secrets (access token, private ntfy topic)
 data/*.txt
+
+# Explore app (built into frontend/explore)
+web/node_modules/

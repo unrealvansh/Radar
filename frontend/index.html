@@ -191,6 +191,9 @@
             display: inline-flex; align-items: center; gap: 6px;
         }
         .seg button:hover { color: var(--text); }
+        .explore-views a { min-height: 32px; padding: 0 12px; display: inline-flex; align-items: center; border-radius: 2px;
+                           color: var(--text-2); font-weight: 700; font-size: 12.5px; text-decoration: none; }
+        .explore-views a:hover { color: var(--lav); background: var(--lav-soft); }
         .seg button[aria-pressed="true"], .seg button[aria-selected="true"] {
             background: var(--surface-3); color: var(--text); border-color: var(--silver-line); box-shadow: var(--metal);
         }
@@ -234,7 +237,7 @@
             width: 100%; min-height: 42px; padding: 0 10px;
             border: 1px solid transparent; border-radius: var(--r);
             background: transparent; color: var(--text-2);
-            font-size: 13.5px; text-align: left; cursor: pointer;
+            font-size: 13.5px; text-align: left; cursor: pointer; text-decoration: none;
         }
         .nav-item:hover { color: var(--text); border-color: var(--line); }
         .nav-item[aria-current="page"] {
@@ -677,6 +680,7 @@
             .topbar { height: 56px; padding: 0 16px; }
             .topbar-title { display: none; }
             .topbar-brand { display: flex; }
+            .explore-views { display: none; }
             .search-trigger { width: 40px; padding: 0; justify-content: center; }
             .search-trigger span, .search-trigger kbd { display: none; }
             main { padding: 18px 16px calc(92px + env(safe-area-inset-bottom)); }
@@ -811,6 +815,7 @@
                 <button class="nav-item" data-view="calendar" title="Calendar (g c)"><svg class="ic"><use href="#i-calendar"/></svg><span class="nav-label">Calendar</span></button>
                 <button class="nav-item" data-view="board" title="Board (g b)"><svg class="ic"><use href="#i-board"/></svg><span class="nav-label">Board</span><span class="nav-count" id="nav-count-board"></span></button>
                 <button class="nav-item" data-view="settings" title="Settings (g s)"><svg class="ic"><use href="#i-settings"/></svg><span class="nav-label">Settings</span></button>
+                <a class="nav-item" href="/explore/" title="Explore: Simple, Aura and Map views"><svg class="ic"><use href="#i-grid"/></svg><span class="nav-label">Explore</span></a>
             </nav>
             <div class="sidebar-foot">
                 <div class="panel scan-card" id="scan-card">
@@ -836,6 +841,7 @@
                     <svg class="ic"><use href="#i-search"/></svg><span>Search or jump to…</span><kbd id="kbd-hint">Ctrl K</kbd>
                 </button>
                 <button class="icon-btn" onclick="startScan()" aria-label="Scan now" id="top-scan"><svg class="ic"><use href="#i-scan"/></svg></button>
+                <a class="icon-btn explore-link" href="/explore/" aria-label="Explore: Simple, Aura and Map views"><svg class="ic"><use href="#i-grid"/></svg></a>
                 <button class="icon-btn" onclick="cycleTheme()" aria-label="Toggle theme" id="theme-btn"><svg class="ic"><use href="#i-moon"/></svg></button>
             </header>
 
@@ -916,6 +922,9 @@
                         <select class="input" id="feed-source" onchange="setSource(this.value)"><option value="">All sources</option></select>
                         <label class="sr-only" for="feed-loc">Location</label>
                         <select class="input" id="feed-loc" onchange="setLoc(this.value)"></select>
+                        <nav class="seg explore-views" aria-label="Explore views">
+                            <a href="/explore/#simple">Simple</a><a href="/explore/#aura">Aura</a><a href="/explore/#map">Map</a>
+                        </nav>
                         <div class="seg view-toggle" role="group" aria-label="Layout">
                             <button data-layout="grid" aria-pressed="true" onclick="setLayout('grid')" aria-label="Grid view"><svg class="ic ic-sm"><use href="#i-grid"/></svg></button>
                             <button data-layout="list" aria-pressed="false" onclick="setLayout('list')" aria-label="List view"><svg class="ic ic-sm"><use href="#i-list"/></svg></button>
@@ -2232,6 +2241,9 @@
             { label: 'Top picks for me', hint: '', icon: 'i-feed', run: () => goFeed('opps', 'picks') },
             { label: 'Near me', hint: '', icon: 'i-pin', run: () => state.home ? goNear() : useMyLocation() },
             { label: 'Online & remote only', hint: '', icon: 'i-globe', run: () => goFeed('opps', 'latest', 'online') },
+            { label: 'Explore: Simple view', hint: '', icon: 'i-grid', run: () => { location.href = '/explore/#simple'; } },
+            { label: 'Explore: Aura ring', hint: '', icon: 'i-feed', run: () => { location.href = '/explore/#aura'; } },
+            { label: 'Explore: Map', hint: '', icon: 'i-pin', run: () => { location.href = '/explore/#map'; } },
             { label: 'Use my current location', hint: '', icon: 'i-locate', run: () => useMyLocation() },
             { label: 'Jobs & internships', hint: '', icon: 'i-job', run: () => goFeed('jobs', 'latest') },
             { label: 'Hackathons & events', hint: '', icon: 'i-flag', run: () => goFeed('events', 'latest') },

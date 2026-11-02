@@ -43,6 +43,25 @@ Desktop gets a sidebar and a slide-in detail panel; phones get a bottom tab bar 
 | `R` | Scan now |
 | `?` | All shortcuts |
 
+## Explore: Simple, Aura and Map views
+A second page at `/explore/` (React + Motion + Leaflet, source in `web/`), reached from the
+sidebar, the Feed toolbar or the command palette. It shares the login and API with the app.
+- **Simple:** community-style cards (banner, round logo, stats, tags, Save / Saved menu) with
+  scroll reveals, pointer tilt and infinite scroll.
+- **Aura:** 16 cards on the inside of a 3D cylinder (plain CSS 3D, no WebGL). A loader deals the
+  cards out while the real covers load, then the camera moves inside the ring. Drag, swipe,
+  scroll or use the arrow keys to turn it. Escape, Tab or "Skip intro" ends the entrance;
+  reduced-motion systems skip it (add `?motion` to the URL to force it for a demo).
+- **Map:** OpenStreetMap with a pin per city (size = count, bronze ring = something closes within
+  3 days), your search radius, and an Online tray.
+- Keys `1` `2` `3` switch views. Cards use the images sources already provide (Unstop, Devpost,
+  Devfolio); others get a drawn cover.
+
+Build after changing `web/` (the output in `frontend/explore` is committed, so the phone needs no Node):
+```bash
+cd web && npm install && npm test && npm run build
+```
+
 ## Legal
 `/terms.html` and `/privacy.html` (linked from the login screen, sidebar and Settings).
 
