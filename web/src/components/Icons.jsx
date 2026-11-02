@@ -11,6 +11,8 @@ export const IconX = p => <svg {...base} {...p}><path d="M6 6l12 12M18 6L6 18" /
 export const IconOut = p => <svg {...base} {...p}><path d="M14 4h6v6M20 4l-9 9M19 14v6H4V5h6" /></svg>;
 export const IconSearch = p => <svg {...base} {...p}><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>;
 export const IconBack = p => <svg {...base} {...p}><path d="M15 5l-7 7 7 7" /></svg>;
+export const IconPause = p => <svg {...base} {...p}><path d="M8 5v14M16 5v14" /></svg>;
+export const IconPlay = p => <svg {...base} {...p}><path d="M7 4l13 8-13 8z" /></svg>;
 export const IconGlobe = p => <svg {...base} {...p}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" /></svg>;
 
 export function RadarMark({ size = 28 }) {

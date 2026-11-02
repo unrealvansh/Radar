@@ -5,7 +5,7 @@ import { SLOTS, reelForSlot, reelPose, sceneAt, wrap } from '../aura/pose.js';
 import { RollingCounter, Scramble } from '../aura/Loader.jsx';
 import { FilterBar } from '../components/Controls.jsx';
 import Cover from '../components/Cover.jsx';
-import { RadarMark } from '../components/Icons.jsx';
+import { IconPause, IconPlay, RadarMark } from '../components/Icons.jsx';
 import SaveButton from '../components/SaveButton.jsx';
 import { useRadar } from '../store.jsx';
 
@@ -15,14 +15,17 @@ const FORMATION_S = 2.6;
 const EXPANSION_S = 1.9;
 const EXPANSION_EASE = [0.5, 0, 0.15, 1];
 const ASSET_TIMEOUT_MS = 7000;   // never wait on a slow image host forever
-const AUTO_SPIN = 3.2;           // degrees per second
+const AUTO_SPIN = 4;             // degrees per second: a slow, steady drift through the feed
+const HOVER_LIFT = 110;          // px a hovered card comes toward the viewer
 const DRAG_DEG_PER_PX = 0.075;
 const STEP = 360 / SLOTS;
 
 let entrancePlayed = false;  // the loader plays once per visit, not on every view switch
 
 export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }) {
-    const { home, openDetail } = useRadar();
+    const { home, openDetail, detail } = useRadar();
+    const detailOpen = useRef(false);
+    detailOpen.current = !!detail;
     const [items, setItems] = useState(null);
     const skipEntrance = REDUCED || entrancePlayed;
 
@@ -105,6 +108,12 @@ export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }
     const dragState = useRef(null);
     const pointer = useRef(null);
     const hovered = useRef(null);
+    const hoveredSlot = useRef(-1);
+    const lift = useRef(new Array(SLOTS).fill(0));  // 0..1 per slot, eased toward the hovered card
+    const spinGain = useRef(skipEntrance ? 1 : 0);  // eases the drift in and out instead of stopping dead
+    const [paused, setPaused] = useState(false);
+    const pausedRef = useRef(false);
+    pausedRef.current = paused;
     const frame = useRef(0);
     const total = items?.length || 0;
     const [slotReel, setSlotReel] = useState(() => Array.from({ length: SLOTS }, (_, i) => i));
@@ -118,16 +127,16 @@ export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }
         const e = expansion.get();
         const scene = sceneAt(e);
 
-        // Target angle: auto-spin (forward through the feed) unless the visitor is holding it
-        if (!REDUCED && phaseRef.current !== 'loading' && !dragState.current) target.current -= AUTO_SPIN * dt;
-        if (REDUCED) {
-            angle.current = target.current;
-        } else {
-            // Visible angle follows the target through a spring, so it never snaps
-            const acc = 60 * (target.current - angle.current) - 14 * velocity.current;
-            velocity.current += acc * dt;
-            angle.current += velocity.current * dt;
-        }
+        // Target angle: a slow auto-spin forward through the feed. It eases to a stop while the
+        // visitor holds the ring, hovers a card, opens one or presses pause, and eases back after.
+        const spinning = phaseRef.current !== 'loading' && !dragState.current && hoveredSlot.current < 0
+            && !pausedRef.current && !detailOpen.current;
+        spinGain.current += ((spinning ? 1 : 0) - spinGain.current) * Math.min(1, dt * 2.5);
+        target.current -= AUTO_SPIN * spinGain.current * dt;
+        // Visible angle follows the target through a spring, so it never snaps
+        const acc = 60 * (target.current - angle.current) - 14 * velocity.current;
+        velocity.current += acc * dt;
+        angle.current += velocity.current * dt;
         const rot = angle.current;
 
         // Shared ring values go on the ring as CSS variables, only when they change
@@ -150,8 +159,12 @@ export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }
             const a = s * STEP + rot;
             const p = reelPose(a, f, scene);
             const visible = total > 0 && !p.behindCamera && p.appear > 0.001;
+            // The hovered card glides toward the viewer along its own facing direction
+            const l = lift.current;
+            l[s] += ((s === hoveredSlot.current ? 1 : 0) - l[s]) * Math.min(1, dt * 9);
+            if (l[s] < 0.001) l[s] = 0;
             const transform = visible
-                ? `translate3d(${p.x.toFixed(1)}px,0,${p.z.toFixed(1)}px) rotateY(${p.yaw.toFixed(2)}deg) scale(${p.scale.toFixed(3)})`
+                ? `translate3d(${p.x.toFixed(1)}px,0,${p.z.toFixed(1)}px) rotateY(${p.yaw.toFixed(2)}deg) translateZ(${(l[s] * HOVER_LIFT).toFixed(1)}px) scale(${(p.scale * (1 + l[s] * 0.1)).toFixed(3)})`
                 : 'none';
             const opacity = visible ? p.appear.toFixed(3) : '0';
             const last = lastStyle.current[s] || (lastStyle.current[s] = {});
@@ -171,12 +184,16 @@ export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }
 
         // Hover hit-testing every third frame
         frame.current = (frame.current + 1) % 3;
-        if (frame.current === 0 && pointer.current && !dragState.current) {
-            const hit = document.elementFromPoint(pointer.current.x, pointer.current.y)?.closest('.reel');
+        if (frame.current === 0 && phaseRef.current === 'done') {
+            const hit = pointer.current && !dragState.current
+                ? document.elementFromPoint(pointer.current.x, pointer.current.y)?.closest('.reel[data-slot]') || null
+                : null;
             if (hit !== hovered.current) {
                 hovered.current?.removeAttribute('data-hover');
                 hit?.setAttribute('data-hover', '');
-                hovered.current = hit || null;
+                hovered.current = hit;
+                hoveredSlot.current = hit ? Number(hit.dataset.slot) : -1;
+                stageRef.current?.classList.toggle('has-hover', !!hit);  // CSS blurs every other card
             }
         }
     });
@@ -251,7 +268,7 @@ export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }
                     {Array.from({ length: SLOTS }, (_, s) => {
                         const it = items?.[slotReel[s]];
                         return (
-                            <a key={s} className="reel" ref={el => (slotEls.current[s] = el)}
+                            <a key={s} className="reel" data-slot={s} ref={el => (slotEls.current[s] = el)}
                                href={it?.url || '#'} draggable="false"
                                aria-label={it ? `${it.title}${it.organization ? ', ' + it.organization : ''}. ${whenText(it)}` : undefined}
                                tabIndex={ready && it ? 0 : -1}
@@ -302,7 +319,13 @@ export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }
                     <h1>{total ? `${total} opportunities on the ring` : items === null ? 'Loading' : 'Nothing matches these filters'}</h1>
                     <p>Drag, swipe or scroll to turn it. Select a card to open it.</p>
                 </div>
-                <div className="aura-filters"><FilterBar filters={filters} setFilters={setFilters} hideSearch /></div>
+                <div className="aura-filters">
+                    <button className="chip spin-toggle" aria-pressed={paused} onClick={() => setPaused(p => !p)}
+                            aria-label={paused ? 'Resume turning' : 'Pause turning'}>
+                        {paused ? <IconPlay /> : <IconPause />}{paused ? 'Play' : 'Pause'}
+                    </button>
+                    <FilterBar filters={filters} setFilters={setFilters} hideSearch />
+                </div>
                 <AnimatePresence mode="wait">
                     {frontItem && (
                         <motion.div className="aura-focus" key={frontItem.id}

@@ -56,6 +56,11 @@ export default function App() {
                 <a className="wordmark" href="#simple" ref={wordmarkRef} onClick={e => { e.preventDefault(); go('simple'); }}>
                     <RadarMark size={26} /><span>Radar</span>
                 </a>
+                <nav className="sitenav" aria-label="Radar">
+                    {[['dashboard', 'Dashboard'], ['calendar', 'Calendar'], ['board', 'Board'], ['settings', 'Settings']].map(([id, label]) => (
+                        <a key={id} href={`/#${id}`}>{label}</a>
+                    ))}
+                </nav>
                 <ViewSwitch view={view} onChange={go} />
             </motion.header>
 

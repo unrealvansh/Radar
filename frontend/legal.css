@@ -1,21 +1,21 @@
 /* Shared by terms.html and privacy.html. Same tokens as the app. */
 :root {
-    --bg: #1D1915; --surface: #25201B; --line: #443C34;
-    --text: #E6E4E8; --text-2: #B7B3B6; --text-3: #928C8C; --lav: #BCB6DE;
+    --bg: #0E0E10; --surface: #141416; --line: #2A2A2F;
+    --text: #EDEDF1; --text-2: #A9A9B3; --text-3: #7E7E89; --lav: #4BA3FF;
     color-scheme: dark;
 }
 @media (prefers-color-scheme: light) {
     :root:not([data-theme="dark"]) {
-        --bg: #E6E4E9; --surface: #F0EFF3; --line: #C4C0CA;
-        --text: #221D18; --text-2: #4B4550; --text-3: #645E68; --lav: #524A95;
+        --bg: #F3F4F7; --surface: #FCFCFD; --line: #DADCE3;
+        --text: #16171B; --text-2: #4A4C57; --text-3: #686B77; --lav: #0A6FE0;
         color-scheme: light;
     }
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font: 15px/1.7 'B612', 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+body { background: var(--bg); color: var(--text); font: 15px/1.7 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
 main { max-width: 680px; margin: 0 auto; padding: 40px 16px 80px; }
 .back { display: inline-block; margin-bottom: 32px; color: var(--text-2); font-size: 13px; }
-h1 { font-size: 26px; line-height: 1.25; }
+h1 { font: 700 26px/1.25 'B612', system-ui, sans-serif; }
 .updated { color: var(--text-3); font-size: 13px; margin: 6px 0 28px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
 h2 { font-size: 16px; margin: 30px 0 8px; }
 p, li { color: var(--text-2); }

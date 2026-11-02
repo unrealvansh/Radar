@@ -47,6 +47,9 @@ body[data-view="aura"] .top { background: transparent; border-color: transparent
 .wordmark { display: flex; align-items: center; gap: 9px; flex: 1; text-decoration: none; font: 700 19px/1 var(--head); }
 .wordmark span { display: inline-block; line-height: 1; }
 .radar-mark { color: var(--text); flex-shrink: 0; }
+.sitenav { display: flex; gap: 2px; margin-right: 8px; }
+.sitenav a { padding: 8px 12px; border-radius: 999px; color: var(--text-2); text-decoration: none; font-size: 14px; transition: color .2s, background .2s; }
+.sitenav a:hover { color: var(--text); background: var(--surface-2); }
 
 .switch { position: relative; display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
 .switch button { position: relative; min-height: 34px; padding: 0 16px; border: 0; background: none; border-radius: 999px; cursor: pointer; color: var(--text-2); font-size: 14px; }
@@ -218,6 +221,9 @@ main { min-height: 100vh; }
 }
 .reel-front { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line-2); transition: border-color .2s; }
 .reel[data-hover] .reel-front, .reel:focus-visible .reel-front { border-color: var(--accent); }
+/* Hovering one card: it comes forward (AuraView), everything else steps back into a blur */
+.reel-front { transition: border-color .2s, filter .35s var(--ease), opacity .35s; }
+.aura-stage.has-hover .reel:not([data-hover]) .reel-front { filter: blur(5px) brightness(.5) saturate(.6); }
 .reel:focus-visible { outline: none; }
 .reel-back { transform: rotateY(180deg); display: grid; place-items: center; background: #E7E7EC; border: 1px solid #D4D4DB; color: #2B2B33; }
 .reel-back .radar-mark { color: #2B2B33; }
@@ -258,7 +264,9 @@ main { min-height: 100vh; }
 .aura-head h1 { font: 700 24px/1.2 var(--head); }
 .aura-head p { color: var(--text-2); margin-top: 6px; font-size: 14px; }
 .aura-filters { position: absolute; right: 24px; top: 84px; max-width: min(640px, 60vw); }
+.aura-filters { display: flex; gap: 8px; align-items: flex-start; }
 .aura-filters .filters { justify-content: flex-end; }
+.spin-toggle { display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0; }
 .aura-focus {
     position: absolute; left: 0; right: 0; bottom: 28px; margin: 0 auto;  /* no transform: Motion animates it */
     display: flex; align-items: center; gap: 12px; width: min(680px, calc(100vw - 32px));
@@ -271,13 +279,51 @@ main { min-height: 100vh; }
 .aura-focus .menu { bottom: calc(100% + 8px); }
 
 /* ---------- Map ---------- */
-.mapview { position: fixed; inset: 64px 0 0; }
-.map { position: absolute; inset: 0; background: #0b0b0d; }
-.leaflet-container { font: 13px var(--body); background: #0b0b0d; }
-.leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.9) saturate(.5); }  /* light OSM tiles turned dark */
-.leaflet-control-attribution { background: rgba(14, 14, 16, .8) !important; color: var(--text-3) !important; }
-.leaflet-control-attribution a { color: var(--text-2) !important; }
-.leaflet-bar a { background: var(--surface) !important; color: var(--text) !important; border-color: var(--line) !important; }
+.mapview { position: fixed; inset: 64px 0 0; overflow: hidden; background: #050507; }
+
+/* Dot-matrix map: a tilted plane, dots drawn on canvas, beacons standing up off it */
+.dm-view { position: absolute; inset: 0; perspective: 1500px; perspective-origin: 50% 40%; cursor: grab; touch-action: none; }
+.dm-view:active { cursor: grabbing; }
+.dm-plane { position: absolute; left: 50%; top: 50%; transform-style: preserve-3d; will-change: transform; }
+.dm-dots { position: absolute; inset: 0; display: block; }
+.dm-frame { position: absolute; inset: -14px; border: 1px dashed rgba(120, 140, 200, .28); border-radius: 6px; pointer-events: none; }
+.dm-sweep { position: absolute; left: 0; right: 0; top: 0; height: 1px; background: rgba(90, 160, 255, .45); pointer-events: none;
+            animation: dm-sweep 7s linear infinite; }
+@keyframes dm-sweep { from { transform: translateY(0); opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } to { transform: translateY(var(--plane-h, 1060px)); opacity: 0; } }
+.dm-home { position: absolute; transform: translate(-50%, -50%); border: 1px dashed rgba(120, 180, 255, .7); border-radius: 50%; pointer-events: none; }
+
+.dm-pin { position: absolute; width: 0; height: 0; padding: 0; border: 0; background: none; cursor: pointer; transform-style: preserve-3d; }
+.dm-pin:focus-visible { outline: none; }
+.dm-base {
+    position: absolute; left: calc(var(--s) / -2); top: calc(var(--s) / -2); width: var(--s); height: var(--s);
+    border-radius: 3px; background: rgba(40, 130, 255, .9); border: 1px solid rgba(170, 210, 255, .9);
+    transform: scale(calc(1 / max(1, var(--z, 1))));  /* stays the same size when zooming in */
+}
+.dm-base::after {  /* the ripple on the ground */
+    content: ""; position: absolute; inset: -2px; border-radius: 4px; border: 1px solid rgba(90, 160, 255, .8);
+    animation: dm-ripple 2.6s ease-out infinite; animation-delay: var(--d);
+}
+.dm-pin.is-urgent .dm-base { background: rgba(224, 164, 105, .95); border-color: #F6D3AE; }
+.dm-pin.is-urgent .dm-base::after { border-color: rgba(224, 164, 105, .9); }
+@keyframes dm-ripple { from { transform: scale(1); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
+/* Everything in .dm-stand is turned back up to face the viewer, and kept the same size when zooming */
+.dm-stand {
+    position: absolute; left: 0; top: 0; transform-origin: 0 0;
+    transform: rotateX(calc(var(--tilt, 50deg) * -1)) scale(calc(1 / var(--z, 1)));
+}
+.dm-beam { position: absolute; left: -1px; bottom: 0; width: 2px; height: var(--h); background: rgba(110, 175, 255, .75); transition: height .3s var(--ease); }
+.dm-pin:hover .dm-beam, .dm-pin.is-on .dm-beam, .dm-pin:focus-visible .dm-beam { height: calc(var(--h) + 18px); background: #9CCBFF; }
+.dm-chip {
+    position: absolute; left: 0; bottom: var(--h); transform: translate(-50%, -6px);
+    display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; white-space: nowrap;
+    border-radius: 8px; background: rgba(12, 14, 20, .92); border: 1px solid rgba(110, 150, 230, .35);
+    font: 400 12px var(--mono); color: #DCE6FF; opacity: 0; transition: opacity .25s, transform .25s var(--ease), bottom .3s var(--ease);
+}
+.dm-chip.is-shown { opacity: 1; }
+.dm-pin:hover .dm-chip, .dm-pin.is-on .dm-chip, .dm-pin:focus-visible .dm-chip { opacity: 1; bottom: calc(var(--h) + 18px); border-color: rgba(140, 190, 255, .8); }
+.dm-chip i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid #7DB8FF; }
+.dm-pin.is-urgent .dm-chip i { border-color: var(--urgent); }
+.dm-chip b { font-weight: 700; color: #fff; }
 .map-top { position: absolute; z-index: 500; top: 16px; left: 50%; transform: translateX(-50%); max-width: calc(100vw - 32px); }
 .map-top .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .map-cities {
@@ -292,18 +338,6 @@ main { min-height: 100vh; }
 .map-cities b { font: 400 13px var(--mono); }
 .dot-urgent { display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-radius: 50%; background: var(--urgent); vertical-align: middle; }
 
-.pin-wrap { background: none; border: 0; }
-.pin {
-    width: var(--s); height: var(--s); margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
-    display: grid; place-items: center; border-radius: 50%; cursor: pointer;
-    background: rgba(26, 140, 255, .9); color: #fff; border: 2px solid rgba(255, 255, 255, .85);
-    font: 700 13px var(--mono); transition: transform .2s var(--ease);
-}
-.pin:hover, .pin.is-on { transform: scale(1.15); }
-.pin.is-on { background: #fff; color: var(--accent); }
-.pin.is-urgent { box-shadow: 0 0 0 3px var(--urgent); }
-.home-dot { display: block; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 4px solid var(--accent); animation: home 2.4s ease-out infinite; }
-@keyframes home { 0% { box-shadow: 0 0 0 0 rgba(26, 140, 255, .55); } 100% { box-shadow: 0 0 0 22px rgba(26, 140, 255, 0); } }
 
 .map-panel {
     position: absolute; z-index: 600; top: 16px; right: 16px; bottom: 16px; width: min(400px, calc(100vw - 32px));
@@ -316,9 +350,11 @@ main { min-height: 100vh; }
 .map-panel-list { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 14px; display: grid; gap: 14px; align-content: start; }
 
 /* ---------- responsive ---------- */
+@media (max-width: 1080px) { .sitenav { display: none; } }
 @media (max-width: 760px) {
     .top { height: 58px; padding: 0 12px; gap: 6px; }
     .wordmark { font-size: 17px; }
+    .sitenav { display: none; }
     .switch button { padding: 0 11px; font-size: 13px; }
     .simple { padding: 82px 14px 60px; }
     .simple-head { flex-direction: column; gap: 2px; }
@@ -342,7 +378,8 @@ main { min-height: 100vh; }
     .aura-head h1 { font-size: 18px; }
     .aura-head p { font-size: 13px; }
     .aura-filters { left: 0; right: 0; top: auto; bottom: 104px; max-width: none; }
-    .aura-filters .filters { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding: 0 16px; scrollbar-width: none; }
+    .aura-filters { padding-left: 16px; }
+    .aura-filters .filters { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding: 0 16px 0 0; scrollbar-width: none; min-width: 0; }
     .aura-filters .filters > * { flex-shrink: 0; }
     .aura-focus { bottom: 16px; padding: 10px; gap: 8px; }
     .aura-focus .btn-outline { display: none; }

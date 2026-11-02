@@ -20,8 +20,8 @@ with deadline tracking and push reminders. Runs on a Mobistar C2 phone in Termux
 - Access-token login on every API call
 
 ## App
-Dark-first UI (matching light theme): warm umber base, polished-silver edges, pale lavender for the live signal.
-Set in B612, the typeface designed for aircraft cockpit displays. Flat colours, sharp corners, no blur or glow.
+Dark-first UI (matching light theme) shared with Explore: near-black base, white type, one blue for actions,
+amber for urgent deadlines. Headings in B612 (the typeface designed for aircraft cockpit displays).
 Desktop gets a sidebar and a slide-in detail panel; phones get a bottom tab bar and a swipeable bottom sheet.
 - **Dashboard**: a radar scope that plots every deadline in the next 30 days (closer to the centre = closes sooner),
   a readout of new / due this week / tracked / applied, then Closing soon, Near you, Top picks and Just in
@@ -49,11 +49,13 @@ sidebar, the Feed toolbar or the command palette. It shares the login and API wi
 - **Simple:** community-style cards (banner, round logo, stats, tags, Save / Saved menu) with
   scroll reveals, pointer tilt and infinite scroll.
 - **Aura:** 16 cards on the inside of a 3D cylinder (plain CSS 3D, no WebGL). A loader deals the
-  cards out while the real covers load, then the camera moves inside the ring. Drag, swipe,
+  cards out while the real covers load, then the camera moves inside the ring. It drifts slowly
+  on its own (Pause button); hovering a card brings it forward and blurs the rest. Drag, swipe,
   scroll or use the arrow keys to turn it. Escape, Tab or "Skip intro" ends the entrance;
   reduced-motion systems skip it (add `?motion` to the URL to force it for a demo).
-- **Map:** OpenStreetMap with a pin per city (size = count, bronze ring = something closes within
-  3 days), your search radius, and an Online tray.
+- **Map:** a dark dot-matrix India on a tilted plane (canvas, no map tiles or API keys). Dots near
+  opportunities glow blue, each city has a beacon with a count (amber = something closes within
+  3 days), and picking a city flies the camera there. Drag to pan, scroll to zoom, Esc to go back.
 - Keys `1` `2` `3` switch views. Cards use the images sources already provide (Unstop, Devpost,
   Devfolio); others get a drawn cover.
 
