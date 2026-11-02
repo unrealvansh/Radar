@@ -4,6 +4,13 @@ function read(key) {
     try { return localStorage.getItem(key); } catch { return null; }
 }
 
+export function write(key, value) {
+    try {
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+    } catch { /* storage blocked: the setting just won't persist */ }
+}
+
 export function hasToken() {
     return !!read('radar_token');
 }
@@ -13,10 +20,23 @@ export async function api(path, options = {}) {
     if (options.body) headers['Content-Type'] = 'application/json';
     const res = await fetch(path, { ...options, headers });
     if (res.status === 401) {
-        location.href = '/';
+        dispatchEvent(new Event('radar:locked'));  // the app shows its login screen
         throw new Error('unauthorized');
     }
     return res.json();
+}
+
+/** Try a token; keep it if the server accepts it. */
+export async function unlock(token) {
+    const res = await fetch('/api/auth/check', { headers: { 'X-Access-Token': token } });
+    if (!res.ok) return false;
+    write('radar_token', token);
+    return true;
+}
+
+export function lock() {
+    write('radar_token', null);
+    dispatchEvent(new Event('radar:locked'));
 }
 
 /** The user's saved city ({ city, lat, lon, radius }) or null. */

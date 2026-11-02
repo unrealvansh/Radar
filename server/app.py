@@ -3,7 +3,7 @@ Radar: Student Opportunity Radar
 Main Flask application with all API routes.
 """
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, redirect, request, send_from_directory
 from datetime import datetime, timedelta
 import secrets
 import sqlite3
@@ -274,7 +274,8 @@ def get_saved():
     rows = conn.execute('''
         SELECT s.id, s.item_id, s.deadline, s.status, s.created_at AS saved_at,
                r.pillar, r.source, r.title, r.organization, r.url,
-               r.deadline_or_date, r.extra_info, r.starts_at, r.posted_at
+               r.deadline_or_date, r.extra_info, r.starts_at, r.posted_at,
+               r.image, r.logo, r.city, r.mode, r.deadline AS item_deadline
         FROM saved_items s JOIN radar_items r ON r.id = s.item_id
         ORDER BY s.deadline IS NULL, s.deadline ASC, s.id DESC
     ''').fetchall()
@@ -418,15 +419,15 @@ def test_notification():
 
 @app.route('/')
 def serve_dashboard():
-    """Serve the PWA dashboard (index.html)."""
-    return send_from_directory(app.static_folder, 'index.html')
+    """Serve the app (built from web/ into frontend/app)."""
+    return send_from_directory(os.path.join(app.static_folder, 'app'), 'index.html')
 
 
 @app.route('/explore')
 @app.route('/explore/')
-def serve_explore():
-    """Explore views (Simple / Aura / Map), built from web/ into frontend/explore."""
-    return send_from_directory(os.path.join(app.static_folder, 'explore'), 'index.html')
+def old_explore():
+    """Explore used to be a separate page; it is part of the app now."""
+    return redirect('/')
 
 
 # ============ BACKGROUND SCHEDULER & NOTIFICATIONS ============

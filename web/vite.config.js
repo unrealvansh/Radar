@@ -1,12 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Built into frontend/explore so the Flask server on the phone only serves static files.
+// Built into frontend/app so the Flask server on the phone only serves static files (at /).
 export default defineConfig({
-    base: '/explore/',
+    base: '/app/',
     plugins: [react()],
     build: {
-        outDir: '../frontend/explore',
+        outDir: '../frontend/app',
         emptyOutDir: true,
         chunkSizeWarningLimit: 400,
     },

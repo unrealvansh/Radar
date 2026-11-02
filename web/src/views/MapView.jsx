@@ -42,14 +42,19 @@ export default function MapView({ filters, setFilters }) {
             byCity.set(it.city, c);
         }
         const list = [...byCity.values()].sort((a, b) => b.items.length - a.items.length);
-        list.forEach(c => Object.assign(c, project(c.lon, c.lat, PLANE)));
+        const soonest = it => it.deadline || it.starts_at || '9999';
+        list.forEach(c => {
+            Object.assign(c, project(c.lon, c.lat, PLANE));
+            c.items.sort((a, b) => soonest(a).localeCompare(soonest(b)));
+            c.lead = c.items[0];  // the beacon is labelled with this one
+        });
         return { cities: list, online };
     }, [items]);
 
     // ---- camera: four springs ----
     const fitScale = () => {
         const el = viewRef.current;
-        if (!el) return 0.6;
+        if (!el || !el.clientWidth || !el.clientHeight) return 0.6;
         // the tilted plane's near edge is enlarged by perspective, so leave room
         return Math.min(el.clientWidth / (PLANE.w * 1.15), el.clientHeight / (PLANE.h * 1.0));
     };
@@ -72,11 +77,14 @@ export default function MapView({ filters, setFilters }) {
     };
 
     // Entrance: the plane swings down from steep to the overview while the dots are drawn
+    const selectedRef = useRef(null);
+    selectedRef.current = selected;
     useEffect(() => {
         overview();
-        const onResize = () => (selected ? null : overview());
-        addEventListener('resize', onResize);
-        return () => removeEventListener('resize', onResize);
+        // Re-fit whenever the map's box changes size (first layout, window resize, rotation)
+        const ro = new ResizeObserver(() => { if (!selectedRef.current) overview(); });
+        ro.observe(viewRef.current);
+        return () => ro.disconnect();
     }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
     const pick = name => {
@@ -196,12 +204,13 @@ export default function MapView({ filters, setFilters }) {
                     )}
                     {cities.map((c, i) => {
                         const size = 8 + 14 * Math.sqrt(c.items.length / max);
-                        const show = selected === c.name || hoverCity === c.name || i < 6;
+                        const show = selected === c.name || hoverCity === c.name || i < 5;
+                        const title = c.lead.title.length > 34 ? c.lead.title.slice(0, 32).trimEnd() + '...' : c.lead.title;
                         return (
                             <button key={c.name} className={`dm-pin ${c.urgent ? 'is-urgent' : ''} ${selected === c.name ? 'is-on' : ''}`}
                                     style={{ left: c.x, top: c.y, '--s': `${size}px`, '--h': `${18 + 50 * Math.sqrt(c.items.length / max)}px`,
                                              '--d': `${(i % 8) * 0.25}s` }}
-                                    aria-label={`${c.name}: ${c.items.length} open`}
+                                    aria-label={`${c.lead.title} in ${c.name}${c.items.length > 1 ? `, and ${c.items.length - 1} more there` : ''}`}
                                     onPointerEnter={() => setHoverCity(c.name)} onPointerLeave={() => setHoverCity(null)}
                                     onFocus={() => setHoverCity(c.name)} onBlur={() => setHoverCity(null)}
                                     onClick={() => pick(c.name)}>
@@ -209,7 +218,8 @@ export default function MapView({ filters, setFilters }) {
                                 <span className="dm-stand">
                                     <span className="dm-beam" />
                                     <span className={`dm-chip ${show ? 'is-shown' : ''}`}>
-                                        <i />{c.name} <b>{c.items.length}</b>
+                                        <i />{title}{c.items.length > 1 && <b>+{c.items.length - 1}</b>}
+                                        <em>{c.name}</em>
                                     </span>
                                 </span>
                             </button>

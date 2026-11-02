@@ -15,6 +15,24 @@ export const IconPause = p => <svg {...base} {...p}><path d="M8 5v14M16 5v14" />
 export const IconPlay = p => <svg {...base} {...p}><path d="M7 4l13 8-13 8z" /></svg>;
 export const IconGlobe = p => <svg {...base} {...p}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" /></svg>;
 
+export const IconScan = p => <svg {...base} {...p}><path d="M20 12a8 8 0 1 1-2.3-5.7" /><path d="M20 4v5h-5" /></svg>;
+export const IconSettings = p => <svg {...base} {...p}><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" /></svg>;
+export const IconLeft = p => <svg {...base} {...p}><path d="M15 5l-7 7 7 7" /></svg>;
+export const IconRight = p => <svg {...base} {...p}><path d="M9 5l7 7-7 7" /></svg>;
+export const IconCopy = p => <svg {...base} {...p}><path d="M8 8h12v12H8zM16 8V4H4v12h4" /></svg>;
+export const IconLock = p => <svg {...base} {...p}><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" /></svg>;
+export const IconLocate = p => <svg {...base} {...p}><circle cx="12" cy="12" r="6" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /></svg>;
+
+const NAV_PATHS = {
+    home: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><path d="M12 12l6-6" /></>,
+    feed: <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />,
+    map: <><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" /><path d="M9 4v14M15 6v14" /></>,
+    calendar: <path d="M3 6h18v15H3zM3 10h18M8 3v4M16 3v4" />,
+    board: <path d="M4 4h4v16H4zM10 4h4v11h-4zM16 4h4v7h-4z" />,
+    settings: <><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" /></>,
+};
+export const NavIcon = ({ id }) => <svg {...base} width={18} height={18}>{NAV_PATHS[id]}</svg>;
+
 export function RadarMark({ size = 28 }) {
     return (
         <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" className="radar-mark">

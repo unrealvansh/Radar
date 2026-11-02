@@ -20,49 +20,32 @@ with deadline tracking and push reminders. Runs on a Mobistar C2 phone in Termux
 - Access-token login on every API call
 
 ## App
-Dark-first UI (matching light theme) shared with Explore: near-black base, white type, one blue for actions,
-amber for urgent deadlines. Headings in B612 (the typeface designed for aircraft cockpit displays).
-Desktop gets a sidebar and a slide-in detail panel; phones get a bottom tab bar and a swipeable bottom sheet.
-- **Dashboard**: a radar scope that plots every deadline in the next 30 days (closer to the centre = closes sooner),
-  a readout of new / due this week / tracked / applied, then Closing soon, Near you, Top picks and Just in
-- **Feed**: sort by Latest / Closing soon / Top picks, filter by type and source, grid or list, infinite scroll
-- **Calendar**: month view of tracked deadlines and upcoming events
-- **Board**: Saved → Applied → Done (drag and drop on desktop, arrows everywhere)
-- **Command palette**: `Ctrl K` or `/` to search everything and run commands
-- **Near me**: set your city (or use GPS on the HTTPS link) and a radius; the feed can show opportunities
-  near you (nearest first), near you + online, or online/remote only. Cities are detected from each
-  listing using a built-in list of ~75 Indian cities (`server/services/locations.py`), no geocoding API.
+One React app (source in `web/`, built into `frontend/app`, served at `/`). Dark UI: near-black base,
+white type, one blue for actions, amber for urgent deadlines; headings in B612. Sidebar on desktop,
+bottom tab bar on phones.
+- **Home**: the hero is a 3D ring of 16 opportunity cards (plain CSS 3D, no WebGL). On first visit a loader
+  deals the cards out while the real covers load, then the camera moves inside the ring. It drifts slowly
+  (Pause button); hovering a card pauses it, turns the card to face you and pulls it close. Below the ring:
+  greeting, stats, Closing soon, Near you, Picks for you, Just in.
+- **Feed**: cards with banner, logo, stats, tags and a Save / Saved menu; filter by type, For you,
+  Closing soon, Near me, Online; search; infinite scroll.
+- **Map**: a dark dot-matrix India on a tilted plane. Each city has a beacon labelled with its soonest
+  event (amber = something closes within 3 days); pick one and the camera flies there.
+- **Calendar**: month view of tracked deadlines and upcoming events.
+- **Board**: Saved, Applied, Done (drag and drop on desktop, arrows everywhere).
+- **Settings**: name, location (GPS on HTTPS, or pick a city) and radius, interests, ntfy topic, lock.
+- Reduced-motion systems skip the intro (add `?motion` to the URL to force it for a demo).
+
+Build after changing `web/` (the output is committed, so the phone needs no Node):
+```bash
+cd web && npm install && npm test && npm run build
+```
 
 | Keys | Action |
 |---|---|
 | `Ctrl K`, `/` | Search & commands |
-| `G` then `D` `F` `C` `B` `S` | Dashboard, Feed, Calendar, Board, Settings |
-| `J` / `K` | Next / previous card |
-| `Enter` | Open details |
-| `S` / `T` / `O` | Save / Track / Open link |
-| `R` | Scan now |
-| `?` | All shortcuts |
-
-## Explore: Simple, Aura and Map views
-A second page at `/explore/` (React + Motion + Leaflet, source in `web/`), reached from the
-sidebar, the Feed toolbar or the command palette. It shares the login and API with the app.
-- **Simple:** community-style cards (banner, round logo, stats, tags, Save / Saved menu) with
-  scroll reveals, pointer tilt and infinite scroll.
-- **Aura:** 16 cards on the inside of a 3D cylinder (plain CSS 3D, no WebGL). A loader deals the
-  cards out while the real covers load, then the camera moves inside the ring. It drifts slowly
-  on its own (Pause button); hovering a card brings it forward and blurs the rest. Drag, swipe,
-  scroll or use the arrow keys to turn it. Escape, Tab or "Skip intro" ends the entrance;
-  reduced-motion systems skip it (add `?motion` to the URL to force it for a demo).
-- **Map:** a dark dot-matrix India on a tilted plane (canvas, no map tiles or API keys). Dots near
-  opportunities glow blue, each city has a beacon with a count (amber = something closes within
-  3 days), and picking a city flies the camera there. Drag to pan, scroll to zoom, Esc to go back.
-- Keys `1` `2` `3` switch views. Cards use the images sources already provide (Unstop, Devpost,
-  Devfolio); others get a drawn cover.
-
-Build after changing `web/` (the output in `frontend/explore` is committed, so the phone needs no Node):
-```bash
-cd web && npm install && npm test && npm run build
-```
+| `G` then `H` `F` `M` `C` `B` `S` | Home, Feed, Map, Calendar, Board, Settings |
+| `Esc` | Close details / leave a city on the map |
 
 ## Legal
 `/terms.html` and `/privacy.html` (linked from the login screen, sidebar and Settings).

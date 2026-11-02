@@ -3,7 +3,6 @@ import { AnimatePresence, animate, motion, useAnimationFrame, useMotionValue } f
 import { TYPE_LABEL, daysUntil, listItems, whenText, whereText } from '../api.js';
 import { SLOTS, reelForSlot, reelPose, sceneAt, wrap } from '../aura/pose.js';
 import { RollingCounter, Scramble } from '../aura/Loader.jsx';
-import { FilterBar } from '../components/Controls.jsx';
 import Cover from '../components/Cover.jsx';
 import { IconPause, IconPlay, RadarMark } from '../components/Icons.jsx';
 import SaveButton from '../components/SaveButton.jsx';
@@ -16,14 +15,15 @@ const EXPANSION_S = 1.9;
 const EXPANSION_EASE = [0.5, 0, 0.15, 1];
 const ASSET_TIMEOUT_MS = 7000;   // never wait on a slow image host forever
 const AUTO_SPIN = 4;             // degrees per second: a slow, steady drift through the feed
-const HOVER_LIFT = 110;          // px a hovered card comes toward the viewer
+const HOVER_PULL = 0.45;         // share of the way a hovered card flies toward the viewer
 const DRAG_DEG_PER_PX = 0.075;
 const STEP = 360 / SLOTS;
 
 let entrancePlayed = false;  // the loader plays once per visit, not on every view switch
 
-export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }) {
-    const { home, openDetail, detail } = useRadar();
+// The home hero: the ring sits at the top of Home, the dashboard continues below it.
+export default function AuraView({ wordmarkRef, onHandoff, go }) {
+    const { home, openDetail, detail, version } = useRadar();
     const detailOpen = useRef(false);
     detailOpen.current = !!detail;
     const [items, setItems] = useState(null);
@@ -38,8 +38,14 @@ export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }
     const anims = useRef([]);
 
     useEffect(() => {
-        listItems({ ...filters, limit: 96 }, home).then(setItems).catch(() => setItems([]));
-    }, [filters, home]);
+        listItems({ pillar: 'opps', sort: 'latest', limit: 96 }, home).then(setItems).catch(() => setItems([]));
+    }, [home, version]);
+
+    // The page can't scroll away while the entrance plays
+    useEffect(() => {
+        document.documentElement.style.overflow = phase === 'done' ? '' : 'hidden';
+        return () => { document.documentElement.style.overflow = ''; };
+    }, [phase]);
 
     // ---- real progress: covers of the reels the ring opens with ----
     const [loadedIds, setLoadedIds] = useState(() => new Set());
@@ -159,12 +165,22 @@ export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }
             const a = s * STEP + rot;
             const p = reelPose(a, f, scene);
             const visible = total > 0 && !p.behindCamera && p.appear > 0.001;
-            // The hovered card glides toward the viewer along its own facing direction
+            // The hovered card turns to face the viewer and flies part of the way toward them.
+            // It moves along the line to the eye, so it stays under the pointer while it grows.
             const l = lift.current;
-            l[s] += ((s === hoveredSlot.current ? 1 : 0) - l[s]) * Math.min(1, dt * 9);
+            l[s] += ((s === hoveredSlot.current ? 1 : 0) - l[s]) * Math.min(1, dt * 7);
             if (l[s] < 0.001) l[s] = 0;
+            let { x: px, z: pz, yaw } = p;
+            if (l[s] > 0) {
+                const k = l[s] * HOVER_PULL;
+                const dx = -p.x, dz = scene.perspective - p.z;
+                px = p.x + dx * k;
+                pz = p.z + dz * k;
+                const facing = (Math.atan2(dx, dz) * 180) / Math.PI;
+                yaw = p.yaw + wrap(facing - p.yaw) * l[s];
+            }
             const transform = visible
-                ? `translate3d(${p.x.toFixed(1)}px,0,${p.z.toFixed(1)}px) rotateY(${p.yaw.toFixed(2)}deg) translateZ(${(l[s] * HOVER_LIFT).toFixed(1)}px) scale(${(p.scale * (1 + l[s] * 0.1)).toFixed(3)})`
+                ? `translate3d(${px.toFixed(1)}px,0,${pz.toFixed(1)}px) rotateY(${yaw.toFixed(2)}deg) scale(${(p.scale * (1 + l[s] * 0.12)).toFixed(3)})`
                 : 'none';
             const opacity = visible ? p.appear.toFixed(3) : '0';
             const last = lastStyle.current[s] || (lastStyle.current[s] = {});
@@ -193,7 +209,6 @@ export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }
                 hit?.setAttribute('data-hover', '');
                 hovered.current = hit;
                 hoveredSlot.current = hit ? Number(hit.dataset.slot) : -1;
-                stageRef.current?.classList.toggle('has-hover', !!hit);  // CSS blurs every other card
             }
         }
     });
@@ -204,9 +219,13 @@ export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }
         const stage = stageRef.current;
         if (!stage) return;
         const onWheel = e => {
-            e.preventDefault();  // the page never scrolls here; during the entrance the wheel does nothing
-            if (phaseRef.current !== 'done') return;
-            target.current += (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * 0.045;
+            // During the entrance the wheel does nothing. After it, vertical scrolling moves the
+            // page (this is the top of Home) and sideways scrolling turns the ring.
+            if (phaseRef.current !== 'done') { e.preventDefault(); return; }
+            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+                e.preventDefault();
+                target.current += e.deltaX * 0.045;
+            }
         };
         stage.addEventListener('wheel', onWheel, { passive: false });
         return () => stage.removeEventListener('wheel', onWheel);
@@ -250,7 +269,7 @@ export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }
     const showLoader = phase !== 'done';
 
     return (
-        <section className={`aura phase-${phase}`} aria-label="Aura view">
+        <section className={`aura phase-${phase}`} aria-label="Opportunity ring">
             {/* White loader page under the cards; fades while the cards keep moving */}
             {!skipEntrance && (
                 <motion.div className="aura-backdrop" aria-hidden="true"
@@ -316,15 +335,18 @@ export default function AuraView({ filters, setFilters, wordmarkRef, onHandoff }
                         transition={{ duration: 0.7, delay: phase === 'reveal' ? 0.8 : 0, ease: [0.2, 0.8, 0.2, 1] }}
                         aria-hidden={phase === 'loading'}>
                 <div className="aura-head">
-                    <h1>{total ? `${total} opportunities on the ring` : items === null ? 'Loading' : 'Nothing matches these filters'}</h1>
-                    <p>Drag, swipe or scroll to turn it. Select a card to open it.</p>
+                    <h1>{total ? `${total} opportunities, one ring` : items === null ? 'Loading' : 'Nothing here yet. Run a scan.'}</h1>
+                    <p>Hover a card to pull it close. Drag or swipe to turn the ring.</p>
+                    <div className="aura-cta">
+                        <button className="btn-primary" onClick={() => go('feed')}>Open the feed</button>
+                        <button className="btn-outline" onClick={() => go('map')}>See the map</button>
+                    </div>
                 </div>
                 <div className="aura-filters">
                     <button className="chip spin-toggle" aria-pressed={paused} onClick={() => setPaused(p => !p)}
                             aria-label={paused ? 'Resume turning' : 'Pause turning'}>
                         {paused ? <IconPlay /> : <IconPause />}{paused ? 'Play' : 'Pause'}
                     </button>
-                    <FilterBar filters={filters} setFilters={setFilters} hideSearch />
                 </div>
                 <AnimatePresence mode="wait">
                     {frontItem && (
@@ -365,7 +387,9 @@ function ReelFace({ item, onCoverDone }) {
 
 /** The loader's brand word flies into the header wordmark's exact place and size. */
 function flyBrand(from, wordmark) {
-    const to = wordmark?.querySelector('span');
+    // The sidebar's wordmark on desktop, the top bar's on phones: whichever is on screen
+    const to = [wordmark?.querySelector('span'), ...document.querySelectorAll('.wordmark span')]
+        .find(el => el && el.getBoundingClientRect().height > 0);
     if (!from || !to) return;
     const a = from.getBoundingClientRect();
     const b = to.getBoundingClientRect();
