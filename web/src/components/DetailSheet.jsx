@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { TYPE_LABEL, daysUntil, fmtDate, whereText } from '../api.js';
-import { useRadar } from '../store.jsx';
+import { useDetail, useRadar } from '../store.jsx';
 import Cover from './Cover.jsx';
 import SaveButton from './SaveButton.jsx';
 import { IconOut, IconX } from './Icons.jsx';
 
 // Side panel on desktop, bottom sheet on phones. The card's cover morphs into it (layoutId).
 export default function DetailSheet() {
-    const { detail: it, openDetail } = useRadar();
+    const it = useDetail();
+    const { openDetail } = useRadar();
     const close = () => openDetail(null);
     const panelRef = useRef(null);
 
@@ -34,9 +35,9 @@ export default function DetailSheet() {
                                   drag={matchMedia('(max-width: 640px)').matches ? 'y' : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }}
                                   onDragEnd={(e, info) => { if (info.offset.y > 120) close(); }}>
                         <div className="sheet-handle" aria-hidden="true" />
-                        <motion.div className="sheet-cover" layoutId={`cover-${it.id}`}>
+                        <div className="sheet-cover">
                             <Cover item={it} />
-                        </motion.div>
+                        </div>
                         <button className="icon-btn sheet-close" onClick={close} aria-label="Close details"><IconX /></button>
                         <div className="sheet-body">
                             <div className="oc-pills">

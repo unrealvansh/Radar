@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useScroll, useSpring } from 'motion/react';
+import { motion, useScroll, useSpring } from 'motion/react';
 import { listItems } from '../api.js';
 import { FilterBar } from '../components/Controls.jsx';
 import OppCard from '../components/OppCard.jsx';
@@ -57,11 +57,9 @@ export default function SimpleView({ filters, setFilters }) {
                         <span>Clear a filter, or run a scan from the Radar app.</span>
                     </div>
                 ) : (
-                    <motion.div className="oc-grid" layout>
-                        <AnimatePresence mode="popLayout">
-                            {items.map((it, i) => <OppCard key={it.id} item={it} index={i} />)}
-                        </AnimatePresence>
-                    </motion.div>
+                    <div className="oc-grid">
+                        {items.map((it, i) => <OppCard key={it.id} item={it} index={i} />)}
+                    </div>
                 )}
                 <div ref={sentinel} className="sentinel" />
                 {done && items?.length > 0 && <p className="end">That's all {items.length}.</p>}

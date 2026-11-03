@@ -99,12 +99,13 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 /* ---------- filters ---------- */
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .pillars { position: relative; display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
-.pillars button { position: relative; min-height: 32px; padding: 0 14px; border: 0; background: none; border-radius: 999px; cursor: pointer; color: var(--text-2); font-size: 14px; }
+.pillars { flex-shrink: 0; }
+.pillars button { white-space: nowrap; position: relative; min-height: 32px; padding: 0 14px; border: 0; background: none; border-radius: 999px; cursor: pointer; color: var(--text-2); font-size: 14px; }
 .pillars button[aria-pressed="true"] { color: var(--text); }
 .pillar-hl { position: absolute; inset: 0; border-radius: 999px; background: var(--surface-3); border: 1px solid var(--line-2); }
 .pillars button span { position: relative; }
 .chip {
-    min-height: 38px; padding: 0 16px; border-radius: 999px; cursor: pointer;
+    min-height: 38px; padding: 0 16px; border-radius: 999px; cursor: pointer; white-space: nowrap; flex-shrink: 0;
     border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: 14px;
     transition: border-color .2s, color .2s, background .2s;
 }
@@ -130,7 +131,6 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
     padding: 0 16px 16px; cursor: pointer;
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
     transition: border-color .25s;
-    will-change: transform;
 }
 .oc:hover { border-color: var(--line-2); }
 .oc-banner { height: 58px; margin: 0 -16px; border-radius: var(--r) var(--r) 0 0; overflow: hidden; background: var(--surface-2); }
@@ -151,7 +151,14 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .oc-stats .is-urgent svg { color: var(--urgent); }
 .oc-pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 18px; }
 .pill { padding: 5px 16px; border-radius: 999px; background: var(--surface-3); font-size: 14px; color: var(--text); text-transform: lowercase; }
-.oc .save { margin-top: auto; }
+.oc-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: auto; }
+.oc-actions .save { min-width: 0; }
+.track-btn {
+    min-height: 40px; padding: 0 18px; border-radius: 8px; cursor: pointer; font-size: 15px;
+    border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); transition: border-color .2s, color .2s;
+}
+.track-btn:hover { border-color: var(--text-3); }
+.track-btn.is-on { border-color: var(--accent); color: var(--accent-2); background: var(--accent-soft); }
 .oc-compact .oc-stats { margin-top: 14px; }
 
 /* skeleton */
@@ -233,7 +240,7 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .toast { padding: 11px 16px; border-radius: 10px; background: var(--surface-3); border: 1px solid var(--line-2); font-size: 14px; }
 
 /* ---------- Aura ---------- */
-.aura { position: relative; height: 100vh; min-height: 560px; overflow: hidden; background: var(--bg); }
+.aura { position: relative; height: 100vh; height: 100svh; min-height: 520px; overflow: hidden; background: var(--bg); }
 /* During the entrance the loader covers the whole screen, sidebar included */
 .aura-backdrop { position: fixed; inset: 0; z-index: 60; background: #F4F4F6; pointer-events: none; }
 .aura-stage {
@@ -287,7 +294,7 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .roll { display: inline-flex; }
 .roll-col { display: inline-block; height: 1em; overflow: hidden; }
 .roll-col.is-lead { color: #C8C8CF; }
-.roll-strip { display: flex; flex-direction: column; transition: transform .55s cubic-bezier(.3, .9, .2, 1); }
+.roll-strip { display: flex; flex-direction: column; will-change: transform; }  /* moved every frame by Odometer */
 .roll-strip span { height: 1em; }
 .skip {
     position: absolute; left: 32px; bottom: 28px; pointer-events: auto;
@@ -358,6 +365,7 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
     font: 400 12px var(--mono); color: #DCE6FF; opacity: 0; transition: opacity .25s, transform .25s var(--ease), bottom .3s var(--ease);
 }
 .dm-chip.is-shown { opacity: 1; }
+.dm-chip { max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
 .dm-pin:hover .dm-chip, .dm-pin.is-on .dm-chip, .dm-pin:focus-visible .dm-chip { opacity: 1; bottom: calc(var(--h) + 18px); border-color: rgba(140, 190, 255, .8); }
 .dm-chip i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid #7DB8FF; }
 .dm-pin.is-urgent .dm-chip i { border-color: var(--urgent); }
@@ -421,8 +429,9 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
     .map-panel { top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-height: 70vh; border-radius: 16px 16px 0 0; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+/* Radar's own "Reduce motion" setting (Settings > This device) */
+html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important;
 }
 
 /* ---------- Home below the ring ---------- */
@@ -604,8 +613,57 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
     .cal-marks { justify-content: center; }
     .cal-marks i { width: 6px; }
     .cal { padding: 12px; }
-    .aura { height: calc(100vh - 62px); }
+    .aura { height: calc(100vh - 62px); height: calc(100svh - 62px - env(safe-area-inset-bottom)); }
+    .aura-focus { bottom: 12px; }
+    .aura-filters { bottom: 84px; }
+    /* Map on a phone: India fills the width, cities become a swipeable strip, labels stay small */
+    .map-cities { top: auto; bottom: 10px; left: 0; right: 0; width: auto; max-height: none; padding: 0 12px; background: none; border: 0; }
+    .map-cities h1 { display: none; }
+    .map-cities ul { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+    .map-cities li { flex-shrink: 0; }
+    .map-cities button { white-space: nowrap; gap: 10px; padding: 9px 14px; border-radius: 999px; background: rgba(20, 20, 22, .94); border: 1px solid var(--line-2); }
+    .dm-chip { font-size: 10.5px; padding: 4px 8px; max-width: 190px; }
+    .map-panel { max-height: 62vh; }
     .aura-head h1 { font-size: 22px; }
     .toasts { bottom: calc(76px + env(safe-area-inset-bottom)); }
     .mapview { bottom: calc(62px + env(safe-area-inset-bottom)); }
+}
+
+.toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+/* ---------- Notifications bell ---------- */
+.bell { position: relative; }
+.bell > .icon-btn { position: relative; }
+.bell-badge {
+    position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+    display: grid; place-items: center; background: var(--accent); color: #fff; font: 700 10.5px/1 var(--body);
+}
+.bell-panel {
+    position: absolute; z-index: 120; top: calc(100% + 8px); right: 0; width: min(400px, calc(100vw - 24px));
+    max-height: min(560px, 75vh); display: flex; flex-direction: column; overflow: hidden;
+    border-radius: 14px; background: var(--surface); border: 1px solid var(--line-2); transform-origin: top right;
+}
+.bell-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.bell-head .link-btn:disabled { color: var(--text-3); cursor: default; text-decoration: none; }
+.bell-scan { display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13px; color: var(--text-2); background: var(--accent-soft); }
+.bell-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: bellpulse 1.2s ease-in-out infinite; flex-shrink: 0; }
+@keyframes bellpulse { 50% { opacity: .3; } }
+.bell-list { list-style: none; overflow-y: auto; padding: 6px; }
+.bell-list button {
+    position: relative; width: 100%; display: grid; gap: 2px; text-align: left; padding: 10px 12px 10px 24px;
+    border: 0; border-radius: 10px; background: none; cursor: pointer; transition: background .15s;
+}
+.bell-list button:hover { background: var(--surface-2); }
+.bell-list button.is-unread::before { content: ""; position: absolute; left: 10px; top: 16px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.bell-list strong { font-weight: 500; font-size: 14px; line-height: 1.35; }
+.bell-list button:not(.is-unread) strong { color: var(--text-2); }
+.bell-kind { font-size: 11px; color: var(--accent-2); }
+.bell-kind.reminder { color: var(--urgent); }
+.bell-body { font-size: 12.5px; color: var(--text-3); }
+.bell-time { font-size: 11.5px; color: var(--text-3); }
+.bell-empty { padding: 26px 16px; color: var(--text-3); font-size: 13px; text-align: center; }
+@media (max-width: 760px) {
+    .bell { position: static; }
+    .bell-panel { position: fixed; top: calc(var(--topbar) + 6px); left: 12px; right: 12px; width: auto; max-height: calc(100svh - var(--topbar) - 90px); }
 }

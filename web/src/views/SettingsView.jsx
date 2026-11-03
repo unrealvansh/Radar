@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { api, lock } from '../api.js';
+import { api, lock, write } from '../api.js';
 import { IconCopy, IconLocate, IconLock, IconX } from '../components/Icons.jsx';
 import { useRadar } from '../store.jsx';
 
@@ -141,6 +141,11 @@ export default function SettingsView() {
             {card(4, <>
                 <h2>This device</h2>
                 <p className="hint">Keys: <kbd>Ctrl K</kbd> search, <kbd>g</kbd> then <kbd>h f m c b s</kbd> to jump between pages.</p>
+                <label className="toggle">
+                    <input type="checkbox" defaultChecked={document.documentElement.classList.contains('reduce-motion')}
+                           onChange={e => { write('radar_reduce_motion', e.target.checked ? '1' : null); location.reload(); }} />
+                    <span>Reduce motion (skips the intro, stops the ring drifting)</span>
+                </label>
                 <div className="row">
                     <button className="btn-outline" onClick={lock}><IconLock />Lock this device</button>
                 </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useRadar } from '../store.jsx';
+import { useLive, useRadar } from '../store.jsx';
 import { IconSearch } from './Icons.jsx';
 
 export const VIEWS = [
@@ -27,10 +27,11 @@ export function ViewSwitch({ view, onChange }) {
     );
 }
 
-const PILLARS = [['opps', 'All'], ['jobs', 'Jobs'], ['events', 'Events']];
+const PILLARS = [['opps', 'All'], ['jobs', 'Jobs and internships'], ['events', 'Hackathons and events'], ['news', 'Tech news']];
+const MAP_PILLARS = PILLARS.filter(([id]) => id !== 'news');
 
 /** Type, place, ranking and search. Shared by all three views. */
-export function FilterBar({ filters, setFilters, hideSearch = false }) {
+export function FilterBar({ filters, setFilters, hideSearch = false, noNews = false }) {
     const { home } = useRadar();
     const [q, setQ] = useState(filters.q);
     useEffect(() => {
@@ -43,7 +44,7 @@ export function FilterBar({ filters, setFilters, hideSearch = false }) {
     return (
         <div className="filters">
             <div className="pillars" role="group" aria-label="Type">
-                {PILLARS.map(([id, label]) => (
+                {(noNews ? MAP_PILLARS : PILLARS).map(([id, label]) => (
                     <button key={id} aria-pressed={filters.pillar === id} onClick={() => setFilters(f => ({ ...f, pillar: id }))}>
                         {filters.pillar === id && <motion.span className="pillar-hl" layoutId="pillar-hl"
                                                                transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
@@ -71,7 +72,7 @@ export function FilterBar({ filters, setFilters, hideSearch = false }) {
 }
 
 export function Toasts() {
-    const { toasts } = useRadar();
+    const { toasts } = useLive();
     return (
         <div className="toasts" aria-live="polite">
             <AnimatePresence>

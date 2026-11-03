@@ -3,8 +3,14 @@ import { api, getSaved, getSettings, hasToken, loadHome, removeSaved, saveItem, 
 
 // Shared state for the whole app: saved items, settings, home city, stats and scans,
 // the open detail, toasts and the lock.
+// Split in three so the many cards don't re-render on every poll or toast:
+// Radar = saved items, settings and actions; Live = stats, notifications, toasts; Detail = the open item.
 const Radar = createContext(null);
+const Live = createContext(null);
+const Detail = createContext(null);
 export const useRadar = () => useContext(Radar);
+export const useLive = () => useContext(Live);
+export const useDetail = () => useContext(Detail);
 
 export function RadarProvider({ children }) {
     const [locked, setLocked] = useState(!hasToken());
@@ -15,7 +21,10 @@ export function RadarProvider({ children }) {
     const [detail, setDetail] = useState(null);       // the item shown in the detail sheet
     const [toasts, setToasts] = useState([]);
     const [version, setVersion] = useState(0);        // bumps after a scan so views refetch
+    const [notes, setNotes] = useState({ unread: 0, items: [] });
     const pollRef = useRef(0);
+    const statsRef = useRef(null);
+    statsRef.current = stats;
 
     useEffect(() => {
         const onLocked = () => setLocked(true);
@@ -41,6 +50,20 @@ export function RadarProvider({ children }) {
         return s;
     }, []);
 
+    const loadNotes = useCallback(async () => {
+        const n = await api('/api/notifications?limit=80');
+        setNotes(n);
+        return n;
+    }, []);
+
+    const markRead = useCallback(async ids => {
+        setNotes(n => ({
+            unread: ids ? Math.max(0, n.unread - n.items.filter(x => ids.includes(x.id) && !x.read).length) : 0,
+            items: n.items.map(x => (!ids || ids.includes(x.id) ? { ...x, read: true } : x)),
+        }));
+        try { await api('/api/notifications/read', { method: 'POST', body: JSON.stringify(ids ? { ids } : {}) }); } catch { /* retried on next poll */ }
+    }, []);
+
     const loadSettings = useCallback(async () => {
         const s = await getSettings();
         // keywords are stored as one comma-separated string
@@ -54,6 +77,9 @@ export function RadarProvider({ children }) {
         refreshSaved().catch(() => {});
         loadSettings().catch(() => {});
         loadStats().then(s => s.scanning && pollScan()).catch(() => {});
+        loadNotes().catch(() => {});
+        const t = setInterval(() => loadNotes().catch(() => {}), 60000);
+        return () => clearInterval(t);
     }, [locked]);  // eslint-disable-line react-hooks/exhaustive-deps
 
     function setHome(h) {
@@ -78,6 +104,7 @@ export function RadarProvider({ children }) {
         pollRef.current = setInterval(async () => {
             try {
                 const s = await loadStats();
+                loadNotes().catch(() => {});  // new finds appear in the bell while the scan runs
                 if (!s.scanning) {
                     clearInterval(pollRef.current);
                     setVersion(v => v + 1);
@@ -88,14 +115,14 @@ export function RadarProvider({ children }) {
     }
 
     const scan = useCallback(async () => {
-        if (stats?.scanning) return;
+        if (statsRef.current?.scanning) return;
         try {
             await api('/api/radar/scan', { method: 'POST' });
             setStats(s => ({ ...(s || {}), scanning: true }));
             toast('Scanning 70+ sources. This takes 1 to 3 minutes.');
             pollScan();
         } catch (e) { if (e.message !== 'unauthorized') toast('Could not start a scan.'); }
-    }, [stats]);  // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
     const run = useCallback(async (work, message) => {
         try {
@@ -117,10 +144,16 @@ export function RadarProvider({ children }) {
         remove: it => run(() => removeSaved(saved.get(it.id).id), 'Removed from your board'),
     }), [run, saved]);
 
-    const value = {
+    const value = useMemo(() => ({
         locked, setLocked, saved, refreshSaved, settings, saveSettings, keywords: settings?.keywords || [],
-        home, saveHome, stats, loadStats, scan, version,
-        detail, openDetail: setDetail, toast, toasts, ...actions,
-    };
-    return <Radar.Provider value={value}>{children}</Radar.Provider>;
+        home, saveHome, loadStats, scan, version, loadNotes, markRead, openDetail: setDetail, toast, ...actions,
+    }), [locked, saved, settings, home, version, actions, refreshSaved, saveSettings, saveHome, loadStats, scan, loadNotes, markRead, toast]);
+    const live = useMemo(() => ({ stats, notes, toasts }), [stats, notes, toasts]);
+    return (
+        <Radar.Provider value={value}>
+            <Live.Provider value={live}>
+                <Detail.Provider value={detail}>{children}</Detail.Provider>
+            </Live.Provider>
+        </Radar.Provider>
+    );
 }

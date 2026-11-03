@@ -1,14 +1,15 @@
+import { memo } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
 import { TYPE_LABEL, daysUntil, matchedKeywords, whenText, whereText } from '../api.js';
 import { useRadar } from '../store.jsx';
 import Cover, { Logo } from './Cover.jsx';
-import SaveButton from './SaveButton.jsx';
+import SaveButton, { TrackButton } from './SaveButton.jsx';
 import { IconCalendar, IconGlobe, IconPin } from './Icons.jsx';
 
 const finePointer = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 // The Simple view card: banner, round logo over its edge, title, one line, stats, pills, button.
-export default function OppCard({ item, index = 0, compact = false }) {
+function OppCard({ item, index = 0, compact = false }) {
     const { keywords, openDetail } = useRadar();
     const d = daysUntil(item.deadline);
     const urgent = d !== null && d >= 0 && d <= 3;
@@ -31,21 +32,19 @@ export default function OppCard({ item, index = 0, compact = false }) {
 
     return (
         <motion.article
-            layout="position"
             className={`oc ${compact ? 'oc-compact' : ''}`}
             initial={{ opacity: 0, y: 28 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '0px 0px -40px 0px' }}
-            exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
             transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1], delay: (index % 4) * 0.06 }}
             style={{ rotateX: rotX, rotateY: rotY, transformPerspective: 900 }}
             onPointerMove={onMove}
             onPointerLeave={onLeave}
             onClick={() => openDetail(item)}
         >
-            <motion.div className="oc-banner" layoutId={`cover-${item.id}`}>
+            <div className="oc-banner">
                 <Cover item={item} />
-            </motion.div>
+            </div>
             <div className="oc-logo"><Logo item={item} /></div>
             <h3 className="oc-title">
                 <a href={item.url} onClick={e => { e.preventDefault(); }} aria-label={`${item.title}, open details`}>{item.title}</a>
@@ -58,7 +57,13 @@ export default function OppCard({ item, index = 0, compact = false }) {
             <div className="oc-pills">
                 {pills.map(p => <span key={p} className="pill">{p}</span>)}
             </div>
-            <SaveButton item={item} />
+            <div className="oc-actions">
+                <SaveButton item={item} />
+                {item.pillar !== 'news' && <TrackButton item={item} />}
+            </div>
         </motion.article>
     );
 }
+
+// Cards only re-render when their own item changes (the grid can hold hundreds)
+export default memo(OppCard);

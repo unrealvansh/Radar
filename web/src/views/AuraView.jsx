@@ -1,15 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, animate, motion, useAnimationFrame, useMotionValue } from 'motion/react';
 import { TYPE_LABEL, daysUntil, listItems, whenText, whereText } from '../api.js';
 import { SLOTS, reelForSlot, reelPose, sceneAt, wrap } from '../aura/pose.js';
-import { RollingCounter, Scramble } from '../aura/Loader.jsx';
+import { Odometer, Scramble } from '../aura/Loader.jsx';
 import Cover from '../components/Cover.jsx';
 import { IconPause, IconPlay, RadarMark } from '../components/Icons.jsx';
 import SaveButton from '../components/SaveButton.jsx';
-import { useRadar } from '../store.jsx';
+import { useDetail, useRadar } from '../store.jsx';
 
 // ?motion in the URL plays the full entrance even when the system asks for reduced motion (demos)
-const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches && !new URLSearchParams(location.search).has('motion');
+// The intro plays on every load (phone and PC). Only Radar's own "Reduce motion" setting turns it off.
+// (read at render time: this module loads before main.jsx applies the setting)
+const reduced = () => document.documentElement.classList.contains('reduce-motion');
 const FORMATION_S = 2.6;
 const EXPANSION_S = 1.9;
 const EXPANSION_EASE = [0.5, 0, 0.15, 1];
@@ -23,11 +25,13 @@ let entrancePlayed = false;  // the loader plays once per visit, not on every vi
 
 // The home hero: the ring sits at the top of Home, the dashboard continues below it.
 export default function AuraView({ wordmarkRef, onHandoff, go }) {
-    const { home, openDetail, detail, version } = useRadar();
+    const { home, openDetail, version } = useRadar();
+    const detail = useDetail();
     const detailOpen = useRef(false);
     detailOpen.current = !!detail;
     const [items, setItems] = useState(null);
-    const skipEntrance = REDUCED || entrancePlayed;
+    const [skipEntrance] = useState(() => reduced() || entrancePlayed);
+    const still = useRef(reduced());
 
     // ---- the two values that drive everything ----
     const formation = useMotionValue(skipEntrance ? 1 : 0);
@@ -56,6 +60,19 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
     const assetsReady = items !== null && (loaded >= needed || timedOut);
     const progress = items === null ? 0 : needed ? (loaded / needed) * 100 : 100;
     const onCoverDone = useCallback(id => setLoadedIds(s => (s.has(id) ? s : new Set(s).add(id))), []);
+    const progressRef = useRef(0);
+    progressRef.current = progress;
+    const shown = useRef(skipEntrance ? 100 : 0);   // what the counter displays, eased every frame
+    const odometerRef = useRef(null);
+
+    // Only spend frames on the ring while the hero is on screen
+    const sectionRef = useRef(null);
+    const onScreen = useRef(true);
+    useEffect(() => {
+        const io = new IntersectionObserver(([e]) => { onScreen.current = e.isIntersecting; }, { threshold: 0.02 });
+        io.observe(sectionRef.current);
+        return () => io.disconnect();
+    }, []);
 
     // ---- formation: starts as soon as there is something to deal ----
     const [formed, setFormed] = useState(skipEntrance);
@@ -128,6 +145,7 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
     const frontRef = useRef(0);
 
     useAnimationFrame((time, delta) => {
+        if (!onScreen.current && phaseRef.current === 'done') return;
         const dt = Math.min(delta, 50) / 1000;
         const f = formation.get();
         const e = expansion.get();
@@ -135,7 +153,7 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
 
         // Target angle: a slow auto-spin forward through the feed. It eases to a stop while the
         // visitor holds the ring, hovers a card, opens one or presses pause, and eases back after.
-        const spinning = phaseRef.current !== 'loading' && !dragState.current && hoveredSlot.current < 0
+        const spinning = !still.current && phaseRef.current !== 'loading' && !dragState.current && hoveredSlot.current < 0
             && !pausedRef.current && !detailOpen.current;
         spinGain.current += ((spinning ? 1 : 0) - spinGain.current) * Math.min(1, dt * 2.5);
         target.current -= AUTO_SPIN * spinGain.current * dt;
@@ -197,6 +215,14 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
         }
         if (reelsChanged) { slotReelRef.current = nextReels; setSlotReel(nextReels); }
         if (best !== null && best !== frontRef.current) { frontRef.current = best; setFrontSlot(best); }
+
+        // Loader counter: climbs with the deal, never ahead of the covers that have really loaded
+        if (phaseRef.current !== 'done' && odometerRef.current) {
+            const goal = Math.min(progressRef.current, f * 100);
+            shown.current += (goal - shown.current) * Math.min(1, dt * 6);
+            if (goal >= 99.9 && shown.current > 99.5) shown.current = 100;
+            odometerRef.current.set(shown.current);
+        }
 
         // Hover hit-testing every third frame
         frame.current = (frame.current + 1) % 3;
@@ -269,7 +295,7 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
     const showLoader = phase !== 'done';
 
     return (
-        <section className={`aura phase-${phase}`} aria-label="Opportunity ring">
+        <section className={`aura phase-${phase}`} aria-label="Opportunity ring" ref={sectionRef}>
             {/* White loader page under the cards; fades while the cards keep moving */}
             {!skipEntrance && (
                 <motion.div className="aura-backdrop" aria-hidden="true"
@@ -299,7 +325,7 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
                                    if (performance.now() < suppressClickUntil.current) return;
                                    if (it && ready) openDetail(it);
                                }}>
-                                {it && <ReelFace item={it} onCoverDone={() => onCoverDone(it.id)} />}
+                                {it && <ReelFace item={it} onCoverDone={onCoverDone} />}
                                 <div className="reel-back" aria-hidden="true"><RadarMark size={40} /></div>
                             </a>
                         );
@@ -318,7 +344,7 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
                             <Scramble text="Loading opportunities" />
                             <div className="loader-num" role="progressbar" aria-label="Loading opportunities"
                                  aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}>
-                                <RollingCounter value={progress} />
+                                <Odometer ref={odometerRef} />
                                 <span className="loader-pct">%</span>
                             </div>
                             <div className="loader-detail">{needed ? `${loaded} of ${needed} covers` : 'Dealing the ring'}</div>
@@ -336,7 +362,7 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
                         aria-hidden={phase === 'loading'}>
                 <div className="aura-head">
                     <h1>{total ? `${total} opportunities, one ring` : items === null ? 'Loading' : 'Nothing here yet. Run a scan.'}</h1>
-                    <p>Hover a card to pull it close. Drag or swipe to turn the ring.</p>
+                    <p>{matchMedia('(hover: hover)').matches ? 'Hover a card to pull it close. Drag to turn the ring.' : 'Tap a card to open it. Swipe to turn the ring.'}</p>
                     <div className="aura-cta">
                         <button className="btn-primary" onClick={() => go('feed')}>Open the feed</button>
                         <button className="btn-outline" onClick={() => go('map')}>See the map</button>
@@ -367,12 +393,12 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
     );
 }
 
-function ReelFace({ item, onCoverDone }) {
+const ReelFace = memo(function ReelFace({ item, onCoverDone }) {
     const d = daysUntil(item.deadline);
     const urgent = d !== null && d >= 0 && d <= 3;
     return (
         <div className="reel-front">
-            <Cover item={item} onDone={onCoverDone} className="reel-cover" />
+            <Cover item={item} onDone={() => onCoverDone(item.id)} className="reel-cover" />
             <div className="reel-info">
                 <span className="reel-type">{TYPE_LABEL[item.pillar]} <em>{item.source}</em></span>
                 <strong className="reel-title">{item.title}</strong>
@@ -383,7 +409,7 @@ function ReelFace({ item, onCoverDone }) {
             </div>
         </div>
     );
-}
+});
 
 /** The loader's brand word flies into the header wordmark's exact place and size. */
 function flyBrand(from, wordmark) {

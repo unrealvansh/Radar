@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { listItems } from '../api.js';
 import OppCard from '../components/OppCard.jsx';
-import { useRadar } from '../store.jsx';
+import { useLive, useRadar } from '../store.jsx';
 import AuraView from './AuraView.jsx';
 
 // Home: the ring is the hero; the dashboard continues as you scroll.
 export default function HomeView({ go, wordmarkRef, onHandoff }) {
-    const { stats, home, settings, version } = useRadar();
+    const { home, settings, version } = useRadar();
+    const { stats } = useLive();
     const [rows, setRows] = useState({ closing: null, near: null, picks: null, latest: null });
 
     useEffect(() => {

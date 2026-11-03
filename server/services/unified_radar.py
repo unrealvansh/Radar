@@ -182,6 +182,18 @@ def init_radar_db():
         _locate_existing(conn)
     _tidy_existing(conn)
 
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id INTEGER,
+            kind TEXT NOT NULL,          -- 'new' (found by a scan) or 'reminder' (tracked deadline)
+            title TEXT NOT NULL,
+            body TEXT,
+            read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT (datetime('now', 'localtime'))
+        )
+    ''')
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read, id)")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_radar_url_key ON radar_items(url_key)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_radar_title_key ON radar_items(pillar, title_key)")
     conn.commit()
@@ -262,6 +274,10 @@ def _store(conn, it):
         ''', (it['pillar'], it['source'], it['title'], it['organization'], it['url'], it['date_text'],
               it['extra_info'], it['deadline'], it['starts_at'], it['posted_at'], ukey, tkey,
               loc['city'], loc['region'], loc['lat'], loc['lon'], loc['mode'], it.get('image') or '', it.get('logo') or ''))
+        item_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        kind = {'jobs': 'New role', 'events': 'New event', 'news': 'News'}.get(it['pillar'], 'New')
+        add_notification(conn, item_id, 'new', it['title'],
+                         f"{kind} from {it['source']}{', ' + it['date_text'] if it.get('date_text') else ''}")
         return True
     except sqlite3.IntegrityError:
         return False
@@ -318,17 +334,24 @@ def scan(pillars=('jobs', 'events', 'news')):
 
 
 def _notify_new(new_items):
-    """One summary push per scan for new jobs/events (news never pushes)."""
-    opps = [it for it in new_items if it['pillar'] in ('jobs', 'events')]
-    if not opps:
+    """One summary push per scan listing what was found (the app's bell has every item)."""
+    if not new_items:
         return
     try:
         from services.notifier import notify
-        jobs = sum(1 for it in opps if it['pillar'] == 'jobs')
-        events = len(opps) - jobs
-        lines = [f"• {it['title'][:60]} ({it['source']})" for it in opps[:4]]
+        count = {p: sum(1 for it in new_items if it['pillar'] == p) for p in ('jobs', 'events', 'news')}
+        parts = [f"{count['jobs']} roles" if count['jobs'] else '', f"{count['events']} events" if count['events'] else '',
+                 f"{count['news']} news" if count['news'] else '']
+        # Opportunities first, soonest deadline first
+        order = sorted(new_items, key=lambda it: (it['pillar'] == 'news', it.get('deadline') or '9999'))
+        lines = []
+        for it in order[:12]:
+            when = f", {it['date_text']}" if it.get('date_text') else ''
+            lines.append(f"- {it['title'][:70]} ({it['source']}{when})")
+        if len(new_items) > 12:
+            lines.append(f"and {len(new_items) - 12} more. Open Radar to see them all.")
         notify(
-            title=f"{jobs} new roles, {events} new events",
+            title="New on Radar: " + ', '.join(p for p in parts if p),
             message="\n".join(lines),
             priority="default",
             tags=["satellite"]
@@ -357,6 +380,46 @@ def cleanup_old_items():
     has_saved = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='saved_items'").fetchone()
     keep_saved = "id NOT IN (SELECT item_id FROM saved_items) AND" if has_saved else ""
     conn.execute(f"DELETE FROM radar_items WHERE {keep_saved} NOT {VISIBLE_SQL}")
+    conn.execute("DELETE FROM notifications WHERE item_id NOT IN (SELECT id FROM radar_items) "
+                 "OR created_at < datetime('now', 'localtime', '-21 days')")
+    conn.commit()
+    conn.close()
+
+
+# =====================================================================
+# IN-APP NOTIFICATIONS (the bell)
+# =====================================================================
+
+def add_notification(conn, item_id, kind, title, body=''):
+    conn.execute("INSERT INTO notifications (item_id, kind, title, body) VALUES (?, ?, ?, ?)",
+                 (item_id, kind, (title or '')[:200], body))
+
+
+def get_notifications(limit=60):
+    """Newest first, each with its item so the app can open it."""
+    conn = get_db()
+    rows = conn.execute('''
+        SELECT n.id AS nid, n.kind, n.title AS ntitle, n.body, n.read, n.created_at AS ncreated, r.*
+        FROM notifications n JOIN radar_items r ON r.id = n.item_id
+        ORDER BY n.id DESC LIMIT ?
+    ''', (limit,)).fetchall()
+    unread = conn.execute("SELECT COUNT(*) FROM notifications n JOIN radar_items r ON r.id = n.item_id "
+                          "WHERE n.read = 0").fetchone()[0]
+    conn.close()
+    out = []
+    for r in rows:
+        d = dict(r)
+        out.append({'id': d.pop('nid'), 'kind': d.pop('kind'), 'title': d.pop('ntitle'), 'body': d.pop('body'),
+                    'read': bool(d.pop('read')), 'created_at': d.pop('ncreated'), 'item': d})
+    return {'unread': unread, 'items': out}
+
+
+def mark_notifications_read(ids=None):
+    conn = get_db()
+    if ids:
+        conn.execute(f"UPDATE notifications SET read = 1 WHERE id IN ({','.join('?' * len(ids))})", ids)
+    else:
+        conn.execute("UPDATE notifications SET read = 1 WHERE read = 0")
     conn.commit()
     conn.close()
 

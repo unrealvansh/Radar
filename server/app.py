@@ -21,7 +21,8 @@ if SERVER_DIR not in sys.path:
     sys.path.insert(0, SERVER_DIR)
 
 from services.unified_radar import (init_radar_db, get_radar_items, get_counts, get_city_counts,
-                                    is_scanning, DEFAULT_KEYWORDS)
+                                    is_scanning, DEFAULT_KEYWORDS, add_notification,
+                                    get_notifications, mark_notifications_read)
 from services import locations
 from services.sources import SOURCES
 from services.notifier import send_push, get_topic
@@ -189,6 +190,20 @@ def trigger_radar_scan():
     import threading
     threading.Thread(target=scan_all_radar, daemon=True).start()
     return jsonify({'status': 'ok', 'message': 'Full radar scan initiated!'})
+
+
+@app.route('/api/notifications', methods=['GET'])
+def list_notifications():
+    """The bell: everything scans found and every deadline reminder, newest first."""
+    return jsonify(get_notifications(min(200, int(request.args.get('limit', 60)))))
+
+
+@app.route('/api/notifications/read', methods=['POST'])
+def read_notifications():
+    """JSON {"ids": [1, 2]} marks those; no ids marks everything read."""
+    ids = [int(i) for i in (request.get_json(silent=True) or {}).get('ids') or []]
+    mark_notifications_read(ids or None)
+    return jsonify({'status': 'ok'})
 
 
 @app.route('/api/sources', methods=['GET'])
@@ -478,7 +493,7 @@ def check_tracked_deadlines():
     try:
         conn = get_db()
         rows = conn.execute(
-            "SELECT s.id, s.deadline, s.reminded_2d, s.reminded_0d, r.title, r.url "
+            "SELECT s.id, s.item_id, s.deadline, s.reminded_2d, s.reminded_0d, r.title, r.url "
             "FROM saved_items s JOIN radar_items r ON r.id = s.item_id "
             "WHERE s.deadline IS NOT NULL AND s.status != 'applied'"
         ).fetchall()
@@ -489,10 +504,12 @@ def check_tracked_deadlines():
             if days == 0 and not r['reminded_0d']:
                 send_push(f"Closes today: {r['title'][:50]}", "Last day to apply. Tap to open.",
                           priority="urgent", tags=["fire"], click_url=r['url'])
+                add_notification(conn, r['item_id'], 'reminder', r['title'], 'Closes today. Last day to apply.')
                 conn.execute('UPDATE saved_items SET reminded_0d = 1, reminded_2d = 1 WHERE id = ?', (r['id'],))
             elif days <= 2 and not r['reminded_2d']:
                 send_push(f"{days} day(s) left: {r['title'][:50]}", f"Deadline {r['deadline']}. Tap to open.",
                           priority="high", tags=["alarm_clock"], click_url=r['url'])
+                add_notification(conn, r['item_id'], 'reminder', r['title'], f"{days} day(s) left, deadline {r['deadline']}.")
                 conn.execute('UPDATE saved_items SET reminded_2d = 1 WHERE id = ?', (r['id'],))
         conn.commit()
         conn.close()

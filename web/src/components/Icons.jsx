@@ -15,6 +15,7 @@ export const IconPause = p => <svg {...base} {...p}><path d="M8 5v14M16 5v14" />
 export const IconPlay = p => <svg {...base} {...p}><path d="M7 4l13 8-13 8z" /></svg>;
 export const IconGlobe = p => <svg {...base} {...p}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" /></svg>;
 
+export const IconBell = p => <svg {...base} {...p}><path d="M6 9a6 6 0 0 1 12 0c0 6 3 8 3 8H3s3-2 3-8M10 21h4" /></svg>;
 export const IconScan = p => <svg {...base} {...p}><path d="M20 12a8 8 0 1 1-2.3-5.7" /><path d="M20 4v5h-5" /></svg>;
 export const IconSettings = p => <svg {...base} {...p}><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" /></svg>;
 export const IconLeft = p => <svg {...base} {...p}><path d="M15 5l-7 7 7 7" /></svg>;

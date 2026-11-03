@@ -2,10 +2,11 @@ import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Toasts } from './components/Controls.jsx';
 import DetailSheet from './components/DetailSheet.jsx';
+import Bell from './components/Bell.jsx';
 import Login from './components/Login.jsx';
 import Palette from './components/Palette.jsx';
 import { NavIcon, IconScan, IconSearch, IconSettings, RadarMark } from './components/Icons.jsx';
-import { useRadar } from './store.jsx';
+import { useLive, useRadar } from './store.jsx';
 import HomeView from './views/HomeView.jsx';
 import SimpleView from './views/SimpleView.jsx';
 
@@ -30,7 +31,8 @@ const routeFromHash = () => {
 };
 
 export default function App() {
-    const { locked, stats, scan, saved } = useRadar();
+    const { locked, scan, saved } = useRadar();
+    const { stats } = useLive();
     const [route, setRoute] = useState(routeFromHash);
     const [filters, setFilters] = useState({ pillar: 'opps', sort: 'latest', q: '', loc: '' });
     // The home entrance hides the app chrome until the ring hands over
@@ -120,6 +122,7 @@ export default function App() {
                 <button className="search-trigger" onClick={() => setPaletteOpen(true)} aria-label="Search and commands (Ctrl K)">
                     <IconSearch /><span>Search or jump to</span><kbd>Ctrl K</kbd>
                 </button>
+                <Bell />
                 <button className={`icon-btn ${stats?.scanning ? 'is-on' : ''}`} onClick={scan} aria-label="Scan now"><IconScan /></button>
                 <a className="icon-btn top-settings" href="#settings" aria-label="Settings" onClick={e => { e.preventDefault(); go('settings'); }}><IconSettings /></a>
             </motion.header>

@@ -24,7 +24,9 @@ export default function MapView({ filters, setFilters }) {
     const canvasRef = useRef(null);
 
     useEffect(() => {
-        listItems({ ...filters, limit: 600 }, home).then(setItems).catch(() => setItems([]));
+        // News has no place, so the map shows all opportunities instead
+        const pillar = filters.pillar === 'news' ? 'opps' : filters.pillar;
+        listItems({ ...filters, pillar, limit: 600 }, home).then(setItems).catch(() => setItems([]));
     }, [filters, home]);
 
     const { cities, online } = useMemo(() => {
@@ -56,6 +58,7 @@ export default function MapView({ filters, setFilters }) {
         const el = viewRef.current;
         if (!el || !el.clientWidth || !el.clientHeight) return 0.6;
         // the tilted plane's near edge is enlarged by perspective, so leave room
+        if (el.clientWidth < 700) return el.clientWidth / (PLANE.w * 0.8);  // phones: India fills the width (the plane's sea margins may crop)
         return Math.min(el.clientWidth / (PLANE.w * 1.15), el.clientHeight / (PLANE.h * 1.0));
     };
     const tiltT = useMotionValue(78), zoomT = useMotionValue(0.4), xT = useMotionValue(0), yT = useMotionValue(0);
@@ -66,7 +69,8 @@ export default function MapView({ filters, setFilters }) {
     useMotionValueEvent(zoom, 'change', v => planeRef.current?.style.setProperty('--z', v.toFixed(3)));
 
     const overview = () => {
-        tiltT.set(TILT_OVERVIEW); zoomT.set(fitScale()); xT.set(0); yT.set(-fitScale() * 30);
+        const phone = (viewRef.current?.clientWidth || innerWidth) < 700;
+        tiltT.set(phone ? 34 : TILT_OVERVIEW); zoomT.set(fitScale()); xT.set(0); yT.set(phone ? 10 : -fitScale() * 30);
     };
     const focus = c => {
         const s = Math.min(fitScale() * 2.6, 2.4);
@@ -182,6 +186,7 @@ export default function MapView({ filters, setFilters }) {
         return () => removeEventListener('keydown', onKey);
     });
 
+    const narrow = typeof innerWidth === 'number' && innerWidth < 760;  // fewer labels on phones
     const homePt = home ? project(home.lon, home.lat, PLANE) : null;
     const homeR = home ? (home.radius / 111 / (36.2 - 6.5)) * PLANE.h : 0;
     const max = Math.max(1, ...cities.map(c => c.items.length));
@@ -204,7 +209,7 @@ export default function MapView({ filters, setFilters }) {
                     )}
                     {cities.map((c, i) => {
                         const size = 8 + 14 * Math.sqrt(c.items.length / max);
-                        const show = selected === c.name || hoverCity === c.name || i < 5;
+                        const show = selected === c.name || hoverCity === c.name || i < (narrow ? 2 : 5);
                         const title = c.lead.title.length > 34 ? c.lead.title.slice(0, 32).trimEnd() + '...' : c.lead.title;
                         return (
                             <button key={c.name} className={`dm-pin ${c.urgent ? 'is-urgent' : ''} ${selected === c.name ? 'is-on' : ''}`}
@@ -229,7 +234,7 @@ export default function MapView({ filters, setFilters }) {
             </div>
 
             <div className="map-top">
-                <FilterBar filters={filters} setFilters={setFilters} hideSearch />
+                <FilterBar filters={filters} setFilters={setFilters} hideSearch noNews />
             </div>
 
             <motion.div className="map-cities" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
