@@ -6,7 +6,7 @@ import { Odometer, Scramble } from '../aura/Loader.jsx';
 import Cover from '../components/Cover.jsx';
 import { IconPause, IconPlay, RadarMark } from '../components/Icons.jsx';
 import SaveButton from '../components/SaveButton.jsx';
-import { useDetail, useRadar } from '../store.jsx';
+import { useDetail, useLive, useRadar } from '../store.jsx';
 
 // ?motion in the URL plays the full entrance even when the system asks for reduced motion (demos)
 // The intro plays on every load (phone and PC). Only Radar's own "Reduce motion" setting turns it off.
@@ -27,6 +27,9 @@ let entrancePlayed = false;  // the loader plays once per visit, not on every vi
 export default function AuraView({ wordmarkRef, onHandoff, go }) {
     const { home, openDetail, version } = useRadar();
     const detail = useDetail();
+    const { stats } = useLive();
+    // Everything open right now (jobs + events), not just what the ring has loaded
+    const openCount = stats ? (stats.pillars?.jobs || 0) + (stats.pillars?.events || 0) : 0;
     const detailOpen = useRef(false);
     detailOpen.current = !!detail;
     const [items, setItems] = useState(null);
@@ -42,7 +45,7 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
     const anims = useRef([]);
 
     useEffect(() => {
-        listItems({ pillar: 'opps', sort: 'latest', limit: 96 }, home).then(setItems).catch(() => setItems([]));
+        listItems({ pillar: 'opps', sort: 'latest', limit: 600 }, home).then(setItems).catch(() => setItems([]));
     }, [home, version]);
 
     // The page can't scroll away while the entrance plays
@@ -361,7 +364,7 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
                         transition={{ duration: 0.7, delay: phase === 'reveal' ? 0.8 : 0, ease: [0.2, 0.8, 0.2, 1] }}
                         aria-hidden={phase === 'loading'}>
                 <div className="aura-head">
-                    <h1>{total ? `${total} opportunities, one ring` : items === null ? 'Loading' : 'Nothing here yet. Run a scan.'}</h1>
+                    <h1>{total ? `${Math.max(openCount, total)} opportunities, one ring` : items === null ? 'Loading' : 'Nothing here yet. Run a scan.'}</h1>
                     <p>{matchMedia('(hover: hover)').matches ? 'Hover a card to pull it close. Drag to turn the ring.' : 'Tap a card to open it. Swipe to turn the ring.'}</p>
                     <div className="aura-cta">
                         <button className="btn-primary" onClick={() => go('feed')}>Open the feed</button>

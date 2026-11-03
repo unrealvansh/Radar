@@ -163,7 +163,7 @@ def get_radar():
     near=lat,lon + radius (km) + loc (near/near_online/online) for location filtering."""
     pillar = request.args.get('pillar') or None
     q = (request.args.get('q') or '').strip() or None
-    limit = min(int(request.args.get('limit', 30)), 100)
+    limit = min(int(request.args.get('limit', 30)), 600)  # the ring and the map load everything open
     offset = int(request.args.get('offset', 0))
     try:
         near = tuple(float(v) for v in request.args['near'].split(','))[:2] if request.args.get('near') else None
