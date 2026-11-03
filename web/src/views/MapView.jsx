@@ -264,6 +264,9 @@ export default function MapView({ filters, setFilters }) {
                 </motion.div>
             </div>
 
+            <a className="map-credit" href="https://github.com/datameet/maps" target="_blank" rel="noopener">
+                Boundaries: Datameet, CC BY 4.0
+            </a>
             <div className="map-top">
                 <FilterBar filters={filters} setFilters={setFilters} hideSearch noNews />
             </div>

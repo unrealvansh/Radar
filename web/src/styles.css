@@ -674,3 +674,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .bell { position: static; }
     .bell-panel { position: fixed; top: calc(var(--topbar) + 6px); left: 12px; right: 12px; width: auto; max-height: calc(100svh - var(--topbar) - 90px); }
 }
+
+.map-credit { position: absolute; z-index: 500; right: 12px; bottom: 8px; font-size: 11px; color: var(--text-3); text-decoration: none; }
+.map-credit:hover { color: var(--text-2); }
+@media (max-width: 760px) { .map-credit { bottom: auto; top: 64px; } }

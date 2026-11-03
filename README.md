@@ -29,7 +29,8 @@ bottom tab bar on phones.
   greeting, stats, Closing soon, Near you, Picks for you, Just in.
 - **Feed**: cards with banner, logo, stats, tags and a Save / Saved menu; filter by type, For you,
   Closing soon, Near me, Online; search; infinite scroll.
-- **Map**: a dark dot-matrix India on a tilted plane. Each city has a beacon labelled with its soonest
+- **Map**: a dark dot-matrix India on a tilted plane with glowing state borders
+  (boundaries from [Datameet](https://github.com/datameet/maps), CC BY 4.0). Each city has a beacon labelled with its soonest
   event (amber = something closes within 3 days); pick one and the camera flies there.
 - **Calendar**: month view of tracked deadlines and upcoming events.
 - **Board**: Saved, Applied, Done (drag and drop on desktop, arrows everywhere).
