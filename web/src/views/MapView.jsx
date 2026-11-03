@@ -142,9 +142,9 @@ export default function MapView({ filters, setFilters }) {
         const strokeBorders = (alpha, glow) => {
             ctx.save();
             ctx.lineJoin = 'round';
-            ctx.strokeStyle = `rgba(110, 175, 255, ${0.55 * alpha})`;
+            ctx.strokeStyle = `rgba(235, 240, 255, ${0.6 * alpha})`;
             ctx.lineWidth = 1.1;
-            if (glow) { ctx.shadowColor = 'rgba(60, 150, 255, 0.9)'; ctx.shadowBlur = 7; }
+            if (glow) { ctx.shadowColor = 'rgba(255, 255, 255, 0.85)'; ctx.shadowBlur = 7; }
             for (const pts of borders) {
                 ctx.beginPath();
                 ctx.moveTo(pts[0], pts[1]);
