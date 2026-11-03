@@ -5,7 +5,8 @@ import DetailSheet from './components/DetailSheet.jsx';
 import Bell from './components/Bell.jsx';
 import Login from './components/Login.jsx';
 import Palette from './components/Palette.jsx';
-import { NavIcon, IconScan, IconSearch, IconSettings, RadarMark } from './components/Icons.jsx';
+import { NavIcon, IconMenu, IconScan, IconSearch, IconSettings, RadarMark } from './components/Icons.jsx';
+import { write } from './api.js';
 import { useLive, useRadar } from './store.jsx';
 import HomeView from './views/HomeView.jsx';
 import SimpleView from './views/SimpleView.jsx';
@@ -38,6 +39,28 @@ export default function App() {
     // The home entrance hides the app chrome until the ring hands over
     const [chromeIn, setChromeIn] = useState(route !== 'home');
     const [paletteOpen, setPaletteOpen] = useState(false);
+
+    // Sidebar like Gmail: the menu button pins it open or folds it to icons; while folded,
+    // hovering widens it over the page (the page itself doesn't move).
+    const [pinned, setPinned] = useState(() => { try { return localStorage.getItem('radar_side') !== 'folded'; } catch { return true; } });
+    const [roomy, setRoomy] = useState(() => innerWidth > 1020);  // narrower screens always fold
+    const [peek, setPeek] = useState(false);
+    const peekTimer = useRef(0);
+    useEffect(() => {
+        const onResize = () => setRoomy(innerWidth > 1020);
+        addEventListener('resize', onResize);
+        return () => removeEventListener('resize', onResize);
+    }, []);
+    const folded = !pinned || !roomy;
+    const togglePin = () => {
+        if (!roomy) { setPeek(p => !p); return; }  // narrow screens: open it over the page
+        const next = !pinned;
+        setPinned(next);
+        setPeek(false);
+        write('radar_side', next ? null : 'folded');
+    };
+    const onSideEnter = () => { clearTimeout(peekTimer.current); if (folded) peekTimer.current = setTimeout(() => setPeek(true), 120); };
+    const onSideLeave = () => { clearTimeout(peekTimer.current); setPeek(false); };
     const wordmarkRef = useRef(null);
 
     const go = (r, nextFilters) => {
@@ -81,13 +104,18 @@ export default function App() {
     const counts = { feed: stats ? (stats.pillars?.jobs || 0) + (stats.pillars?.events || 0) : 0, board: boardCount };
 
     return (
-        <div className="shell">
-            <motion.aside className="side" aria-label="Main navigation"
-                          initial={false} animate={{ opacity: chromeIn ? 1 : 0, x: chromeIn ? 0 : -12 }}
+        <div className={`shell ${folded ? 'is-folded' : ''}`}>
+            <motion.aside className={`side ${folded && !peek ? 'is-narrow' : ''} ${folded && peek ? 'is-peek' : ''}`}
+                          aria-label="Main navigation" onMouseEnter={onSideEnter} onMouseLeave={onSideLeave}
+                          initial={false} animate={{ opacity: chromeIn ? 1 : 0 }}
                           transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}>
-                <a className="wordmark" href="#home" ref={wordmarkRef} onClick={e => { e.preventDefault(); go('home'); }}>
-                    <RadarMark size={28} /><span>Radar</span>
-                </a>
+                <div className="side-top">
+                    <button className="side-toggle" onClick={togglePin} aria-label={folded ? 'Keep the menu open' : 'Fold the menu'}
+                            aria-expanded={!folded} title={folded ? 'Keep the menu open' : 'Fold the menu'}><IconMenu /></button>
+                    <a className="wordmark" href="#home" ref={wordmarkRef} onClick={e => { e.preventDefault(); go('home'); }}>
+                        <RadarMark size={26} /><span>Radar</span>
+                    </a>
+                </div>
                 <nav className="side-nav">
                     {ROUTES.map(r => (
                         <a key={r.id} href={`#${r.id}`} aria-current={route === r.id ? 'page' : undefined}
@@ -107,7 +135,7 @@ export default function App() {
                             <span>{stats ? `${stats.sources_active} of ${stats.sources_total} sources live` : ' '}</span>
                         </div>
                     </div>
-                    <button className="btn-outline" onClick={scan} disabled={stats?.scanning}><IconScan />Scan now</button>
+                    <button className="btn-outline" onClick={scan} disabled={stats?.scanning} aria-label="Scan now"><IconScan /><span className="side-label">Scan now</span></button>
                     <div className="legal"><a href="/terms.html">Terms</a><a href="/privacy.html">Privacy</a></div>
                 </div>
             </motion.aside>

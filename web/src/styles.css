@@ -35,13 +35,26 @@ img { display: block; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---------- shell: sidebar, top bar, tab bar ---------- */
-:root { --side: 236px; --topbar: 64px; }
+:root { --side: 236px; --side-open: 236px; --side-folded: 76px; --topbar: 64px; }
+.shell.is-folded { --side: var(--side-folded); }
 .side {
     position: fixed; z-index: 50; inset: 0 auto 0 0; width: var(--side);
-    display: flex; flex-direction: column; gap: 6px; padding: 20px 14px;
+    display: flex; flex-direction: column; gap: 6px; padding: 18px 14px; overflow: hidden;
     background: var(--bg); border-right: 1px solid var(--line);
+    transition: width .24s var(--ease), border-color .2s;
 }
-.wordmark { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 700 20px/1 var(--head); padding: 2px 8px 22px; }
+/* Folded: icons only. Hovering widens it over the page; labels fade instead of jumping */
+.side.is-peek { width: var(--side-open); z-index: 70; border-right-color: var(--line-2); box-shadow: 12px 0 40px rgba(0, 0, 0, .5); }
+.side .side-label, .side .side-count, .side .wordmark, .side .scan-status div, .side .legal { transition: opacity .18s; white-space: nowrap; }
+.side.is-narrow .side-label, .side.is-narrow .side-count, .side.is-narrow .wordmark,
+.side.is-narrow .scan-status div, .side.is-narrow .legal { opacity: 0; pointer-events: none; }
+.side-nav a, .side-foot .btn-outline, .scan-status { white-space: nowrap; }
+.side-nav a { padding: 0 15px !important; }
+.side-foot .btn-outline { justify-content: flex-start; padding: 0 15px; }
+.wordmark { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 700 20px/1 var(--head); }
+.side-top { display: flex; align-items: center; gap: 8px; padding: 0 0 18px; min-height: 44px; }
+.side-toggle { flex-shrink: 0; display: grid; place-items: center; width: 48px; height: 40px; border: 0; border-radius: 10px; background: none; color: var(--text-2); cursor: pointer; transition: background .2s, color .2s; }
+.side-toggle:hover { background: var(--surface-2); color: var(--text); }
 .wordmark span { display: inline-block; line-height: 1; }
 .radar-mark { color: var(--text); flex-shrink: 0; }
 .side-nav { display: grid; gap: 2px; }
@@ -63,7 +76,7 @@ img { display: block; }
 .scan-status span { font-size: 12px; color: var(--text-3); }
 .scan-status.is-scanning .radar-mark { animation: spin 1.6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.side-foot .btn-outline { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.side-foot .btn-outline { display: inline-flex; align-items: center; justify-content: flex-start; gap: 8px; }
 .legal { display: flex; gap: 14px; padding: 2px 6px; font-size: 12px; color: var(--text-3); }
 .legal a { text-decoration: none; }
 .legal a:hover { color: var(--text); text-decoration: underline; }
@@ -327,7 +340,8 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .mapview { position: fixed; top: var(--topbar); left: var(--side); right: 0; bottom: 0; overflow: hidden; background: #050507; }
 
 /* Dot-matrix map: a tilted plane, dots drawn on canvas, beacons standing up off it */
-.dm-view { position: absolute; inset: 0; perspective: 1500px; perspective-origin: 50% 40%; cursor: grab; touch-action: none; }
+.dm-view { position: absolute; inset: 0; perspective: 1500px; perspective-origin: 50% 40%; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.mapview { user-select: none; -webkit-user-select: none; }  /* dragging the map must not select text */
 .dm-view:active { cursor: grabbing; }
 .dm-plane { position: absolute; left: 50%; top: 50%; transform-style: preserve-3d; will-change: transform; }
 .dm-dots { position: absolute; inset: 0; display: block; }
@@ -566,13 +580,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .home-greet { grid-template-columns: 1fr; }
 }
 @media (max-width: 1020px) {
-    :root { --side: 76px; }
-    .side { padding: 20px 10px; align-items: center; }
-    .side .wordmark span, .side-label, .side-count, .scan-status div, .side-foot .legal { display: none; }
-    .side .wordmark { padding: 2px 0 22px; }
-    .side-nav a { justify-content: center; padding: 0; width: 50px; }
-    .side-foot .btn-outline { width: 50px; padding: 0; font-size: 0; }
-    .scan-status { padding: 10px; justify-content: center; }
     .settings { grid-template-columns: 1fr; }
     .board { grid-template-columns: 1fr; }
     .board-tabs { display: inline-flex; }

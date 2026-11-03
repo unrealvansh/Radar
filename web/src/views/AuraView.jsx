@@ -15,7 +15,7 @@ const reduced = () => document.documentElement.classList.contains('reduce-motion
 const FORMATION_S = 2.6;
 const EXPANSION_S = 1.9;
 const EXPANSION_EASE = [0.5, 0, 0.15, 1];
-const ASSET_TIMEOUT_MS = 7000;   // never wait on a slow image host forever
+const ASSET_TIMEOUT_MS = 4000;   // never wait on a slow image host forever
 const AUTO_SPIN = 4;             // degrees per second: a slow, steady drift through the feed
 const HOVER_PULL = 0.45;         // share of the way a hovered card flies toward the viewer
 const DRAG_DEG_PER_PX = 0.075;
@@ -44,8 +44,15 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
     phaseRef.current = phase;
     const anims = useRef([]);
 
+    // A small first batch starts the deal at once; the rest of the feed follows behind it
     useEffect(() => {
-        listItems({ pillar: 'opps', sort: 'latest', limit: 600 }, home).then(setItems).catch(() => setItems([]));
+        let alive = true;
+        const q = limit => listItems({ pillar: 'opps', sort: 'latest', limit }, home);
+        q(SLOTS * 2)
+            .then(first => { if (alive) setItems(prev => (prev && prev.length > first.length ? prev : first)); return q(600); })
+            .then(all => { if (alive && all) setItems(all); })
+            .catch(() => { if (alive) setItems(prev => prev || []); });
+        return () => { alive = false; };
     }, [home, version]);
 
     // The page can't scroll away while the entrance plays
@@ -55,16 +62,21 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
     }, [phase]);
 
     // ---- real progress: covers of the reels the ring opens with ----
-    const [loadedIds, setLoadedIds] = useState(() => new Set());
+    // Counted in a ref and read by the frame loop, so an image arriving never re-renders the ring
+    const loadedRef = useRef(new Set());
+    const [coversReady, setCoversReady] = useState(false);
     const [timedOut, setTimedOut] = useState(false);
-    const firstReels = useMemo(() => (items || []).slice(0, SLOTS), [items]);
-    const needed = firstReels.filter(it => it.image || it.logo).length;
-    const loaded = firstReels.filter(it => (it.image || it.logo) && loadedIds.has(it.id)).length;
-    const assetsReady = items !== null && (loaded >= needed || timedOut);
-    const progress = items === null ? 0 : needed ? (loaded / needed) * 100 : 100;
-    const onCoverDone = useCallback(id => setLoadedIds(s => (s.has(id) ? s : new Set(s).add(id))), []);
-    const progressRef = useRef(0);
-    progressRef.current = progress;
+    const neededIds = useMemo(() => (items || []).slice(0, SLOTS).filter(it => it.image || it.logo).map(it => it.id), [items]);
+    const neededRef = useRef(neededIds);
+    neededRef.current = neededIds;
+    const assetsReady = items !== null && (coversReady || timedOut || neededIds.length === 0);
+    const readyRef = useRef(false);  // covers loaded, or we stopped waiting for them
+    readyRef.current = assetsReady;
+    const onCoverDone = useCallback(id => { loadedRef.current.add(id); }, []);
+    const progressRef = useRef(0);   // 0..1 share of the opening covers that have loaded
+    const progress = progressRef.current * 100;
+    const coversDone = useRef(false);
+    const detailTextRef = useRef(null);
     const shown = useRef(skipEntrance ? 100 : 0);   // what the counter displays, eased every frame
     const odometerRef = useRef(null);
 
@@ -219,9 +231,17 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
         if (reelsChanged) { slotReelRef.current = nextReels; setSlotReel(nextReels); }
         if (best !== null && best !== frontRef.current) { frontRef.current = best; setFrontSlot(best); }
 
-        // Loader counter: climbs with the deal, never ahead of the covers that have really loaded
+        // Loader counter: runs with the deal up to 70; the last 30 wait for the real covers
+        if (phaseRef.current !== 'done') {
+            const ids = neededRef.current;
+            const got = ids.reduce((n, id) => n + (loadedRef.current.has(id) ? 1 : 0), 0);
+            progressRef.current = ids.length ? got / ids.length : 1;
+            const text = ids.length ? `${got} of ${ids.length} covers` : 'Dealing the ring';
+            if (detailTextRef.current && detailTextRef.current.textContent !== text) detailTextRef.current.textContent = text;
+            if (got >= ids.length && ids.length && !coversDone.current) { coversDone.current = true; setCoversReady(true); }
+        }
         if (phaseRef.current !== 'done' && odometerRef.current) {
-            const goal = Math.min(progressRef.current, f * 100);
+            const goal = Math.min(f * 100, readyRef.current ? 100 : 70 + progressRef.current * 30);
             shown.current += (goal - shown.current) * Math.min(1, dt * 6);
             if (goal >= 99.9 && shown.current > 99.5) shown.current = 100;
             odometerRef.current.set(shown.current);
@@ -350,7 +370,7 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
                                 <Odometer ref={odometerRef} />
                                 <span className="loader-pct">%</span>
                             </div>
-                            <div className="loader-detail">{needed ? `${loaded} of ${needed} covers` : 'Dealing the ring'}</div>
+                            <div className="loader-detail" ref={detailTextRef}>Dealing the ring</div>
                         </motion.div>
                         <button className="skip" onClick={skip}>Skip intro</button>
                     </motion.div>

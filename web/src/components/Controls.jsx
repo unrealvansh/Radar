@@ -59,7 +59,7 @@ export function FilterBar({ filters, setFilters, hideSearch = false, noNews = fa
             <button className="chip" aria-pressed={filters.loc === 'near'} disabled={!home}
                     title={home ? `Within ${home.radius} km of ${home.city}` : 'Set your city in Radar settings first'}
                     onClick={() => toggleLoc('near')}>{home ? `Near ${home.city}` : 'Near me'}</button>
-            <button className="chip" aria-pressed={filters.loc === 'online'} onClick={() => toggleLoc('online')}>Online</button>
+            {!noNews && <button className="chip" aria-pressed={filters.loc === 'online'} onClick={() => toggleLoc('online')}>Online</button>}
             {!hideSearch && (
                 <label className="search">
                     <IconSearch />

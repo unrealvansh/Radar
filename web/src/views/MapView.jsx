@@ -4,7 +4,7 @@ import { daysUntil, listItems } from '../api.js';
 import { FilterBar } from '../components/Controls.jsx';
 import OppCard from '../components/OppCard.jsx';
 import { useRadar } from '../store.jsx';
-import { inIndia, planeSize, project } from './india.js';
+import { BOUNDS, inIndia, planeSize, project, statePaths } from './india.js';
 
 // A dark dot-matrix India on a tilted plane: one dot per ~0.3 degrees, land dots brighter,
 // dots near places with opportunities lit blue. City beacons stand up off the plane.
@@ -13,6 +13,21 @@ const STEP = 0.3;                // degrees between dots
 const TILT_OVERVIEW = 50;
 const TILT_FOCUS = 34;
 const SPRING = { stiffness: 70, damping: 20, mass: 1 };
+
+// The grid and the state outlines never change: work them out once per visit
+let GRID = null;
+function grid() {
+    if (GRID) return GRID;
+    const dots = [];
+    for (let lat = BOUNDS.north - 0.2; lat > BOUNDS.south + 0.1; lat -= STEP) {
+        for (let lon = BOUNDS.west + 0.1; lon < BOUNDS.east; lon += STEP) {
+            const p = project(lon, lat, PLANE);
+            dots.push({ x: p.x, y: p.y, land: inIndia(lon, lat), r: Math.hypot(p.x - PLANE.w / 2, p.y - PLANE.h / 2) });
+        }
+    }
+    GRID = { dots, borders: statePaths(PLANE) };
+    return GRID;
+}
 
 export default function MapView({ filters, setFilters }) {
     const { home } = useRadar();
@@ -26,7 +41,9 @@ export default function MapView({ filters, setFilters }) {
     useEffect(() => {
         // News has no place, so the map shows all opportunities instead
         const pillar = filters.pillar === 'news' ? 'opps' : filters.pillar;
-        listItems({ ...filters, pillar, limit: 600 }, home).then(setItems).catch(() => setItems([]));
+        // "Online only" would leave the map empty, so the map always shows places
+        const loc = filters.loc === 'online' ? '' : filters.loc;
+        listItems({ ...filters, pillar, loc, limit: 600 }, home).then(setItems).catch(() => setItems([]));
     }, [filters, home]);
 
     const { cities, online } = useMemo(() => {
@@ -107,24 +124,36 @@ export default function MapView({ filters, setFilters }) {
         const ctx = canvas.getContext('2d');
         ctx.scale(dpr, dpr);
 
-        const dots = [];
-        for (let lat = 36; lat > 6.6; lat -= STEP) {
-            for (let lon = 67.6; lon < 98; lon += STEP) {
-                const p = project(lon, lat, PLANE);
-                const land = inIndia(lon, lat);
-                let heat = 0;
-                if (land) {
-                    for (const c of cities) {
-                        const d = Math.hypot(c.x - p.x, c.y - p.y);
-                        const reach = 26 + Math.sqrt(c.items.length) * 14;
-                        if (d < reach) heat = Math.max(heat, 1 - d / reach);
-                    }
+        const { borders } = grid();
+        // Dots near places with opportunities glow blue
+        const dots = grid().dots.map(d => {
+            let heat = 0;
+            if (d.land) {
+                for (const c of cities) {
+                    const dist = Math.hypot(c.x - d.x, c.y - d.y);
+                    const reach = 26 + Math.sqrt(c.items.length) * 14;
+                    if (dist < reach) heat = Math.max(heat, 1 - dist / reach);
                 }
-                dots.push({ ...p, land, heat, r: Math.hypot(p.x - PLANE.w / 2, p.y - PLANE.h / 2) });
             }
-        }
+            return { ...d, heat };
+        });
         const maxR = Math.hypot(PLANE.w / 2, PLANE.h / 2);
-        const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const reduce = document.documentElement.classList.contains('reduce-motion');
+        const strokeBorders = (alpha, glow) => {
+            ctx.save();
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = `rgba(110, 175, 255, ${0.55 * alpha})`;
+            ctx.lineWidth = 1.1;
+            if (glow) { ctx.shadowColor = 'rgba(60, 150, 255, 0.9)'; ctx.shadowBlur = 7; }
+            for (const pts of borders) {
+                ctx.beginPath();
+                ctx.moveTo(pts[0], pts[1]);
+                for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+                ctx.closePath();
+                ctx.stroke();
+            }
+            ctx.restore();
+        };
         const start = performance.now();
         let raf = 0;
         const draw = now => {
@@ -144,6 +173,8 @@ export default function MapView({ filters, setFilters }) {
                     ctx.fillRect(d.x - 1, d.y - 1, 2, 2);
                 }
             }
+            // State borders fade in with the dots; the glow (costly) is drawn once, on the last frame
+            strokeBorders(reveal, reveal >= 1);
             if (reveal < 1) raf = requestAnimationFrame(draw);
         };
         raf = requestAnimationFrame(draw);

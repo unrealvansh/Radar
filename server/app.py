@@ -5,6 +5,7 @@ Main Flask application with all API routes.
 
 from flask import Flask, jsonify, redirect, request, send_from_directory
 from datetime import datetime, timedelta
+import gzip
 import secrets
 import sqlite3
 import os
@@ -131,6 +132,41 @@ def require_token():
     if not secrets.compare_digest(sent, get_access_token()):
         return jsonify({'status': 'error', 'message': 'unauthorized'}), 401
     return None
+
+
+# ============ COMPRESSION & CACHING ============
+# The server is a phone on Wi-Fi: gzip text (JSON lists shrink ~6x) and let the browser keep
+# the built app files, whose names change on every build, so a reload downloads nothing again.
+
+_GZ_TYPES = ('application/json', 'application/javascript', 'text/javascript', 'text/css', 'text/html', 'image/svg+xml')
+_gz_cache = {}  # static file path -> (mtime, gzipped bytes)
+
+
+@app.after_request
+def compress_and_cache(resp):
+    if request.path.startswith('/app/assets/'):
+        resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    elif request.path in ('/', '/app/index.html'):
+        resp.headers['Cache-Control'] = 'no-cache'  # always check for a new build
+    if ('gzip' not in request.headers.get('Accept-Encoding', '') or resp.status_code != 200
+            or 'Content-Encoding' in resp.headers or not resp.mimetype or not resp.mimetype.startswith(_GZ_TYPES)):
+        return resp
+    resp.direct_passthrough = False  # static files are streamed; read them so they can be compressed
+    data = resp.get_data()
+    if len(data) < 1024:
+        return resp
+    key = request.path if request.path.startswith('/app/assets/') else None
+    if key and key in _gz_cache:
+        body = _gz_cache[key]
+    else:
+        body = gzip.compress(data, compresslevel=6)
+        if key:
+            _gz_cache[key] = body  # build files never change under the same name
+    resp.set_data(body)
+    resp.headers['Content-Encoding'] = 'gzip'
+    resp.headers['Vary'] = 'Accept-Encoding'
+    resp.headers['Content-Length'] = str(len(body))
+    return resp
 
 
 # ============ API: HEALTH CHECK ============
