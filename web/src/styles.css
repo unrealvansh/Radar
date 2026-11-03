@@ -588,6 +588,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 @media (max-width: 760px) {
     :root { --side: 0px; --topbar: 58px; }
+    .shell, .shell.is-folded { --side: 0px; }  /* no sidebar on phones, folded or not */
     .side { display: none; }
     .top { padding: 0 12px; }
     .top-brand { display: flex; flex: 1; }
