@@ -1,29 +1,17 @@
-# Byte-compiled
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Virtual environment
 venv/
 
-# Database files
 data/*.db
 data/*.db-wal
 data/*.db-shm
-
-# Logs
+data/*.txt
 logs/*.log
 
-# OS files
-.DS_Store
-Thumbs.db
+web/node_modules/
 
-# IDE
+.claude/
 .vscode/
 .idea/
-
-# Secrets (access token, private ntfy topic)
-data/*.txt
-
-# Explore app (built into frontend/explore)
-web/node_modules/
+.DS_Store
+Thumbs.db

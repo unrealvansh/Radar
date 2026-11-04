@@ -1,12 +1,3 @@
-"""
-Radar scan engine.
-
-- Reads every website in services/sources.py, one at a time (low RAM).
-- Keeps only student-relevant jobs (interest keywords / early-career, no senior roles).
-- Keeps only upcoming events and fresh jobs/news.
-- Removes duplicates: same link (ignoring tracking params) or same title.
-"""
-
 import os
 import re
 import sqlite3
@@ -18,9 +9,13 @@ from services.sources import SOURCES, IST, tidy
 from services import locations
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DB_PATH = os.path.join(BASE_DIR, 'data', 'pocketbrain.db')
+DB_PATH = os.path.join(BASE_DIR, 'data', 'radar.db')
+_OLD_DB = os.path.join(BASE_DIR, 'data', 'pocketbrain.db')
+if not os.path.exists(DB_PATH) and os.path.exists(_OLD_DB):
+    for ext in ('', '-wal', '-shm'):
+        if os.path.exists(_OLD_DB + ext):
+            os.replace(_OLD_DB + ext, DB_PATH + ext)
 
-# Default interest keywords (overridable from the Settings screen)
 DEFAULT_KEYWORDS = [
     'intern', 'internship', 'trainee', 'c++', 'python', 'fintech', 'quant',
     'trading', 'backend', 'full stack', 'fullstack', 'react', 'node',
@@ -28,11 +23,9 @@ DEFAULT_KEYWORDS = [
     'developer', 'engineer', 'engineering', 'sde', 'data', 'machine learning', 'ml', 'ai'
 ]
 
-# Always relevant for students, whatever the interests are
 EARLY_CAREER = ['intern', 'internship', 'internships', 'trainee', 'graduate', 'new grad', 'fresher',
                 'freshers', 'campus', 'junior', 'entry level', 'entry-level', 'apprentice', 'student']
 
-# Never relevant for students: senior / mid-level grades, non-tech roles, roles tied to other countries
 SENIOR = ['senior', 'sr', 'lead', 'principal', 'staff', 'manager', 'director', 'head', 'vp',
           'architect', 'chief', 'president', 'expert', 'intermediate', 'ii', 'iii', 'iv',
           'sde2', 'sde3', 'sde-2', 'sde-3', 'sde 2', 'sde 3']
@@ -43,12 +36,10 @@ FOREIGN = ['emea', 'latam', 'usa', 'united states', 'uk', 'europe', 'spain', 'ge
            'london', 'berlin', 'amsterdam', 'singapore', 'dubai']
 EXCLUDE = SENIOR + NON_TECH + FOREIGN
 
-# Freshness windows (days)
 JOB_MAX_AGE = 21
 NEWS_MAX_AGE = 3
 EVENT_UNDATED_MAX_AGE = 14
 
-# Max new items kept per website per scan, so one site can't flood the feed
 PER_SOURCE_CAP = {'events': 12, 'jobs': 12, 'news': 3}
 
 TRACKING_PARAMS = re.compile(r'^(utm_.*|ref|ref_src|source|src|fbclid|gclid|mc_cid|mc_eid|trk|lever-source|gh_src)$', re.I)
@@ -64,7 +55,6 @@ def get_db():
 
 
 def get_keywords():
-    """Interest keywords saved in settings ('keywords', comma separated)."""
     try:
         conn = get_db()
         row = conn.execute("SELECT value FROM settings WHERE key = 'keywords'").fetchone()
@@ -76,12 +66,7 @@ def get_keywords():
     return DEFAULT_KEYWORDS
 
 
-# =====================================================================
-# DUPLICATE KEYS
-# =====================================================================
-
 def url_key(url):
-    """Same page = same key: lower-case host, no www, no tracking params, no trailing slash."""
     try:
         parts = urlsplit(url.strip())
         host = parts.netloc.lower().removeprefix('www.')
@@ -92,22 +77,15 @@ def url_key(url):
 
 
 def title_key(pillar, title, organization):
-    """Jobs are unique per title + company; events and news per title."""
     norm = lambda s: re.sub(r'[^a-z0-9]', '', (s or '').lower())
     return norm(title) + ('|' + norm(organization) if pillar == 'jobs' else '')
 
-
-# =====================================================================
-# FILTERS
-# =====================================================================
 
 def _has_word(text, words):
     return any(re.search(r'(?<![a-z0-9])' + re.escape(w) + r'(?![a-z0-9])', text) for w in words)
 
 
 def is_relevant_job(title, keywords):
-    """No senior roles, and the title must match a field keyword (python, data, ...).
-    'Intern' alone isn't enough: that lets in Sales / HR internships."""
     t = (title or '').lower()
     if _has_word(t, EXCLUDE):
         return False
@@ -116,7 +94,6 @@ def is_relevant_job(title, keywords):
 
 
 def is_fresh(it, today):
-    """Upcoming events only; jobs and news only if recent."""
     days_old = lambda iso: (today - datetime.strptime(iso, '%Y-%m-%d').date()).days
     try:
         if it['deadline'] and it['deadline'] < today.isoformat():
@@ -134,7 +111,6 @@ def is_fresh(it, today):
         return True
 
 
-# Same rules as is_fresh, in SQL, for the feed and the cleanup job
 VISIBLE_SQL = f"""(
     (deadline IS NOT NULL AND deadline >= date('now', 'localtime'))
     OR (deadline IS NULL AND pillar = 'events' AND (
@@ -147,23 +123,18 @@ VISIBLE_SQL = f"""(
 )"""
 
 
-# =====================================================================
-# DATABASE SETUP & ONE-TIME CLEANUP OF OLD DUPLICATES
-# =====================================================================
-
 def init_radar_db():
-    """Create radar_items, add new columns to old DBs, remove existing duplicates once."""
     conn = get_db()
     conn.execute('''
         CREATE TABLE IF NOT EXISTS radar_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            pillar TEXT NOT NULL,         -- 'jobs', 'events', 'news'
+            pillar TEXT NOT NULL,
             source TEXT NOT NULL,
             title TEXT NOT NULL,
             organization TEXT,
             url TEXT NOT NULL UNIQUE,
-            deadline_or_date TEXT,        -- human readable date line
-            extra_info TEXT,              -- prize, type, location
+            deadline_or_date TEXT,
+            extra_info TEXT,
             notified INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -186,7 +157,7 @@ def init_radar_db():
         CREATE TABLE IF NOT EXISTS notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             item_id INTEGER,
-            kind TEXT NOT NULL,          -- 'new' (found by a scan) or 'reminder' (tracked deadline)
+            kind TEXT NOT NULL,
             title TEXT NOT NULL,
             body TEXT,
             read INTEGER DEFAULT 0,
@@ -205,7 +176,6 @@ def _location_text(it):
 
 
 def _locate_existing(conn):
-    """One-time: detect city / mode for rows stored before location support."""
     rows = conn.execute("SELECT id, source, title, organization, extra_info FROM radar_items WHERE loc_done IS NULL").fetchall()
     for r in rows:
         loc = locations.detect(_location_text(dict(r)), r['source'])
@@ -214,7 +184,6 @@ def _locate_existing(conn):
 
 
 def _tidy_existing(conn):
-    """Strip emojis and bullet separators from rows stored before tidy() existed."""
     for r in conn.execute("SELECT id, title, extra_info FROM radar_items").fetchall():
         title, extra = tidy(r['title']), tidy(r['extra_info'])
         if (title, extra) != (r['title'], r['extra_info'] or ''):
@@ -222,15 +191,13 @@ def _tidy_existing(conn):
 
 
 def _dedupe_existing(conn):
-    """Fill keys for old rows and delete duplicates, keeping saved / oldest copies."""
-    # Old 'events' from the Google Developers blog were really news posts
     conn.execute("UPDATE radar_items SET pillar = 'news' WHERE source = 'Google Developers' AND pillar = 'events'")
     has_saved = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='saved_items'").fetchone()
     saved = {r[0] for r in conn.execute("SELECT item_id FROM saved_items")} if has_saved else set()
 
     seen = {}
     rows = conn.execute("SELECT id, pillar, title, organization, url FROM radar_items ORDER BY id").fetchall()
-    rows = sorted(rows, key=lambda r: (r['id'] not in saved, r['id']))  # saved copies win
+    rows = sorted(rows, key=lambda r: (r['id'] not in saved, r['id']))
     for r in rows:
         keys = (url_key(r['url']), (r['pillar'], title_key(r['pillar'], r['title'], r['organization'])))
         keep = seen.get(keys[0]) or seen.get(keys[1])
@@ -245,12 +212,7 @@ def _dedupe_existing(conn):
                      (keys[0], keys[1][1], r['id']))
 
 
-# =====================================================================
-# SCANNING
-# =====================================================================
-
 def _store(conn, it):
-    """Insert one item unless it's a duplicate. Returns True when new."""
     ukey = url_key(it['url'])
     tkey = title_key(it['pillar'], it['title'], it['organization'])
     dup = conn.execute(
@@ -258,9 +220,9 @@ def _store(conn, it):
         (ukey, it['pillar'], tkey)
     ).fetchone()
     if dup:
-        if not dup['deadline'] and it['deadline']:  # Another site knows the deadline: keep it
+        if not dup['deadline'] and it['deadline']:
             conn.execute("UPDATE radar_items SET deadline = ? WHERE id = ?", (it['deadline'], dup['id']))
-        if (not dup['image'] and it.get('image')) or (not dup['logo'] and it.get('logo')):  # Same for pictures
+        if (not dup['image'] and it.get('image')) or (not dup['logo'] and it.get('logo')):
             conn.execute("UPDATE radar_items SET image = COALESCE(NULLIF(image, ''), ?), logo = COALESCE(NULLIF(logo, ''), ?) WHERE id = ?",
                          (it.get('image') or '', it.get('logo') or '', dup['id']))
         return False
@@ -284,7 +246,6 @@ def _store(conn, it):
 
 
 def scan(pillars=('jobs', 'events', 'news')):
-    """Scan every website of the given pillars, sequentially."""
     if not _scan_lock.acquire(blocking=False):
         print("[Radar] Scan already running, skipped.")
         return {}
@@ -307,9 +268,9 @@ def scan(pillars=('jobs', 'events', 'news')):
             if pillar == 'jobs':
                 items = [it for it in items if is_relevant_job(it['title'], keywords)]
             items = [it for it in items if is_fresh(it, today)]
-            if pillar == 'events':  # soonest first
+            if pillar == 'events':
                 items.sort(key=lambda it: it['starts_at'] or it['deadline'] or '9999')
-            else:  # newest first
+            else:
                 items.sort(key=lambda it: it['posted_at'] or '', reverse=True)
 
             conn = get_db()
@@ -334,7 +295,6 @@ def scan(pillars=('jobs', 'events', 'news')):
 
 
 def _notify_new(new_items):
-    """One summary push per scan listing what was found (the app's bell has every item)."""
     if not new_items:
         return
     try:
@@ -342,7 +302,6 @@ def _notify_new(new_items):
         count = {p: sum(1 for it in new_items if it['pillar'] == p) for p in ('jobs', 'events', 'news')}
         parts = [f"{count['jobs']} roles" if count['jobs'] else '', f"{count['events']} events" if count['events'] else '',
                  f"{count['news']} news" if count['news'] else '']
-        # Opportunities first, soonest deadline first
         order = sorted(new_items, key=lambda it: (it['pillar'] == 'news', it.get('deadline') or '9999'))
         lines = []
         for it in order[:12]:
@@ -365,17 +324,14 @@ def scan_all_radar():
 
 
 def scan_high_priority():
-    """Jobs & hackathons only (quick, focused)."""
     return scan(('jobs', 'events'))
 
 
 def scan_jobs_only():
-    """Jobs & internships only: they change fastest."""
     return scan(('jobs',))
 
 
 def cleanup_old_items():
-    """Delete expired / stale items nobody saved, so the DB stays small."""
     conn = get_db()
     has_saved = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='saved_items'").fetchone()
     keep_saved = "id NOT IN (SELECT item_id FROM saved_items) AND" if has_saved else ""
@@ -386,17 +342,12 @@ def cleanup_old_items():
     conn.close()
 
 
-# =====================================================================
-# IN-APP NOTIFICATIONS (the bell)
-# =====================================================================
-
 def add_notification(conn, item_id, kind, title, body=''):
     conn.execute("INSERT INTO notifications (item_id, kind, title, body) VALUES (?, ?, ?, ?)",
                  (item_id, kind, (title or '')[:200], body))
 
 
 def get_notifications(limit=60):
-    """Newest first, each with its item so the app can open it."""
     conn = get_db()
     rows = conn.execute('''
         SELECT n.id AS nid, n.kind, n.title AS ntitle, n.body, n.read, n.created_at AS ncreated, r.*
@@ -424,16 +375,11 @@ def mark_notifications_read(ids=None):
     conn.close()
 
 
-# =====================================================================
-# QUERIES
-# =====================================================================
-
 def is_scanning():
     return _scan_lock.locked()
 
 
 def _pick_score(row, keywords):
-    """How many interest keywords appear in the item: used for 'Top picks'."""
     text = ' '.join(filter(None, (row['title'], row['organization'], row['extra_info']))).lower()
     return sum(1 for k in keywords if _has_word(text, [k]))
 
@@ -442,7 +388,6 @@ ONLINE_MODES = ('online', 'remote', 'hybrid')
 
 
 def _with_distance(items, near):
-    """Add distance_km (from the user's location) to items that have a known city."""
     for it in items:
         it['distance_km'] = (round(locations.distance_km(near[0], near[1], it['lat'], it['lon']))
                              if near and it.get('lat') is not None else None)
@@ -451,21 +396,12 @@ def _with_distance(items, near):
 
 def get_radar_items(pillar=None, limit=5, q=None, offset=0, sort='latest', source=None,
                     near=None, radius=50, loc=None):
-    """Visible (upcoming / fresh) items.
-
-    sort: 'latest' (newest first), 'closing' (nearest deadline first),
-          'picks' (best match with interest keywords, then newest).
-    near: (lat, lon) of the user; adds distance_km to every item.
-    loc:  None (anywhere), 'near' (within radius km, nearest first),
-          'near_online' (near + anything online/remote), 'online' (online/remote only).
-    """
     if loc in ('near', 'near_online') and near:
         rows = get_radar_items(pillar=pillar, limit=600, q=q, sort=sort, source=source)
         _with_distance(rows, near)
-        # "Near" means you can go there: online / remote items only come with 'near_online'
         close = [r for r in rows if r['distance_km'] is not None and r['distance_km'] <= radius
                  and r.get('mode') not in ('online', 'remote')]
-        close.sort(key=lambda r: r['distance_km'])  # stable: keeps the chosen sort for ties
+        close.sort(key=lambda r: r['distance_km'])
         if loc == 'near_online':
             close += [r for r in rows if r not in close and r.get('mode') in ONLINE_MODES]
         return close[offset:offset + limit]
@@ -474,7 +410,7 @@ def get_radar_items(pillar=None, limit=5, q=None, offset=0, sort='latest', sourc
     conn = get_db()
     sql = f"SELECT * FROM radar_items WHERE {VISIBLE_SQL}"
     args = []
-    if pillar == 'opps':  # Jobs + events, without news
+    if pillar == 'opps':
         sql += " AND pillar IN ('jobs', 'events')"
     elif pillar:
         sql += " AND pillar = ?"
@@ -495,7 +431,7 @@ def get_radar_items(pillar=None, limit=5, q=None, offset=0, sort='latest', sourc
         keywords = get_keywords()
         scored = [(_pick_score(r, keywords), i, r) for i, r in enumerate(rows)]
         scored = [s for s in scored if s[0] > 0]
-        scored.sort(key=lambda s: (-s[0], s[1]))  # best score, then newest
+        scored.sort(key=lambda s: (-s[0], s[1]))
         return _with_distance([dict(r, score=sc) for sc, _, r in scored[offset:offset + limit]], near)
 
     if sort == 'closing':
@@ -510,7 +446,6 @@ def get_radar_items(pillar=None, limit=5, q=None, offset=0, sort='latest', sourc
 
 
 def get_city_counts():
-    """Visible opportunities per detected city (for the location picker)."""
     init_radar_db()
     conn = get_db()
     counts = {r[0]: r[1] for r in conn.execute(
@@ -521,7 +456,6 @@ def get_city_counts():
 
 
 def get_counts():
-    """Visible items per pillar and per source (feed chips and source filter)."""
     init_radar_db()
     conn = get_db()
     pillars = {r[0]: r[1] for r in conn.execute(

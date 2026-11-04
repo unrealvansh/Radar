@@ -9,7 +9,6 @@ export const VIEWS = [
     { id: 'map', label: 'Map', key: '3' },
 ];
 
-/** Segmented view switch; the highlight slides between options. */
 export function ViewSwitch({ view, onChange }) {
     return (
         <div className="switch" role="tablist" aria-label="View">
@@ -30,14 +29,13 @@ export function ViewSwitch({ view, onChange }) {
 const PILLARS = [['opps', 'All'], ['jobs', 'Jobs and internships'], ['events', 'Hackathons and events'], ['news', 'Tech news']];
 const MAP_PILLARS = PILLARS.filter(([id]) => id !== 'news');
 
-/** Type, place, ranking and search. Shared by all three views. */
 export function FilterBar({ filters, setFilters, hideSearch = false, noNews = false }) {
     const { home } = useRadar();
     const [q, setQ] = useState(filters.q);
     useEffect(() => {
         const t = setTimeout(() => q !== filters.q && setFilters(f => ({ ...f, q })), 300);
         return () => clearTimeout(t);
-    }, [q]);  // eslint-disable-line react-hooks/exhaustive-deps
+    }, [q]);
 
     const toggleLoc = loc => setFilters(f => ({ ...f, loc: f.loc === loc ? '' : loc }));
 

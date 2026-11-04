@@ -1,22 +1,3 @@
-"""
-Radar sources: every website the radar reads, in one registry.
-
-Each adapter fetches one site and returns a list of plain dicts:
-    pillar        'jobs' | 'events' | 'news'
-    source        site name shown on the card
-    title, organization, url
-    deadline      ISO date: last day to apply / take part (None if unknown)
-    starts_at     ISO date the event starts (None if unknown)
-    posted_at     ISO date the item was published (None if unknown)
-    extra_info    short tag line (prize, type, location)
-    date_text     human readable date line for the card
-
-Fetching is sequential and every adapter is wrapped in try/except by the
-scanner, so one broken site never stops the others.
-To add a website: write an adapter (or reuse rss/greenhouse/lever/ashby)
-and add one line to SOURCES at the bottom.
-"""
-
 import json
 import re
 import urllib.request
@@ -32,10 +13,6 @@ INDIA_WORDS = ['india', 'bengaluru', 'bangalore', 'mumbai', 'pune', 'hyderabad',
                'gurugram', 'noida', 'delhi', 'chennai', 'kolkata', 'ahmedabad', 'jaipur']
 REMOTE_OK_WORDS = ['worldwide', 'anywhere', 'global', 'apac', 'asia', 'india', 'remote']
 
-
-# =====================================================================
-# FETCH & DATE HELPERS
-# =====================================================================
 
 def fetch(url, data=None):
     headers = {"User-Agent": USER_AGENT,
@@ -53,7 +30,6 @@ def fetch_json(url, data=None):
 
 
 def to_date(value):
-    """Epoch (s or ms), ISO string or RSS date -> 'YYYY-MM-DD' in IST, else None."""
     if value in (None, '', 0):
         return None
     try:
@@ -75,7 +51,6 @@ def to_date(value):
 
 
 def nice(iso):
-    """'2026-11-05' -> '5 Nov'."""
     try:
         d = datetime.strptime(iso, '%Y-%m-%d')
         return f"{d.day} {d.strftime('%b')}"
@@ -91,7 +66,6 @@ EMOJI = re.compile('[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\uFE0F\u200D
 
 
 def tidy(text):
-    """Drop emojis and join parts with commas: 'Hackathon • Pune' -> 'Hackathon, Pune'."""
     text = EMOJI.sub('', text or '')
     text = re.sub(r'\s*[•·|]\s*|\s+[—–]\s+|—', ', ', text)
     text = re.sub(r'\s+', ' ', text)
@@ -115,7 +89,6 @@ def item(pillar, source, title, url, organization='', deadline=None, starts_at=N
 
 
 def img_url(url):
-    """'//cdn/x.png' -> 'https://cdn/x.png'; anything that isn't an http(s) URL -> ''."""
     url = (url or '').strip()
     if url.startswith('//'):
         url = 'https:' + url
@@ -127,12 +100,7 @@ def location_ok(text, words=REMOTE_OK_WORDS):
     return not text.strip() or any(w in text for w in words)
 
 
-# =====================================================================
-# GENERIC ADAPTERS (RSS, company job boards)
-# =====================================================================
-
 def rss(url, source, pillar='news', tag='', limit=3):
-    """Any RSS 2.0 or Atom feed."""
     def fetcher():
         root = ET.fromstring(fetch(url))
         out = []
@@ -152,7 +120,6 @@ def rss(url, source, pillar='news', tag='', limit=3):
 
 
 def greenhouse(slug, company):
-    """Company careers on Greenhouse: India roles only."""
     def fetcher():
         data = fetch_json(f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs")
         out = []
@@ -168,7 +135,6 @@ def greenhouse(slug, company):
 
 
 def lever(slug, company):
-    """Company careers on Lever: India roles only."""
     def fetcher():
         out = []
         for j in fetch_json(f"https://api.lever.co/v0/postings/{slug}?mode=json"):
@@ -184,7 +150,6 @@ def lever(slug, company):
 
 
 def ashby(slug, company):
-    """Company careers on Ashby: India roles only."""
     def fetcher():
         out = []
         for j in fetch_json(f"https://api.ashbyhq.com/posting-api/job-board/{slug}").get('jobs', []):
@@ -198,12 +163,7 @@ def ashby(slug, company):
     return fetcher
 
 
-# =====================================================================
-# HACKATHONS, COMPETITIONS, EVENTS, CODING CONTESTS
-# =====================================================================
-
 def unstop(kind, pillar, label):
-    """Unstop: hackathons / competitions / internships / jobs / scholarships / workshops."""
     def fetcher():
         url = (f"https://unstop.com/api/public/opportunity/search-result"
                f"?opportunity={kind}&per_page=20&oppstatus=open")
@@ -239,7 +199,6 @@ def devpost():
 
 
 def parse_range_end(dates):
-    """'Oct 01 - Nov 15, 2026' / 'Oct 15 - 30, 2026' -> '2026-11-15' (or None)."""
     if not dates or '-' not in dates:
         return None
     start, end = [p.strip() for p in dates.rsplit('-', 1)]
@@ -279,7 +238,7 @@ def hackerearth():
 
 
 def mlh():
-    year = datetime.now().year + (1 if datetime.now().month >= 8 else 0)  # MLH seasons start in autumn
+    year = datetime.now().year + (1 if datetime.now().month >= 8 else 0)
     html = fetch(f"https://mlh.io/seasons/{year}/events").decode('utf-8', 'replace')
     out = []
     for block in html.split('itemType="https://schema.org/Event"')[1:]:
@@ -369,10 +328,6 @@ def hackerrank():
     return out
 
 
-# =====================================================================
-# JOB & INTERNSHIP BOARDS
-# =====================================================================
-
 def remotive(category):
     def fetcher():
         data = fetch_json(f"https://remotive.com/api/remote-jobs?category={category}&limit=50")
@@ -415,7 +370,7 @@ def weworkremotely(category):
 
 def remoteok():
     out = []
-    for j in fetch_json("https://remoteok.com/api")[1:]:  # first element is the legal notice
+    for j in fetch_json("https://remoteok.com/api")[1:]:
         if not location_ok(j.get('location')):
             continue
         out.append(item('jobs', 'RemoteOK', j.get('position'), j.get('url'), organization=j.get('company'),
@@ -455,12 +410,7 @@ def hn_jobs():
     return out
 
 
-# =====================================================================
-# REGISTRY: (name, pillar, fetcher)
-# =====================================================================
-
 SOURCES = [
-    # ---- Hackathons, competitions, events, contests (14) ----
     ('Unstop Hackathons', 'events', unstop('hackathons', 'events', 'Hackathon')),
     ('Unstop Competitions', 'events', unstop('competitions', 'events', 'Competition')),
     ('Unstop Scholarships', 'events', unstop('scholarships', 'events', 'Scholarship')),
@@ -476,7 +426,6 @@ SOURCES = [
     ('LeetCode', 'events', leetcode),
     ('HackerRank', 'events', hackerrank),
 
-    # ---- Job & internship boards (12) ----
     ('Unstop Internships', 'jobs', unstop('internships', 'jobs', 'Internship')),
     ('Unstop Jobs', 'jobs', unstop('jobs', 'jobs', 'Job')),
     ('Remotive Software', 'jobs', remotive('software-dev')),
@@ -490,7 +439,6 @@ SOURCES = [
     ('Working Nomads', 'jobs', working_nomads),
     ('Hacker News Jobs', 'jobs', hn_jobs),
 
-    # ---- Company career pages, India / remote roles (23) ----
     ('Groww', 'jobs', greenhouse('groww', 'Groww')),
     ('Druva', 'jobs', greenhouse('druva', 'Druva')),
     ('Rubrik', 'jobs', greenhouse('rubrik', 'Rubrik')),
@@ -515,7 +463,6 @@ SOURCES = [
     ('Sarvam AI', 'jobs', ashby('sarvam', 'Sarvam AI')),
     ('Atlan', 'jobs', ashby('atlan', 'Atlan')),
 
-    # ---- Tech news (22) ----
     ('Google AI Blog', 'news', rss("https://blog.google/technology/ai/rss/", 'Google AI Blog', tag='AI')),
     ('Google Developers', 'news', rss("https://developers.googleblog.com/feeds/posts/default?alt=rss", 'Google Developers', tag='Dev')),
     ('Hugging Face', 'news', rss("https://huggingface.co/blog/feed.xml", 'Hugging Face', tag='Open-Source AI')),

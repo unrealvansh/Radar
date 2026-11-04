@@ -1,4 +1,3 @@
-// Small square-cap stroke icons, drawn for Radar (no icon library).
 const base = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
     strokeWidth: 1.7, strokeLinecap: 'square', strokeLinejoin: 'miter', 'aria-hidden': true };
 

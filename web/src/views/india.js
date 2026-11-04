@@ -1,11 +1,8 @@
 import { STATES } from './states.js';
 
-// Map geometry for the dot-matrix India. Outlines come from Datameet's state boundaries
-// (states.js); the dots are the points of a grid that fall inside any state.
 export const BOUNDS = { west: 67.5, east: 98, south: 6.2, north: 37.4 };
-const LON_SCALE = Math.cos((22 * Math.PI) / 180);  // equirectangular, corrected at India's middle latitude
+const LON_SCALE = Math.cos((22 * Math.PI) / 180);
 
-/** Plane size for a given width, keeping India's proportions. */
 export function planeSize(width) {
     const w = (BOUNDS.east - BOUNDS.west) * LON_SCALE;
     const h = BOUNDS.north - BOUNDS.south;
@@ -19,7 +16,6 @@ export function project(lon, lat, size) {
     };
 }
 
-// Every outline ring with its bounding box, so a point only tests the rings it could be in
 const RINGS = STATES.flatMap(s => s.r.map(r => {
     let minX = 999, minY = 999, maxX = -999, maxY = -999;
     for (let i = 0; i < r.length; i += 2) {
@@ -38,7 +34,6 @@ function inRing(lon, lat, r) {
     return inside;
 }
 
-/** Is this point on Indian land (inside any state)? */
 export function inIndia(lon, lat) {
     for (const g of RINGS) {
         if (lon < g.minX || lon > g.maxX || lat < g.minY || lat > g.maxY) continue;
@@ -47,7 +42,6 @@ export function inIndia(lon, lat) {
     return false;
 }
 
-/** State outlines projected onto the plane, as arrays of [x, y] points. */
 export function statePaths(size) {
     return RINGS.map(({ r }) => {
         const pts = [];

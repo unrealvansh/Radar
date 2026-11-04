@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { initials } from '../api.js';
 
-// A cover drawn from the item itself when the source has no picture:
-// rings for events, a grid for jobs, lines for news, with the organisation's initials.
 function Pattern({ item }) {
     const id = `p${item.id}`;
     const shift = (item.id * 37) % 60;
@@ -28,7 +26,6 @@ function Pattern({ item }) {
     );
 }
 
-/** The item's picture, or the drawn cover if there is none or it fails to load. */
 export default function Cover({ item, onDone, className = '' }) {
     const [failed, setFailed] = useState(false);
     const src = item.image || item.logo;

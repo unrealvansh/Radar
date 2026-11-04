@@ -6,7 +6,6 @@ import Cover from './Cover.jsx';
 import SaveButton from './SaveButton.jsx';
 import { IconOut, IconX } from './Icons.jsx';
 
-// Side panel on desktop, bottom sheet on phones. The card's cover morphs into it (layoutId).
 export default function DetailSheet() {
     const it = useDetail();
     const { openDetail } = useRadar();
@@ -20,7 +19,7 @@ export default function DetailSheet() {
         const onKey = e => { if (e.key === 'Escape') close(); };
         document.addEventListener('keydown', onKey);
         return () => { document.removeEventListener('keydown', onKey); last?.focus?.(); };
-    }, [it?.id]);  // eslint-disable-line react-hooks/exhaustive-deps
+    }, [it?.id]);
 
     return (
         <AnimatePresence>

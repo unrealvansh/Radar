@@ -1,17 +1,8 @@
-"""
-Location detection for radar items.
-
-No geocoding API: a built-in list of Indian cities (with coordinates) is matched
-against an item's text, so it works offline and costs nothing on the phone.
-Each item gets: city, region, lat, lon, mode (online / remote / hybrid / onsite).
-"""
-
 import math
 import re
 
 NCR = 'Delhi NCR'
 
-# name: (lat, lon, region, [aliases])
 CITIES = {
     'New Delhi': (28.6139, 77.2090, NCR, ['new delhi']),
     'Delhi': (28.6519, 77.2315, NCR, ['delhi']),
@@ -88,7 +79,6 @@ CITIES = {
     'Jammu': (32.7266, 74.8570, None, ['jammu']),
 }
 
-# Longest aliases first, so "greater noida" wins over "noida" and "new delhi" over "delhi"
 _ALIASES = sorted(((alias, name) for name, (_, _, _, aliases) in CITIES.items() for alias in aliases),
                   key=lambda a: -len(a[0]))
 _ALIAS_RE = [(re.compile(r'(?<![a-z])' + re.escape(alias) + r'(?![a-z])'), name) for alias, name in _ALIASES]
@@ -98,12 +88,10 @@ REMOTE_WORDS = re.compile(r'(?<![a-z])(remote|wfh|work from home|anywhere|worldw
 HYBRID_WORDS = re.compile(r'(?<![a-z])hybrid(?![a-z])')
 ONSITE_WORDS = re.compile(r'(?<![a-z])(offline|in-person|in person|onsite|on-site)(?![a-z])')
 
-# Coding-contest sites are always online
 ONLINE_SOURCES = {'Codeforces', 'CodeChef', 'LeetCode', 'HackerRank'}
 
 
 def detect(text, source=''):
-    """Text of an item -> dict(city, region, lat, lon, mode). Unknown parts are None."""
     t = (text or '').lower()
     city = next((name for rx, name in _ALIAS_RE if rx.search(t)), None)
 
@@ -125,7 +113,6 @@ def detect(text, source=''):
 
 
 def distance_km(lat1, lon1, lat2, lon2):
-    """Great-circle distance in km (haversine)."""
     r = 6371.0
     p1, p2 = math.radians(lat1), math.radians(lat2)
     dp, dl = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
@@ -134,6 +121,5 @@ def distance_km(lat1, lon1, lat2, lon2):
 
 
 def nearest_city(lat, lon):
-    """Closest known city to a GPS position -> (name, km)."""
     name = min(CITIES, key=lambda n: distance_km(lat, lon, CITIES[n][0], CITIES[n][1]))
     return name, distance_km(lat, lon, CITIES[name][0], CITIES[name][1])

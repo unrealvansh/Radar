@@ -1,5 +1,3 @@
-/* Radar Explore. Palette taken from the community-card reference: near-black page,
-   dark cards with a thin border, white type, one bright blue for actions. */
 :root {
     --bg: #0E0E10;
     --surface: #141416;
@@ -34,7 +32,6 @@ img { display: block; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* ---------- shell: sidebar, top bar, tab bar ---------- */
 :root { --side: 236px; --side-open: 236px; --side-folded: 76px; --topbar: 64px; }
 .shell.is-folded { --side: var(--side-folded); }
 .side {
@@ -43,7 +40,7 @@ img { display: block; }
     background: var(--bg); border-right: 1px solid var(--line);
     transition: width .24s var(--ease), border-color .2s;
 }
-/* Folded: icons only. Hovering widens it over the page; labels fade instead of jumping */
+
 .side.is-peek { width: var(--side-open); z-index: 70; border-right-color: var(--line-2); box-shadow: 12px 0 40px rgba(0, 0, 0, .5); }
 .side .side-label, .side .side-count, .side .wordmark, .side .scan-status div, .side .legal { transition: opacity .18s; white-space: nowrap; }
 .side.is-narrow .side-label, .side.is-narrow .side-count, .side.is-narrow .wordmark,
@@ -109,7 +106,6 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 
 .tabbar { display: none; }
 
-/* ---------- filters ---------- */
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .pillars { position: relative; display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
 .pillars { flex-shrink: 0; }
@@ -130,7 +126,6 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .search input { width: 100%; min-height: 40px; padding: 0 14px 0 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
 .search input:focus { border-color: var(--accent); }
 
-/* ---------- Simple view ---------- */
 .scroll-progress { position: fixed; z-index: 60; top: 0; left: 0; right: 0; height: 2px; background: var(--accent); transform-origin: 0 50%; }
 .simple { max-width: 1440px; margin: 0 auto; padding: 28px 28px 80px; }
 .simple-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
@@ -148,7 +143,7 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .oc:hover { border-color: var(--line-2); }
 .oc-banner { height: 58px; margin: 0 -16px; border-radius: var(--r) var(--r) 0 0; overflow: hidden; background: var(--surface-2); }
 .oc-banner .cover { height: 100%; }
-.oc-logo { position: relative; z-index: 1; margin-top: -30px; margin-bottom: 14px; }  /* above the banner's layer */
+.oc-logo { position: relative; z-index: 1; margin-top: -30px; margin-bottom: 14px; }
 .logo {
     display: grid; place-items: center; overflow: hidden; border-radius: 50%;
     background: #fff; border: 3px solid var(--surface); color: #111; font: 700 18px var(--head);
@@ -174,7 +169,6 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .track-btn.is-on { border-color: var(--accent); color: var(--accent-2); background: var(--accent-soft); }
 .oc-compact .oc-stats { margin-top: 14px; }
 
-/* skeleton */
 .oc-skel { cursor: default; }
 .oc-skel i { display: block; height: 12px; margin-top: 12px; border-radius: 6px; background: var(--surface-3); animation: pulse 1.4s ease-in-out infinite; }
 .oc-skel .logo { width: 64px; height: 64px; background: var(--surface-3); }
@@ -185,13 +179,11 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .sentinel { height: 1px; }
 .end { text-align: center; color: var(--text-3); font-size: 13px; padding: 30px 0 0; }
 
-/* covers */
 .cover { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--surface-2); color: var(--text-2); }
 .cover img { width: 100%; height: 100%; object-fit: cover; }
 .cover-gen { width: 100%; height: 100%; display: block; }
 .cover-initials { font: 700 64px var(--head); fill: var(--text); fill-opacity: .9; }
 
-/* save button + menu */
 .save { position: relative; }
 .save-btn {
     width: 100%; min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -223,7 +215,6 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .btn-outline:hover { border-color: var(--text-3); }
 .icon-btn { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line-2); background: rgba(14, 14, 16, .7); cursor: pointer; }
 
-/* ---------- detail sheet ---------- */
 .scrim { position: fixed; inset: 0; z-index: 80; background: rgba(5, 5, 7, .6); }
 .sheet {
     position: fixed; z-index: 90; top: 12px; right: 12px; bottom: 12px; width: min(440px, calc(100vw - 24px));
@@ -252,9 +243,8 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .toasts { position: fixed; z-index: 200; left: 50%; bottom: 24px; transform: translateX(-50%); display: grid; gap: 8px; justify-items: center; pointer-events: none; }
 .toast { padding: 11px 16px; border-radius: 10px; background: var(--surface-3); border: 1px solid var(--line-2); font-size: 14px; }
 
-/* ---------- Aura ---------- */
 .aura { position: relative; height: 100vh; height: 100svh; min-height: 520px; overflow: hidden; background: var(--bg); }
-/* During the entrance the loader covers the whole screen, sidebar included */
+
 .aura-backdrop { position: fixed; inset: 0; z-index: 60; background: #F4F4F6; pointer-events: none; }
 .aura-stage {
     position: absolute; inset: 0; z-index: 2;
@@ -278,7 +268,7 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 }
 .reel-front { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line-2); transition: border-color .2s; }
 .reel[data-hover] .reel-front, .reel:focus-visible .reel-front { border-color: var(--accent); }
-/* Hovering one card: it comes forward (AuraView), everything else steps back into a blur */
+
 .reel-front { transition: border-color .2s; }
 .reel:focus-visible { outline: none; }
 .reel-back { transform: rotateY(180deg); display: grid; place-items: center; background: #E7E7EC; border: 1px solid #D4D4DB; color: #2B2B33; }
@@ -294,7 +284,7 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .reel-when.is-urgent, .reel-when.is-urgent b { color: var(--urgent); }
 
 .aura-loader { position: fixed; inset: 0; z-index: 80; pointer-events: none; color: #111114; }
-.phase-loading .aura-stage, .phase-reveal .aura-stage { z-index: 70; }  /* above the white backdrop */
+.phase-loading .aura-stage, .phase-reveal .aura-stage { z-index: 70; }
 .loader-brand {
     position: absolute; top: 28px; left: 32px; font: 700 64px/1 var(--head); letter-spacing: -.01em;
     transform-origin: 0 0; will-change: transform;
@@ -307,7 +297,7 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .roll { display: inline-flex; }
 .roll-col { display: inline-block; height: 1em; overflow: hidden; }
 .roll-col.is-lead { color: #C8C8CF; }
-.roll-strip { display: flex; flex-direction: column; will-change: transform; }  /* moved every frame by Odometer */
+.roll-strip { display: flex; flex-direction: column; will-change: transform; }
 .roll-strip span { height: 1em; }
 .skip {
     position: absolute; left: 32px; bottom: 28px; pointer-events: auto;
@@ -326,7 +316,7 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .aura-filters .filters { justify-content: flex-end; }
 .spin-toggle { display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0; }
 .aura-focus {
-    position: absolute; left: 0; right: 0; bottom: 28px; margin: 0 auto;  /* no transform: Motion animates it */
+    position: absolute; left: 0; right: 0; bottom: 28px; margin: 0 auto;
     display: flex; align-items: center; gap: 12px; width: min(680px, calc(100vw - 32px));
     padding: 12px 12px 12px 18px; border-radius: 14px; background: rgba(20, 20, 22, .92); border: 1px solid var(--line-2);
 }
@@ -336,12 +326,10 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .aura-focus .save { width: 150px; }
 .aura-focus .menu { bottom: calc(100% + 8px); }
 
-/* ---------- Map ---------- */
 .mapview { position: fixed; top: var(--topbar); left: var(--side); right: 0; bottom: 0; overflow: hidden; background: #050507; }
 
-/* Dot-matrix map: a tilted plane, dots drawn on canvas, beacons standing up off it */
 .dm-view { position: absolute; inset: 0; perspective: 1500px; perspective-origin: 50% 40%; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
-.mapview { user-select: none; -webkit-user-select: none; }  /* dragging the map must not select text */
+.mapview { user-select: none; -webkit-user-select: none; }
 .dm-view:active { cursor: grabbing; }
 .dm-plane { position: absolute; left: 50%; top: 50%; transform-style: preserve-3d; will-change: transform; }
 .dm-dots { position: absolute; inset: 0; display: block; }
@@ -356,16 +344,16 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .dm-base {
     position: absolute; left: calc(var(--s) / -2); top: calc(var(--s) / -2); width: var(--s); height: var(--s);
     border-radius: 3px; background: rgba(40, 130, 255, .9); border: 1px solid rgba(170, 210, 255, .9);
-    transform: scale(calc(1 / max(1, var(--z, 1))));  /* stays the same size when zooming in */
+    transform: scale(calc(1 / max(1, var(--z, 1))));
 }
-.dm-base::after {  /* the ripple on the ground */
+.dm-base::after {
     content: ""; position: absolute; inset: -2px; border-radius: 4px; border: 1px solid rgba(90, 160, 255, .8);
     animation: dm-ripple 2.6s ease-out infinite; animation-delay: var(--d);
 }
 .dm-pin.is-urgent .dm-base { background: rgba(224, 164, 105, .95); border-color: #F6D3AE; }
 .dm-pin.is-urgent .dm-base::after { border-color: rgba(224, 164, 105, .9); }
 @keyframes dm-ripple { from { transform: scale(1); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
-/* Everything in .dm-stand is turned back up to face the viewer, and kept the same size when zooming */
+
 .dm-stand {
     position: absolute; left: 0; top: 0; transform-origin: 0 0;
     transform: rotateX(calc(var(--tilt, 50deg) * -1)) scale(calc(1 / var(--z, 1)));
@@ -399,7 +387,6 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .map-cities b { font: 400 13px var(--mono); }
 .dot-urgent { display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-radius: 50%; background: var(--urgent); vertical-align: middle; }
 
-
 .map-panel {
     position: absolute; z-index: 600; top: 16px; right: 16px; bottom: 16px; width: min(400px, calc(100vw - 32px));
     display: flex; flex-direction: column; overflow: hidden;
@@ -410,7 +397,6 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
 .map-panel-head span { color: var(--text-3); font-size: 13px; flex: 1; }
 .map-panel-list { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 14px; display: grid; gap: 14px; align-content: start; }
 
-/* ---------- responsive ---------- */
 @media (max-width: 760px) {
     .simple { padding: 18px 14px 90px; }
     .simple-head { flex-direction: column; gap: 2px; }
@@ -443,12 +429,10 @@ kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid v
     .map-panel { top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-height: 70vh; border-radius: 16px 16px 0 0; }
 }
 
-/* Radar's own "Reduce motion" setting (Settings > This device) */
 html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
     animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important;
 }
 
-/* ---------- Home below the ring ---------- */
 .home-body { max-width: 1320px; margin: 0 auto; padding: 10px 28px 90px; }
 .home-greet { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 24px; align-items: end; padding: 28px 0 8px; }
 .home-date { font-size: 13px; color: var(--text-3); }
@@ -474,7 +458,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .coverage-line { margin-top: 40px; color: var(--text-3); font-size: 13px; }
 .coverage-line b { font: 400 13px var(--mono); color: var(--text-2); }
 
-/* ---------- Calendar ---------- */
 .cal-page { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
 .cal { padding: 18px; overflow: hidden; }
 .cal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
@@ -507,7 +490,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .cal-kind { font-size: 11.5px; color: var(--text-3); }
 .cal-kind.tracked { color: var(--accent-2); }
 
-/* ---------- Board ---------- */
 .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .board-tabs { display: none; margin-bottom: 16px; }
 .column { padding: 14px; min-height: 320px; transition: border-color .2s, background .2s; }
@@ -533,7 +515,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .tag { padding: 3px 10px; border-radius: 999px; font-size: 12px; background: var(--surface-3); color: var(--text-2); }
 .tag.is-urgent { color: var(--urgent); }
 
-/* ---------- Settings ---------- */
 .settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
 .settings-card { padding: 22px; display: grid; gap: 10px; justify-items: start; }
 .settings-card > * { max-width: 100%; }
@@ -552,7 +533,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .kw button:hover { background: rgba(26, 140, 255, .2); color: var(--text); }
 .code-box { display: block; width: 100%; padding: 11px 13px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-size: 13px; overflow-wrap: anywhere; }
 
-/* ---------- Palette and login ---------- */
 .palette-wrap { position: fixed; inset: 0; z-index: 150; display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; background: rgba(5, 5, 7, .6); }
 .palette { width: min(640px, 100%); border-radius: 16px; overflow: hidden; background: var(--surface); border: 1px solid var(--line-2); }
 .palette-input { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); color: var(--accent-2); }
@@ -588,7 +568,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 @media (max-width: 760px) {
     :root { --side: 0px; --topbar: 58px; }
-    .shell, .shell.is-folded { --side: 0px; }  /* no sidebar on phones, folded or not */
+    .shell, .shell.is-folded { --side: 0px; }
     .side { display: none; }
     .top { padding: 0 12px; }
     .top-brand { display: flex; flex: 1; }
@@ -624,7 +604,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .aura { height: calc(100vh - 62px); height: calc(100svh - 62px - env(safe-area-inset-bottom)); }
     .aura-focus { bottom: 12px; }
     .aura-filters { bottom: 84px; }
-    /* Map on a phone: India fills the width, cities become a swipeable strip, labels stay small */
+
     .map-cities { top: auto; bottom: 10px; left: 0; right: 0; width: auto; max-height: none; padding: 0 12px; background: none; border: 0; }
     .map-cities h1 { display: none; }
     .map-cities ul { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
@@ -640,7 +620,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
 
-/* ---------- Notifications bell ---------- */
 .bell { position: relative; }
 .bell > .icon-btn { position: relative; }
 .bell-badge {

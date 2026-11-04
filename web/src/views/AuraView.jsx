@@ -8,27 +8,23 @@ import { IconPause, IconPlay, RadarMark } from '../components/Icons.jsx';
 import SaveButton from '../components/SaveButton.jsx';
 import { useDetail, useLive, useRadar } from '../store.jsx';
 
-// ?motion in the URL plays the full entrance even when the system asks for reduced motion (demos)
-// The intro plays on every load (phone and PC). Only Radar's own "Reduce motion" setting turns it off.
-// (read at render time: this module loads before main.jsx applies the setting)
 const reduced = () => document.documentElement.classList.contains('reduce-motion');
 const FORMATION_S = 2.6;
 const EXPANSION_S = 1.9;
 const EXPANSION_EASE = [0.5, 0, 0.15, 1];
-const ASSET_TIMEOUT_MS = 4000;   // never wait on a slow image host forever
-const AUTO_SPIN = 4;             // degrees per second: a slow, steady drift through the feed
-const HOVER_PULL = 0.45;         // share of the way a hovered card flies toward the viewer
+const ASSET_TIMEOUT_MS = 4000;
+const AUTO_SPIN = 4;
+const HOVER_PULL = 0.45;
 const DRAG_DEG_PER_PX = 0.075;
 const STEP = 360 / SLOTS;
 
-let entrancePlayed = false;  // the loader plays once per visit, not on every view switch
+let entrancePlayed = false;
 
-// The home hero: the ring sits at the top of Home, the dashboard continues below it.
 export default function AuraView({ wordmarkRef, onHandoff, go }) {
     const { home, openDetail, version } = useRadar();
     const detail = useDetail();
     const { stats } = useLive();
-    // Everything open right now (jobs + events), not just what the ring has loaded
+
     const openCount = stats ? (stats.pillars?.jobs || 0) + (stats.pillars?.events || 0) : 0;
     const detailOpen = useRef(false);
     detailOpen.current = !!detail;
@@ -36,15 +32,13 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
     const [skipEntrance] = useState(() => reduced() || entrancePlayed);
     const still = useRef(reduced());
 
-    // ---- the two values that drive everything ----
     const formation = useMotionValue(skipEntrance ? 1 : 0);
     const expansion = useMotionValue(skipEntrance ? 1 : 0);
-    const [phase, setPhase] = useState(skipEntrance ? 'done' : 'loading');  // loading -> reveal -> done
+    const [phase, setPhase] = useState(skipEntrance ? 'done' : 'loading');
     const phaseRef = useRef(phase);
     phaseRef.current = phase;
     const anims = useRef([]);
 
-    // A small first batch starts the deal at once; the rest of the feed follows behind it
     useEffect(() => {
         let alive = true;
         const q = limit => listItems({ pillar: 'opps', sort: 'latest', limit }, home);
@@ -55,14 +49,11 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
         return () => { alive = false; };
     }, [home, version]);
 
-    // The page can't scroll away while the entrance plays
     useEffect(() => {
         document.documentElement.style.overflow = phase === 'done' ? '' : 'hidden';
         return () => { document.documentElement.style.overflow = ''; };
     }, [phase]);
 
-    // ---- real progress: covers of the reels the ring opens with ----
-    // Counted in a ref and read by the frame loop, so an image arriving never re-renders the ring
     const loadedRef = useRef(new Set());
     const [coversReady, setCoversReady] = useState(false);
     const [timedOut, setTimedOut] = useState(false);
@@ -70,17 +61,16 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
     const neededRef = useRef(neededIds);
     neededRef.current = neededIds;
     const assetsReady = items !== null && (coversReady || timedOut || neededIds.length === 0);
-    const readyRef = useRef(false);  // covers loaded, or we stopped waiting for them
+    const readyRef = useRef(false);
     readyRef.current = assetsReady;
     const onCoverDone = useCallback(id => { loadedRef.current.add(id); }, []);
-    const progressRef = useRef(0);   // 0..1 share of the opening covers that have loaded
+    const progressRef = useRef(0);
     const progress = progressRef.current * 100;
     const coversDone = useRef(false);
     const detailTextRef = useRef(null);
-    const shown = useRef(skipEntrance ? 100 : 0);   // what the counter displays, eased every frame
+    const shown = useRef(skipEntrance ? 100 : 0);
     const odometerRef = useRef(null);
 
-    // Only spend frames on the ring while the hero is on screen
     const sectionRef = useRef(null);
     const onScreen = useRef(true);
     useEffect(() => {
@@ -89,7 +79,6 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
         return () => io.disconnect();
     }, []);
 
-    // ---- formation: starts as soon as there is something to deal ----
     const [formed, setFormed] = useState(skipEntrance);
     useEffect(() => {
         if (skipEntrance || items === null) return;
@@ -97,9 +86,8 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
         const t = setTimeout(() => setTimedOut(true), ASSET_TIMEOUT_MS);
         anims.current.push(a);
         return () => { a.stop(); clearTimeout(t); };
-    }, [items === null]);  // eslint-disable-line react-hooks/exhaustive-deps
+    }, [items === null]);
 
-    // ---- expansion: after formation AND the assets, whichever is later ----
     const brandRef = useRef(null);
     useEffect(() => {
         if (phase !== 'loading' || !formed || !assetsReady) return;
@@ -107,11 +95,10 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
         entrancePlayed = true;
         const a = animate(expansion, 1, { duration: EXPANSION_S, ease: EXPANSION_EASE, onComplete: () => setPhase('done') });
         anims.current.push(a);
-        // Overlap, don't queue: the header starts while the cards are still settling.
-        // (A ref, not effect cleanup: setPhase above re-runs this effect straight away.)
+
         handoffTimer.current = setTimeout(onHandoff, EXPANSION_S * 1000 * 0.35);
         flyBrand(brandRef.current, wordmarkRef.current);
-    }, [phase, formed, assetsReady]);  // eslint-disable-line react-hooks/exhaustive-deps
+    }, [phase, formed, assetsReady]);
     const handoffTimer = useRef(0);
     useEffect(() => () => clearTimeout(handoffTimer.current), []);
 
@@ -134,9 +121,8 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
         };
         addEventListener('keydown', onKey);
         return () => removeEventListener('keydown', onKey);
-    }, [skip]);  // eslint-disable-line react-hooks/exhaustive-deps
+    }, [skip]);
 
-    // ---- the ring ----
     const stageRef = useRef(null);
     const ringRef = useRef(null);
     const slotEls = useRef([]);
@@ -147,8 +133,8 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
     const pointer = useRef(null);
     const hovered = useRef(null);
     const hoveredSlot = useRef(-1);
-    const lift = useRef(new Array(SLOTS).fill(0));  // 0..1 per slot, eased toward the hovered card
-    const spinGain = useRef(skipEntrance ? 1 : 0);  // eases the drift in and out instead of stopping dead
+    const lift = useRef(new Array(SLOTS).fill(0));
+    const spinGain = useRef(skipEntrance ? 1 : 0);
     const [paused, setPaused] = useState(false);
     const pausedRef = useRef(false);
     pausedRef.current = paused;
@@ -166,20 +152,17 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
         const e = expansion.get();
         const scene = sceneAt(e);
 
-        // Target angle: a slow auto-spin forward through the feed. It eases to a stop while the
-        // visitor holds the ring, hovers a card, opens one or presses pause, and eases back after.
         const spinning = !still.current && phaseRef.current !== 'loading' && !dragState.current && hoveredSlot.current < 0
             && !pausedRef.current && !detailOpen.current;
         spinGain.current += ((spinning ? 1 : 0) - spinGain.current) * Math.min(1, dt * 2.5);
         target.current -= AUTO_SPIN * spinGain.current * dt;
-        // Visible angle follows the target through a spring, so it never snaps
+
         const acc = 60 * (target.current - angle.current) - 14 * velocity.current;
         velocity.current += acc * dt;
         angle.current += velocity.current * dt;
         const rot = angle.current;
 
-        // Shared ring values go on the ring as CSS variables, only when they change
-        const fit = 1 + (Math.min(1, innerWidth / 1100) - 1) * (1 - e);  // keep the small ring on narrow screens
+        const fit = 1 + (Math.min(1, innerWidth / 1100) - 1) * (1 - e);
         const ringKey = `${scene.perspective.toFixed(1)}|${scene.tilt.toFixed(2)}|${scene.roll.toFixed(2)}|${fit.toFixed(3)}`;
         if (ringKey !== lastRing.current && stageRef.current && ringRef.current) {
             lastRing.current = ringKey;
@@ -198,8 +181,7 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
             const a = s * STEP + rot;
             const p = reelPose(a, f, scene);
             const visible = total > 0 && !p.behindCamera && p.appear > 0.001;
-            // The hovered card turns to face the viewer and flies part of the way toward them.
-            // It moves along the line to the eye, so it stays under the pointer while it grows.
+
             const l = lift.current;
             l[s] += ((s === hoveredSlot.current ? 1 : 0) - l[s]) * Math.min(1, dt * 7);
             if (l[s] < 0.001) l[s] = 0;
@@ -221,7 +203,6 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
             if (last.o !== opacity) { el.style.opacity = opacity; last.o = opacity; }
             if (last.v !== visible) { el.style.visibility = visible ? 'visible' : 'hidden'; last.v = visible; }
 
-            // Recycle: a slot that passed the back of the cylinder shows the next reel
             const reel = reelForSlot(s, rot, total);
             if (reel !== nextReels[s]) { nextReels[s] = reel; reelsChanged = true; }
 
@@ -231,7 +212,6 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
         if (reelsChanged) { slotReelRef.current = nextReels; setSlotReel(nextReels); }
         if (best !== null && best !== frontRef.current) { frontRef.current = best; setFrontSlot(best); }
 
-        // Loader counter: runs with the deal up to 70; the last 30 wait for the real covers
         if (phaseRef.current !== 'done') {
             const ids = neededRef.current;
             const got = ids.reduce((n, id) => n + (loadedRef.current.has(id) ? 1 : 0), 0);
@@ -247,7 +227,6 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
             odometerRef.current.set(shown.current);
         }
 
-        // Hover hit-testing every third frame
         frame.current = (frame.current + 1) % 3;
         if (frame.current === 0 && phaseRef.current === 'done') {
             const hit = pointer.current && !dragState.current
@@ -262,14 +241,11 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
         }
     });
 
-    // ---- input: drag, swipe, wheel, keys ----
     const ready = phase === 'done';
     useEffect(() => {
         const stage = stageRef.current;
         if (!stage) return;
         const onWheel = e => {
-            // During the entrance the wheel does nothing. After it, vertical scrolling moves the
-            // page (this is the top of Home) and sideways scrolling turns the ring.
             if (phaseRef.current !== 'done') { e.preventDefault(); return; }
             if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
                 e.preventDefault();
@@ -299,9 +275,9 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
     const endDrag = () => {
         const d = dragState.current;
         if (!d) return;
-        target.current -= d.v * 260 * DRAG_DEG_PER_PX;  // a swipe keeps going a little
+        target.current -= d.v * 260 * DRAG_DEG_PER_PX;
         dragState.current = null;
-        if (d.moved > 6) suppressClickUntil.current = performance.now() + 300;  // the click that ends a drag
+        if (d.moved > 6) suppressClickUntil.current = performance.now() + 300;
     };
     const suppressClickUntil = useRef(0);
 
@@ -319,7 +295,7 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
 
     return (
         <section className={`aura phase-${phase}`} aria-label="Opportunity ring" ref={sectionRef}>
-            {/* White loader page under the cards; fades while the cards keep moving */}
+
             {!skipEntrance && (
                 <motion.div className="aura-backdrop" aria-hidden="true"
                             initial={{ opacity: 1 }}
@@ -343,7 +319,7 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
                                style={{ opacity: 0, visibility: 'hidden' }}
                                onFocus={() => ready && bringToFront(s)}
                                onClick={e => {
-                                   if (e.metaKey || e.ctrlKey || e.button === 1) return;  // new tab works as a normal link
+                                   if (e.metaKey || e.ctrlKey || e.button === 1) return;
                                    e.preventDefault();
                                    if (performance.now() < suppressClickUntil.current) return;
                                    if (it && ready) openDetail(it);
@@ -356,7 +332,6 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
                 </div>
             </div>
 
-            {/* Loader chrome */}
             <AnimatePresence>
                 {showLoader && !skipEntrance && (
                     <motion.div className="aura-loader" key="loader" exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
@@ -377,7 +352,6 @@ export default function AuraView({ wordmarkRef, onHandoff, go }) {
                 )}
             </AnimatePresence>
 
-            {/* Frame and headline arrive while the ring settles */}
             <motion.div className="aura-frame"
                         initial={false}
                         animate={phase === 'loading' ? { opacity: 0, y: 24 } : { opacity: 1, y: 0 }}
@@ -434,9 +408,7 @@ const ReelFace = memo(function ReelFace({ item, onCoverDone }) {
     );
 });
 
-/** The loader's brand word flies into the header wordmark's exact place and size. */
 function flyBrand(from, wordmark) {
-    // The sidebar's wordmark on desktop, the top bar's on phones: whichever is on screen
     const to = [wordmark?.querySelector('span'), ...document.querySelectorAll('.wordmark span')]
         .find(el => el && el.getBoundingClientRect().height > 0);
     if (!from || !to) return;

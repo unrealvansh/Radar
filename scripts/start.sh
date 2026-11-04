@@ -1,36 +1,18 @@
 #!/bin/bash
-# ============================================================
-# Radar — Start Server
-# Usage: bash scripts/start.sh
-# ============================================================
-
-cd ~/pocketbrain
+cd "$(dirname "$0")/.." || exit 1
 source venv/bin/activate
-
-# Acquire wake lock so the phone doesn't sleep
 termux-wake-lock 2>/dev/null
 
-echo "📡 Starting Radar..."
-
-# Kill any existing instance
 pkill -f "python server/app.py" 2>/dev/null
 sleep 1
-
-# Start in background
+mkdir -p logs data
 nohup python server/app.py >> logs/app.log 2>&1 &
-SERVER_PID=$!
 
-echo "✅ Server started! (PID: $SERVER_PID)"
-echo "📱 Dashboard: http://localhost:5000"
-echo "📋 Logs: tail -f logs/app.log"
+echo "Radar is running at http://localhost:5000"
+IP=$(ifconfig wlan0 2>/dev/null | awk '/inet /{print $2}')
+[ -n "$IP" ] && echo "On your network:  http://$IP:5000"
+echo "Logs:             tail -f logs/app.log"
 
-# Show IP for other devices
-IP=$(ifconfig wlan0 2>/dev/null | grep 'inet ' | awk '{print $2}')
-if [ -n "$IP" ]; then
-    echo "🌐 Other devices: http://$IP:5000"
-fi
-
-# Access token + private ntfy topic (created on first start)
 sleep 3
-echo "🔑 Access token: $(cat data/access_token.txt 2>/dev/null)"
-echo "🔔 ntfy topic:   $(cat data/ntfy_topic.txt 2>/dev/null)"
+echo "Access token:     $(cat data/access_token.txt 2>/dev/null)"
+echo "ntfy topic:       $(cat data/ntfy_topic.txt 2>/dev/null)"

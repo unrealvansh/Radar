@@ -6,15 +6,12 @@ import OppCard from '../components/OppCard.jsx';
 import { useRadar } from '../store.jsx';
 import { BOUNDS, inIndia, planeSize, project, statePaths } from './india.js';
 
-// A dark dot-matrix India on a tilted plane: one dot per ~0.3 degrees, land dots brighter,
-// dots near places with opportunities lit blue. City beacons stand up off the plane.
 const PLANE = planeSize(1000);
-const STEP = 0.3;                // degrees between dots
+const STEP = 0.3;
 const TILT_OVERVIEW = 50;
 const TILT_FOCUS = 34;
 const SPRING = { stiffness: 70, damping: 20, mass: 1 };
 
-// The grid and the state outlines never change: work them out once per visit
 let GRID = null;
 function grid() {
     if (GRID) return GRID;
@@ -32,16 +29,15 @@ function grid() {
 export default function MapView({ filters, setFilters }) {
     const { home } = useRadar();
     const [items, setItems] = useState(null);
-    const [selected, setSelected] = useState(null);   // city name, or 'online'
+    const [selected, setSelected] = useState(null);
     const [hoverCity, setHoverCity] = useState(null);
     const viewRef = useRef(null);
     const planeRef = useRef(null);
     const canvasRef = useRef(null);
 
     useEffect(() => {
-        // News has no place, so the map shows all opportunities instead
         const pillar = filters.pillar === 'news' ? 'opps' : filters.pillar;
-        // "Online only" would leave the map empty, so the map always shows places
+
         const loc = filters.loc === 'online' ? '' : filters.loc;
         listItems({ ...filters, pillar, loc, limit: 600 }, home).then(setItems).catch(() => setItems([]));
     }, [filters, home]);
@@ -65,17 +61,16 @@ export default function MapView({ filters, setFilters }) {
         list.forEach(c => {
             Object.assign(c, project(c.lon, c.lat, PLANE));
             c.items.sort((a, b) => soonest(a).localeCompare(soonest(b)));
-            c.lead = c.items[0];  // the beacon is labelled with this one
+            c.lead = c.items[0];
         });
         return { cities: list, online };
     }, [items]);
 
-    // ---- camera: four springs ----
     const fitScale = () => {
         const el = viewRef.current;
         if (!el || !el.clientWidth || !el.clientHeight) return 0.6;
-        // the tilted plane's near edge is enlarged by perspective, so leave room
-        if (el.clientWidth < 700) return el.clientWidth / (PLANE.w * 0.8);  // phones: India fills the width (the plane's sea margins may crop)
+
+        if (el.clientWidth < 700) return el.clientWidth / (PLANE.w * 0.8);
         return Math.min(el.clientWidth / (PLANE.w * 1.15), el.clientHeight / (PLANE.h * 1.0));
     };
     const tiltT = useMotionValue(78), zoomT = useMotionValue(0.4), xT = useMotionValue(0), yT = useMotionValue(0);
@@ -97,16 +92,15 @@ export default function MapView({ filters, setFilters }) {
         yT.set(-(c.y - PLANE.h / 2) * s * Math.cos((t * Math.PI) / 180));
     };
 
-    // Entrance: the plane swings down from steep to the overview while the dots are drawn
     const selectedRef = useRef(null);
     selectedRef.current = selected;
     useEffect(() => {
         overview();
-        // Re-fit whenever the map's box changes size (first layout, window resize, rotation)
+
         const ro = new ResizeObserver(() => { if (!selectedRef.current) overview(); });
         ro.observe(viewRef.current);
         return () => ro.disconnect();
-    }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);
 
     const pick = name => {
         setSelected(name);
@@ -115,7 +109,6 @@ export default function MapView({ filters, setFilters }) {
     };
     const reset = () => { setSelected(null); overview(); };
 
-    // ---- dots, redrawn when the cities change; revealed outward from the centre ----
     useEffect(() => {
         const canvas = canvasRef.current;
         const dpr = Math.min(2, devicePixelRatio || 1);
@@ -125,7 +118,7 @@ export default function MapView({ filters, setFilters }) {
         ctx.scale(dpr, dpr);
 
         const { borders } = grid();
-        // Dots near places with opportunities glow blue
+
         const dots = grid().dots.map(d => {
             let heat = 0;
             if (d.land) {
@@ -173,7 +166,7 @@ export default function MapView({ filters, setFilters }) {
                     ctx.fillRect(d.x - 1, d.y - 1, 2, 2);
                 }
             }
-            // State borders fade in with the dots; the glow (costly) is drawn once, on the last frame
+
             strokeBorders(reveal, reveal >= 1);
             if (reveal < 1) raf = requestAnimationFrame(draw);
         };
@@ -181,7 +174,6 @@ export default function MapView({ filters, setFilters }) {
         return () => cancelAnimationFrame(raf);
     }, [cities]);
 
-    // ---- drag to pan, wheel or pinch-free zoom ----
     const drag = useRef(null);
     const onPointerDown = e => {
         if (e.target.closest('.dm-pin')) return;
@@ -196,7 +188,7 @@ export default function MapView({ filters, setFilters }) {
         }
         xT.set(d.sx + (e.clientX - d.x));
         yT.set(d.sy + (e.clientY - d.y));
-        x.jump(xT.get()); y.jump(yT.get());  // follow the finger exactly, springs only for flights
+        x.jump(xT.get()); y.jump(yT.get());
     };
     const onPointerUp = () => { drag.current = null; };
     useEffect(() => {
@@ -209,7 +201,7 @@ export default function MapView({ filters, setFilters }) {
         };
         el.addEventListener('wheel', onWheel, { passive: false });
         return () => el.removeEventListener('wheel', onWheel);
-    }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         const onKey = e => { if (e.key === 'Escape' && selected) reset(); };
@@ -217,7 +209,7 @@ export default function MapView({ filters, setFilters }) {
         return () => removeEventListener('keydown', onKey);
     });
 
-    const narrow = typeof innerWidth === 'number' && innerWidth < 760;  // fewer labels on phones
+    const narrow = typeof innerWidth === 'number' && innerWidth < 760;
     const homePt = home ? project(home.lon, home.lat, PLANE) : null;
     const homeR = home ? (home.radius / 111 / (36.2 - 6.5)) * PLANE.h : 0;
     const max = Math.max(1, ...cities.map(c => c.items.length));

@@ -4,7 +4,6 @@ import { TYPE_LABEL, listItems, lock, whenText } from '../api.js';
 import { useRadar } from '../store.jsx';
 import { IconSearch } from './Icons.jsx';
 
-// Ctrl K / "/": search every opportunity, or jump anywhere.
 export default function Palette({ open, onClose, go }) {
     const { openDetail, scan, home } = useRadar();
     const [q, setQ] = useState('');

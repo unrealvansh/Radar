@@ -11,7 +11,6 @@ import { useLive, useRadar } from './store.jsx';
 import HomeView from './views/HomeView.jsx';
 import SimpleView from './views/SimpleView.jsx';
 
-// Only downloaded when opened
 const MapView = lazy(() => import('./views/MapView.jsx'));
 const CalendarView = lazy(() => import('./views/CalendarView.jsx'));
 const BoardView = lazy(() => import('./views/BoardView.jsx'));
@@ -36,14 +35,12 @@ export default function App() {
     const { stats } = useLive();
     const [route, setRoute] = useState(routeFromHash);
     const [filters, setFilters] = useState({ pillar: 'opps', sort: 'latest', q: '', loc: '' });
-    // The home entrance hides the app chrome until the ring hands over
+
     const [chromeIn, setChromeIn] = useState(route !== 'home');
     const [paletteOpen, setPaletteOpen] = useState(false);
 
-    // Sidebar like Gmail: the menu button pins it open or folds it to icons; while folded,
-    // hovering widens it over the page (the page itself doesn't move).
     const [pinned, setPinned] = useState(() => { try { return localStorage.getItem('radar_side') !== 'folded'; } catch { return true; } });
-    const [roomy, setRoomy] = useState(() => innerWidth > 1020);  // narrower screens always fold
+    const [roomy, setRoomy] = useState(() => innerWidth > 1020);
     const [peek, setPeek] = useState(false);
     const peekTimer = useRef(0);
     useEffect(() => {
@@ -53,7 +50,7 @@ export default function App() {
     }, []);
     const folded = !pinned || !roomy;
     const togglePin = () => {
-        if (!roomy) { setPeek(p => !p); return; }  // narrow screens: open it over the page
+        if (!roomy) { setPeek(p => !p); return; }
         const next = !pinned;
         setPinned(next);
         setPeek(false);
@@ -157,7 +154,7 @@ export default function App() {
 
             <main id="main" className={`main main-${route}`}>
                 <AnimatePresence mode="wait">
-                    {/* Fade only: a transform here would break position: fixed inside (map, loader) */}
+
                     <motion.div key={route} className="route"
                                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                 transition={{ duration: 0.25 }}>

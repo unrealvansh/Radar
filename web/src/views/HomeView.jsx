@@ -5,7 +5,6 @@ import OppCard from '../components/OppCard.jsx';
 import { useLive, useRadar } from '../store.jsx';
 import AuraView from './AuraView.jsx';
 
-// Home: the ring is the hero; the dashboard continues as you scroll.
 export default function HomeView({ go, wordmarkRef, onHandoff }) {
     const { home, settings, version } = useRadar();
     const { stats } = useLive();

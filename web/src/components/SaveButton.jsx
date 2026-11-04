@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useRadar } from '../store.jsx';
 import { IconCheck, IconChevron, IconPlus } from './Icons.jsx';
 
-/** Track: reminders before the deadline. Uses the known deadline, or asks for one in the detail sheet. */
 export function TrackButton({ item }) {
     const { saved, track, openDetail } = useRadar();
     const row = saved.get(item.id);
@@ -13,7 +12,7 @@ export function TrackButton({ item }) {
                        aria-pressed={tracked}
                        onClick={e => {
                            e.stopPropagation();
-                           if (tracked || !item.deadline) openDetail(item);  // change or pick the date there
+                           if (tracked || !item.deadline) openDetail(item);
                            else track(item, item.deadline);
                        }}>
             {tracked ? 'Tracked' : 'Track'}
@@ -21,7 +20,6 @@ export function TrackButton({ item }) {
     );
 }
 
-// "+ Save" until saved, then an outlined "Saved" menu: track, applied, remove.
 export default function SaveButton({ item }) {
     const { saved, save, setStatus, remove, openDetail } = useRadar();
     const row = saved.get(item.id);

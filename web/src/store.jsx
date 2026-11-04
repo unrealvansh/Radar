@@ -1,10 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api, getSaved, getSettings, hasToken, loadHome, removeSaved, saveItem, updateSaved, write } from './api.js';
 
-// Shared state for the whole app: saved items, settings, home city, stats and scans,
-// the open detail, toasts and the lock.
-// Split in three so the many cards don't re-render on every poll or toast:
-// Radar = saved items, settings and actions; Live = stats, notifications, toasts; Detail = the open item.
 const Radar = createContext(null);
 const Live = createContext(null);
 const Detail = createContext(null);
@@ -14,13 +10,13 @@ export const useDetail = () => useContext(Detail);
 
 export function RadarProvider({ children }) {
     const [locked, setLocked] = useState(!hasToken());
-    const [saved, setSaved] = useState(new Map());   // item id -> saved row
-    const [settings, setSettings] = useState(null);  // { keywords: [], display_name, ntfy_topic }
+    const [saved, setSaved] = useState(new Map());
+    const [settings, setSettings] = useState(null);
     const [home, setHomeState] = useState(loadHome);
     const [stats, setStats] = useState(null);
-    const [detail, setDetail] = useState(null);       // the item shown in the detail sheet
+    const [detail, setDetail] = useState(null);
     const [toasts, setToasts] = useState([]);
-    const [version, setVersion] = useState(0);        // bumps after a scan so views refetch
+    const [version, setVersion] = useState(0);
     const [notes, setNotes] = useState({ unread: 0, items: [] });
     const pollRef = useRef(0);
     const statsRef = useRef(null);
@@ -61,16 +57,16 @@ export function RadarProvider({ children }) {
             unread: ids ? Math.max(0, n.unread - n.items.filter(x => ids.includes(x.id) && !x.read).length) : 0,
             items: n.items.map(x => (!ids || ids.includes(x.id) ? { ...x, read: true } : x)),
         }));
-        try { await api('/api/notifications/read', { method: 'POST', body: JSON.stringify(ids ? { ids } : {}) }); } catch { /* retried on next poll */ }
+        try { await api('/api/notifications/read', { method: 'POST', body: JSON.stringify(ids ? { ids } : {}) }); } catch {  }
     }, []);
 
     const loadSettings = useCallback(async () => {
         const s = await getSettings();
-        // keywords are stored as one comma-separated string
+
         setSettings({ ...s, keywords: String(s.keywords || '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean) });
         if (s.home) setHome(s.home);
         return s;
-    }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         if (locked) return;
@@ -80,7 +76,7 @@ export function RadarProvider({ children }) {
         loadNotes().catch(() => {});
         const t = setInterval(() => loadNotes().catch(() => {}), 60000);
         return () => clearInterval(t);
-    }, [locked]);  // eslint-disable-line react-hooks/exhaustive-deps
+    }, [locked]);
 
     function setHome(h) {
         setHomeState(h);
@@ -104,7 +100,7 @@ export function RadarProvider({ children }) {
         pollRef.current = setInterval(async () => {
             try {
                 const s = await loadStats();
-                loadNotes().catch(() => {});  // new finds appear in the bell while the scan runs
+                loadNotes().catch(() => {});
                 if (!s.scanning) {
                     clearInterval(pollRef.current);
                     setVersion(v => v + 1);
@@ -122,7 +118,7 @@ export function RadarProvider({ children }) {
             toast('Scanning 70+ sources. This takes 1 to 3 minutes.');
             pollScan();
         } catch (e) { if (e.message !== 'unauthorized') toast('Could not start a scan.'); }
-    }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);
 
     const run = useCallback(async (work, message) => {
         try {

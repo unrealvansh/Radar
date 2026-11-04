@@ -11,7 +11,6 @@ function ago(ts) {
     return `${Math.round(mins / 1440)} d ago`;
 }
 
-// Everything the scans found and every deadline reminder. Tap one to open it.
 export default function Bell() {
     const { markRead, openDetail, loadNotes } = useRadar();
     const { notes, stats } = useLive();

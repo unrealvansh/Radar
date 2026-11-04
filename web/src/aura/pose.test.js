@@ -44,8 +44,8 @@ describe('eases', () => {
     it('expansion ease is the .5,0,.15,1 curve', () => {
         expect(expansionEase(0)).toBe(0);
         expect(expansionEase(1)).toBe(1);
-        expect(expansionEase(0.2)).toBeLessThan(0.2);  // slow start
-        expect(expansionEase(0.8)).toBeGreaterThan(0.9);  // strong landing
+        expect(expansionEase(0.2)).toBeLessThan(0.2);
+        expect(expansionEase(0.8)).toBeGreaterThan(0.9);
     });
 });
 
@@ -124,7 +124,6 @@ describe('reelForSlot', () => {
         for (let s = 0; s < SLOTS; s++) expect(reelForSlot(s, 0, 100)).toBe(s);
     });
     it('moves a slot on by 16 reels each time it passes the back', () => {
-        // slot 4 rests at 90; turning +90 brings it to 180, a little more wraps it past the back
         expect(reelForSlot(4, 89, 100)).toBe(4);
         expect(reelForSlot(4, 91, 100)).toBe((4 - 16 + 100) % 100);
     });

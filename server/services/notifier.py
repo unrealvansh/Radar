@@ -7,12 +7,6 @@ TOPIC_FILE = os.path.join(BASE_DIR, 'data', 'ntfy_topic.txt')
 
 
 def get_topic():
-    """Private ntfy topic.
-
-    ntfy.sh topics are public: anyone who knows the name can read them.
-    So the topic is a long random string, generated once and stored in
-    data/ntfy_topic.txt (git-ignored). NTFY_TOPIC env var overrides it.
-    """
     env_topic = os.environ.get('NTFY_TOPIC')
     if env_topic:
         return env_topic
@@ -29,14 +23,6 @@ def get_topic():
 
 
 def send_push(title: str, message: str, priority: str = "default", tags: list = None, click_url: str = None):
-    """
-    Send push notification to phone via ntfy.
-
-    Priority levels:
-      - 'min' / 'low'
-      - 'default'
-      - 'high' / 'urgent' (rings loud, vibrates)
-    """
     headers = {
         "Title": title.encode('utf-8'),
         "Priority": str(priority),
@@ -61,7 +47,6 @@ def send_push(title: str, message: str, priority: str = "default", tags: list = 
         return False
 
 
-# The radar calls notify(); keep it as an alias of send_push.
 notify = send_push
 
 

@@ -7,12 +7,11 @@ import { useRadar } from '../store.jsx';
 
 const COLUMNS = [['saved', 'Saved'], ['applied', 'Applied'], ['done', 'Done']];
 
-// Saved -> Applied -> Done. Drag between columns on desktop, arrows everywhere.
 export default function BoardView() {
     const { saved, setStatus, openDetail } = useRadar();
     const [tab, setTab] = useState('saved');
     const [over, setOver] = useState(null);
-    // Saved rows carry their own id; the detail sheet and actions want the item's
+
     const rows = [...saved.values()].map(r => ({ ...r, savedId: r.id, id: r.item_id, deadline: r.deadline || r.item_deadline }));
 
     const drop = (e, status) => {

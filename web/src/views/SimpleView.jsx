@@ -31,7 +31,7 @@ export default function SimpleView({ filters, setFilters }) {
         }
     }, [filters, home, items]);
 
-    useEffect(() => { setItems(null); setDone(false); loadMore(true); }, [filters]);  // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { setItems(null); setDone(false); loadMore(true); }, [filters]);
 
     useEffect(() => {
         if (!sentinel.current || done) return;

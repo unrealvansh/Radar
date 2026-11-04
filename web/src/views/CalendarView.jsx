@@ -6,7 +6,6 @@ import { useRadar } from '../store.jsx';
 
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-// Month view of your tracked deadlines and upcoming events.
 export default function CalendarView() {
     const { openDetail, saved } = useRadar();
     const today = iso(new Date());
@@ -28,7 +27,7 @@ export default function CalendarView() {
     }, [entries]);
 
     const move = n => { setDir(n); setMonth(m => new Date(m.getFullYear(), m.getMonth() + n, 1)); };
-    const offset = (month.getDay() + 6) % 7;  // weeks start on Monday
+    const offset = (month.getDay() + 6) % 7;
     const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
     const cells = [...Array(offset).fill(null), ...Array.from({ length: days }, (_, i) => new Date(month.getFullYear(), month.getMonth(), i + 1))];
     const list = byDay[selected] || [];

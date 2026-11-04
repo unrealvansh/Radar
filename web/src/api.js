@@ -1,5 +1,3 @@
-// Same origin as the Radar app: reuse its login token and endpoints.
-
 function read(key) {
     try { return localStorage.getItem(key); } catch { return null; }
 }
@@ -8,7 +6,7 @@ export function write(key, value) {
     try {
         if (value === null) localStorage.removeItem(key);
         else localStorage.setItem(key, value);
-    } catch { /* storage blocked: the setting just won't persist */ }
+    } catch {  }
 }
 
 export function hasToken() {
@@ -20,13 +18,12 @@ export async function api(path, options = {}) {
     if (options.body) headers['Content-Type'] = 'application/json';
     const res = await fetch(path, { ...options, headers });
     if (res.status === 401) {
-        dispatchEvent(new Event('radar:locked'));  // the app shows its login screen
+        dispatchEvent(new Event('radar:locked'));
         throw new Error('unauthorized');
     }
     return res.json();
 }
 
-/** Try a token; keep it if the server accepts it. */
 export async function unlock(token) {
     const res = await fetch('/api/auth/check', { headers: { 'X-Access-Token': token } });
     if (!res.ok) return false;
@@ -39,7 +36,6 @@ export function lock() {
     dispatchEvent(new Event('radar:locked'));
 }
 
-/** The user's saved city ({ city, lat, lon, radius }) or null. */
 export function loadHome() {
     try { return JSON.parse(read('radar_home') || 'null'); } catch { return null; }
 }
@@ -63,8 +59,6 @@ export const updateSaved = (savedId, changes) =>
     api(`/api/saved/${savedId}`, { method: 'PUT', body: JSON.stringify(changes) });
 export const removeSaved = savedId => api(`/api/saved/${savedId}`, { method: 'DELETE' });
 
-// ---------- small display helpers shared by every view ----------
-
 export function daysUntil(iso) {
     if (!iso) return null;
     const today = new Date();
@@ -77,7 +71,6 @@ export function fmtDate(iso) {
     return new Date(iso.slice(0, 10) + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
-/** "5 days left", "Closes today", "Starts 3 Nov" or "Posted 2d ago". */
 export function whenText(it) {
     const d = daysUntil(it.deadline);
     if (d !== null && d >= 0) return d === 0 ? 'Closes today' : `${d} day${d === 1 ? '' : 's'} left`;
@@ -102,7 +95,6 @@ export function initials(text) {
     return (words.length > 1 ? words[0][0] + words[1][0] : (words[0] || '?').slice(0, 2)).toUpperCase();
 }
 
-/** Interest keywords that appear in the item (whole words). */
 export function matchedKeywords(it, keywords) {
     const text = ` ${it.title} ${it.organization || ''} ${it.extra_info || ''} `.toLowerCase();
     return keywords.filter(k => new RegExp(`[^a-z0-9]${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^a-z0-9]`).test(text));

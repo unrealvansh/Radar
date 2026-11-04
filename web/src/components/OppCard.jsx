@@ -8,7 +8,6 @@ import { IconCalendar, IconGlobe, IconPin } from './Icons.jsx';
 
 const finePointer = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover) and (pointer: fine)').matches;
 
-// The Simple view card: banner, round logo over its edge, title, one line, stats, pills, button.
 function OppCard({ item, index = 0, compact = false }) {
     const { keywords, openDetail } = useRadar();
     const d = daysUntil(item.deadline);
@@ -18,7 +17,6 @@ function OppCard({ item, index = 0, compact = false }) {
     const pills = [TYPE_LABEL[item.pillar], ...matchedKeywords(item, keywords).slice(0, 3)];
     if (item.mode && item.mode !== 'onsite') pills.push(item.mode);
 
-    // Pointer tilt: the card leans a few degrees toward the cursor (mouse only)
     const px = useMotionValue(0.5), py = useMotionValue(0.5);
     const rotX = useSpring(useTransform(py, [0, 1], [4, -4]), { stiffness: 220, damping: 22 });
     const rotY = useSpring(useTransform(px, [0, 1], [-5, 5]), { stiffness: 220, damping: 22 });
@@ -65,5 +63,4 @@ function OppCard({ item, index = 0, compact = false }) {
     );
 }
 
-// Cards only re-render when their own item changes (the grid can hold hundreds)
 export default memo(OppCard);
