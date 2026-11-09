@@ -40,7 +40,7 @@ JOB_MAX_AGE = 21
 NEWS_MAX_AGE = 3
 EVENT_UNDATED_MAX_AGE = 14
 
-PER_SOURCE_CAP = {'events': 12, 'jobs': 12, 'news': 3}
+PER_SOURCE_CAP = {'events': 50, 'jobs': 12, 'news': 3}
 
 TRACKING_PARAMS = re.compile(r'^(utm_.*|ref|ref_src|source|src|fbclid|gclid|mc_cid|mc_eid|trk|lever-source|gh_src)$', re.I)
 

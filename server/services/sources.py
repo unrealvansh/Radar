@@ -264,6 +264,9 @@ def dev_events():
         m = re.search(r'happening on ([A-Z][a-z]+ \d{1,2}, \d{4})', desc)
         starts = datetime.strptime(m.group(1), '%B %d, %Y').strftime('%Y-%m-%d') if m else None
         where = re.search(r'\d{4}, ([^.]+)\.', desc)
+        place = where.group(1) if where else ''
+        if not re.search(r'india|online|remote', place, re.I):
+            continue
         out.append(item('events', 'dev.events', e.findtext('title'), e.findtext('link'),
                         organization='Developer conference', deadline=starts, starts_at=starts,
                         extra_info=f"Conference • {where.group(1) if where else ''}"))
@@ -271,14 +274,56 @@ def dev_events():
 
 
 def gdg():
-    data = fetch_json("https://gdg.community.dev/api/search/?result_types=upcoming_event&country_code=IN")
+    from services.locations import detect
     out = []
-    for e in data.get('results', []):
-        starts = to_date(e.get('start_date'))
-        out.append(item('events', 'GDG', e.get('title'), e.get('url'),
-                        organization=(e.get('chapter') or {}).get('title', 'Google Developer Groups'),
-                        deadline=starts, starts_at=starts, extra_info=f"GDG Event • {e.get('city') or ''}"))
+    for page in (1, 2):
+        data = fetch_json(f"https://gdg.community.dev/api/event_slim/?status=Live&page_size=500&page={page}")
+        for e in data.get('results', []):
+            chapter = e.get('chapter_title') or ''
+            city = detect(f"{chapter} {e.get('title') or ''}")['city']
+            if not city and 'india' not in chapter.lower():
+                continue
+            starts = to_date(e.get('start_date'))
+            mode = 'Online' if e.get('audience_type') == 'VIRTUAL' else 'Offline'
+            out.append(item('events', 'GDG', e.get('title'), e.get('static_url'),
+                            organization=chapter or 'Google Developer Groups',
+                            deadline=starts, starts_at=starts,
+                            extra_info=f"GDG event, {mode}, {city or ''}",
+                            image=e.get('cropped_banner_url'), logo=e.get('cropped_picture_url')))
+        if not data.get('pagination', {}).get('next_page'):
+            break
     return out
+
+
+LUMA_CITIES = {
+    'Delhi NCR': (28.61, 77.23), 'Bengaluru': (12.97, 77.59), 'Mumbai': (19.08, 72.88),
+    'Hyderabad': (17.39, 78.49), 'Pune': (18.52, 73.86), 'Chennai': (13.08, 80.27),
+}
+
+
+def luma(city):
+    lat, lon = LUMA_CITIES[city]
+
+    def fetcher():
+        out, seen = [], set()
+        for category in ('cat-tech', 'cat-ai'):
+            data = fetch_json(f"https://api.lu.ma/discover/get-paginated-events?latitude={lat}&longitude={lon}"
+                              f"&discover_category_api_id={category}&pagination_limit=50")
+            for e in data.get('entries', []):
+                ev = e.get('event') or {}
+                if ev.get('api_id') in seen or not ev.get('url'):
+                    continue
+                seen.add(ev.get('api_id'))
+                starts = to_date(ev.get('start_at'))
+                where = (ev.get('geo_address_info') or {}).get('city') or ''
+                mode = 'Online' if ev.get('location_type') == 'online' else 'Offline'
+                hosts = ', '.join(h.get('name') for h in (e.get('hosts') or [])[:2] if h.get('name'))
+                out.append(item('events', 'Luma', ev.get('name'), f"https://lu.ma/{ev['url']}",
+                                organization=(e.get('calendar') or {}).get('name') or hosts or 'Luma',
+                                deadline=starts, starts_at=starts,
+                                extra_info=f"Meetup, {mode}, {where}", image=ev.get('cover_url')))
+        return out
+    return fetcher
 
 
 def codeforces():
@@ -421,6 +466,12 @@ SOURCES = [
     ('MLH', 'events', mlh),
     ('dev.events', 'events', dev_events),
     ('GDG India', 'events', gdg),
+    ('Luma Delhi NCR', 'events', luma('Delhi NCR')),
+    ('Luma Bengaluru', 'events', luma('Bengaluru')),
+    ('Luma Mumbai', 'events', luma('Mumbai')),
+    ('Luma Hyderabad', 'events', luma('Hyderabad')),
+    ('Luma Pune', 'events', luma('Pune')),
+    ('Luma Chennai', 'events', luma('Chennai')),
     ('Codeforces', 'events', codeforces),
     ('CodeChef', 'events', codechef),
     ('LeetCode', 'events', leetcode),

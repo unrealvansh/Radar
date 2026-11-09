@@ -6,7 +6,7 @@ Android phone with Termux.
 
 ## Features
 
-- **One feed from 71 sources**: Unstop, Devfolio, Devpost, MLH, HackerEarth, Codeforces,
+- **One feed from 77 sources**: Unstop, Devfolio, Devpost, MLH, HackerEarth, Luma (6 cities), Codeforces,
   CodeChef, LeetCode, GDG, dev.events, remote job boards, 23 company career pages and 22 news feeds
 - **Filtered for students**: no senior, sales or overseas roles; jobs must match your interest keywords
 - **No duplicates and nothing stale**: the same listing from two sites shows once; past events
