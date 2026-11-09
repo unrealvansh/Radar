@@ -265,7 +265,9 @@ def scan(pillars=('jobs', 'events', 'news')):
                 print(f"[Radar] {name} failed: {e}")
                 continue
 
-            if pillar == 'jobs':
+            if pillar == 'jobs' and getattr(fetcher, 'curated', False):
+                items = [it for it in items if not _has_word(it['title'].lower(), EXCLUDE)]
+            elif pillar == 'jobs':
                 items = [it for it in items if is_relevant_job(it['title'], keywords)]
             items = [it for it in items if is_fresh(it, today)]
             if pillar == 'events':

@@ -1,3 +1,4 @@
+import html
 import json
 import re
 import urllib.request
@@ -69,7 +70,7 @@ def tidy(text):
     text = EMOJI.sub('', text or '')
     text = re.sub(r'\s*[•·|]\s*|\s+[—–]\s+|—', ', ', text)
     text = re.sub(r'\s+', ' ', text)
-    return re.sub(r'(,\s*)+', ', ', text).strip(' ,')
+    return re.sub(r'(?:,\s*){2,}', ', ', text).strip(' ,')
 
 
 def item(pillar, source, title, url, organization='', deadline=None, starts_at=None,
@@ -455,6 +456,91 @@ def hn_jobs():
     return out
 
 
+def ago_to_date(text):
+    m = re.search(r'(\d+)\s*(hour|day|week|month)s?\s+ago', text or '', re.I)
+    days = 0
+    if m:
+        n, unit = int(m.group(1)), m.group(2).lower()
+        days = {'hour': 0, 'day': n, 'week': n * 7, 'month': n * 30}[unit]
+    return (datetime.now(IST) - timedelta(days=days)).strftime('%Y-%m-%d')
+
+
+def internshala(path, label, curated=True):
+    def fetcher():
+        page = fetch(f"https://internshala.com/{path}/").decode('utf-8', 'replace')
+        out = []
+        for card in re.split(r'(?=id="individual_internship_\d+")', page)[1:]:
+            href = re.search(r'''data-href=['"]([^'"]+)['"]''', card)
+            title = re.search(r'id="job_title"[^>]*>\s*([^<]+?)\s*<', card)
+            if not (href and title):
+                continue
+            company = re.search(r'class="company-name">\s*([^<]+?)\s*<', card)
+            places = re.search(r'class="row-1-item locations">(.*?)</div>', card, re.S)
+            where = ', '.join(re.findall(r'<a[^>]*>\s*([^<]+?)\s*</a>', places.group(1))) if places else ''
+            pay = re.search(r'''class=['"](?:stipend|desktop)['"]>\s*([^<]+?)\s*<''', card)
+            logo = re.search(r'class="internship_logo">\s*<img src="([^"]+)"', card)
+            posted = re.search(r'(\d+\s*(?:hour|day|week|month)s?\s+ago|Just now|Today|Few hours ago)', card, re.I)
+            out.append(item('jobs', 'Internshala', title.group(1), 'https://internshala.com' + href.group(1),
+                            organization=company.group(1) if company else 'Internshala',
+                            posted_at=ago_to_date(posted.group(1)) if posted else None,
+                            extra_info=', '.join(p for p in (label, where, pay.group(1) if pay else '') if p),
+                            logo=logo.group(1) if logo else ''))
+        return out
+    fetcher.curated = curated
+    return fetcher
+
+
+def instahyre():
+    jobs = []
+    for offset in range(0, 100, 20):
+        jobs += fetch_json("https://www.instahyre.com/api/v1/job_search?company_size=0&isLandingPage=true"
+                           f"&job_type=0&limit=20&offset={offset}").get('objects', [])
+    out = []
+    for j in jobs:
+        employer = j.get('employer') or {}
+        out.append(item('jobs', 'Instahyre', j.get('title') or j.get('candidate_title'), j.get('public_url'),
+                        organization=employer.get('company_name', ''),
+                        extra_info=', '.join(filter(None, (j.get('locations'), ', '.join((j.get('keywords') or [])[:3])))),
+                        logo=employer.get('profile_image_src')))
+    return out
+
+
+def yc_india():
+    page = fetch("https://www.ycombinator.com/jobs/location/india").decode('utf-8', 'replace')
+    m = re.search(r'data-page="([^"]+)"', page)
+    out = []
+    for j in (json.loads(html.unescape(m.group(1)))['props'].get('jobPostings', []) if m else []):
+        where = j.get('location') or ''
+        if re.match(r'([3-9]|\d\d)\+', j.get('minExperience') or ''):
+            continue
+        if not re.search(r'\bIN\b|India|Bengaluru|Bangalore|Mumbai|Delhi|Gurugram|Hyderabad|Pune|Chennai', where):
+            continue
+        out.append(item('jobs', 'Y Combinator', j.get('title'), 'https://www.ycombinator.com' + (j.get('url') or ''),
+                        organization=f"{j.get('companyName', '')} ({j.get('companyBatchName', '')})".replace(' ()', ''),
+                        posted_at=to_date(j.get('createdAt')),
+                        extra_info=', '.join(filter(None, (where, j.get('minExperience'), j.get('salaryRange')))),
+                        logo=j.get('companyLogoUrl')))
+    return out
+
+
+def freshersworld():
+    page = fetch("https://www.freshersworld.com/jobs/category/it-software-job-vacancies").decode('utf-8', 'replace')
+    out = []
+    for card in re.split(r'(?=<div[^>]*job_display_url=)', page)[1:]:
+        url = re.search(r'job_display_url="([^"]+)"', card)
+        title = re.search(r'class="wrap-title seo_title"[^>]*>\s*([^<]+?)\s*<', card)
+        if not (url and title):
+            continue
+        company = re.search(r'company-name"[^>]*>\s*([^<]+?)\s*<', card)
+        exp = re.search(r'class="experience job-details-span"[^>]*>\s*([^<]+?)\s*<', card)
+        posted = re.search(r'(\d+\s*(?:hour|day|week|month)s?\s+ago)', card)
+        out.append(item('jobs', 'Freshersworld', title.group(1), url.group(1),
+                        organization=company.group(1) if company else '',
+                        posted_at=ago_to_date(posted.group(1)) if posted else None,
+                        extra_info=exp.group(1) if exp else 'Fresher'))
+    return out
+
+
 SOURCES = [
     ('Unstop Hackathons', 'events', unstop('hackathons', 'events', 'Hackathon')),
     ('Unstop Competitions', 'events', unstop('competitions', 'events', 'Competition')),
@@ -513,6 +599,19 @@ SOURCES = [
     ('FamPay', 'jobs', lever('fampay', 'FamPay')),
     ('Sarvam AI', 'jobs', ashby('sarvam', 'Sarvam AI')),
     ('Atlan', 'jobs', ashby('atlan', 'Atlan')),
+    ('Notion', 'jobs', ashby('notion', 'Notion')),
+    ('Mindtickle', 'jobs', lever('mindtickle', 'Mindtickle')),
+    ('Hevo Data', 'jobs', lever('hevodata', 'Hevo Data')),
+    ('Coinbase', 'jobs', greenhouse('coinbase', 'Coinbase')),
+    ('Instahyre', 'jobs', instahyre),
+    ('Y Combinator', 'jobs', yc_india),
+    ('Freshersworld', 'jobs', freshersworld),
+    ('Internshala CS', 'jobs', internshala('internships/computer-science-internship', 'Internship')),
+    ('Internshala Web Dev', 'jobs', internshala('internships/web-development-internship', 'Internship')),
+    ('Internshala Data Science', 'jobs', internshala('internships/data-science-internship', 'Internship')),
+    ('Internshala ML', 'jobs', internshala('internships/machine-learning-internship', 'Internship')),
+    ('Internshala Android', 'jobs', internshala('internships/android-app-development-internship', 'Internship')),
+    ('Internshala Fresher Jobs', 'jobs', internshala('fresher-jobs/computer-science-jobs', 'Fresher job', curated=False)),
 
     ('Google AI Blog', 'news', rss("https://blog.google/technology/ai/rss/", 'Google AI Blog', tag='AI')),
     ('Google Developers', 'news', rss("https://developers.googleblog.com/feeds/posts/default?alt=rss", 'Google Developers', tag='Dev')),
